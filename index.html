@@ -716,19 +716,37 @@
 
   /* CODE BLOCK */
   .code-block { margin: 8px 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-light); }
-  .code-lang-label {
-    display: flex; align-items: center;
+  .code-block-header {
+    display: flex; align-items: center; justify-content: space-between;
     background: var(--border-light);
+    border-bottom: 1px solid var(--border-light);
+    padding: 2px 6px 2px 10px;
+  }
+  [data-theme="dark"] .code-block-header { background: rgba(255,255,255,0.06); }
+  .code-lang-label {
     color: var(--text-muted);
     font-family: var(--font-mono);
     font-size: 10px; font-weight: 700;
-    padding: 3px 10px;
     letter-spacing: 0.5px;
     text-transform: uppercase;
-    border-bottom: 1px solid var(--border-light);
   }
-  [data-theme="dark"] .code-lang-label { background: rgba(255,255,255,0.06); }
-  .code-block pre { margin: 0; border-radius: 0; border: none; }
+  .code-copy-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-family: var(--font-sans, inherit);
+    font-size: 11px; font-weight: 600;
+    padding: 3px 7px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .code-copy-btn:hover { background: rgba(0,87,184,0.08); color: var(--dc-blue); border-color: rgba(0,87,184,0.2); }
+  [data-theme="dark"] .code-copy-btn:hover { background: rgba(255,255,255,0.08); color: var(--dc-accent); border-color: rgba(255,255,255,0.15); }
+  .code-copy-btn.copied { color: #1a8754; background: rgba(26,135,84,0.1); border-color: rgba(26,135,84,0.25); }
+  .code-copy-btn svg { flex-shrink: 0; }
+  .code-block pre { margin: 0; border-radius: 0; border: none; white-space: pre; }
 
   /* TABLE */
   .table-wrap { overflow-x: auto; margin: 8px 0; border-radius: 8px; border: 1px solid var(--border-light); }
@@ -1810,6 +1828,40 @@
   .settings-reset-btn:hover { border-color: var(--border); color: var(--text-secondary); }
 
   /* TOAST */
+  .lang-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .lang-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 11px; font-size: 12px; font-weight: 600;
+    background: var(--bg-secondary); color: var(--text-secondary);
+    border: 1px solid var(--border-light); border-radius: 999px;
+    cursor: pointer; font-family: var(--font-main);
+    transition: all 0.15s;
+  }
+  .lang-chip:hover:not(.disabled):not(.active) { border-color: var(--dc-blue); color: var(--dc-blue); }
+  .lang-chip.active { background: var(--dc-blue); color: #fff; border-color: var(--dc-blue); }
+  .lang-chip.disabled { opacity: 0.55; cursor: not-allowed; }
+  .lang-badge {
+    font-size: 9.5px; font-weight: 800; letter-spacing: 0.5px;
+    padding: 2px 5px; border-radius: 4px; line-height: 1;
+  }
+  .lang-badge.beta { background: #FEF3C7; color: #92400E; }
+  .lang-badge.soon { background: #FDE68A; color: #78350F; }
+  .lang-chip.active .lang-badge.beta { background: rgba(255,255,255,0.25); color: #fff; }
+
+  #training-dropzone:hover, #training-dropzone.drag { border-color: var(--dc-blue); color: var(--text-primary); background: rgba(0,87,184,0.04); }
+  .training-file-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border: 1px solid var(--border-light); border-radius: 8px;
+    background: var(--bg-secondary); font-size: 12.5px;
+  }
+  .training-file-item .tf-name { flex: 1; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .training-file-item .tf-size { color: var(--text-muted); font-size: 11.5px; }
+  .training-file-item .tf-remove {
+    background: none; border: none; color: var(--text-muted); cursor: pointer;
+    padding: 4px 6px; border-radius: 4px; font-size: 14px; line-height: 1;
+  }
+  .training-file-item .tf-remove:hover { background: var(--border-light); color: #DC2626; }
+
   .settings-toast {
     position: fixed;
     bottom: 80px;
@@ -2127,7 +2179,6 @@
       </div>
     </div>
   </div>
-
 
 </main>
 
@@ -2447,7 +2498,12 @@
       </button>
     </div>
 
-    <div class="settings-body">
+    <div class="modal-tabs" style="padding:0 22px; margin-top:4px;">
+      <button class="modal-tab active" data-settings-tab="personalize" onclick="switchSettingsTab('personalize', this)">Personalize</button>
+      <button class="modal-tab" data-settings-tab="training" onclick="switchSettingsTab('training', this)">Training</button>
+    </div>
+
+    <div class="settings-body" data-settings-pane="personalize">
 
       <!-- Live Preview Card -->
       <div class="settings-preview-card">
@@ -2464,6 +2520,30 @@
         <label class="settings-label" for="settings-ai-name">AI Name</label>
         <input class="settings-input" id="settings-ai-name" type="text" placeholder="e.g. Barangay AI, Bayani, Isko…" maxlength="40" oninput="updateSettingsPreview()">
         <span class="settings-hint">This name appears in the header, welcome screen, and chat avatars.</span>
+      </div>
+
+      <hr class="settings-divider">
+
+      <!-- Reply Language -->
+      <div class="settings-field">
+        <label class="settings-label">Reply Language</label>
+        <div class="lang-picker" id="lang-picker">
+          <button type="button" class="lang-chip active" data-lang="english"  onclick="setLanguageChoice('english', this)">English</button>
+          <button type="button" class="lang-chip"        data-lang="filipino" onclick="setLanguageChoice('filipino', this)">Filipino</button>
+          <button type="button" class="lang-chip"        data-lang="taglish"  onclick="setLanguageChoice('taglish', this)">
+            Taglish <span class="lang-badge beta">BETA</span>
+          </button>
+          <button type="button" class="lang-chip disabled" disabled title="Coming soon">
+            Bisaya <span class="lang-badge soon">SOON</span>
+          </button>
+          <button type="button" class="lang-chip disabled" disabled title="Coming soon">
+            Hiligaynon <span class="lang-badge soon">SOON</span>
+          </button>
+          <button type="button" class="lang-chip disabled" disabled title="Coming soon">
+            Ilocano <span class="lang-badge soon">SOON</span>
+          </button>
+        </div>
+        <span class="settings-hint">The AI will reply in this language regardless of what you type. Taglish is in beta — quality may vary on the 3B model.</span>
       </div>
 
       <hr class="settings-divider">
@@ -2503,21 +2583,56 @@
           <button class="tone-preset-chip active" data-preset="default" onclick="setTonePreset('default', this)">Default</button>
           <button class="tone-preset-chip" data-preset="friendly" onclick="setTonePreset('friendly', this)">Friendly 😊</button>
           <button class="tone-preset-chip" data-preset="formal" onclick="setTonePreset('formal', this)">Formal</button>
-          <button class="tone-preset-chip" data-preset="taglish" onclick="setTonePreset('taglish', this)">Taglish 🇵🇭</button>
           <button class="tone-preset-chip" data-preset="teacher" onclick="setTonePreset('teacher', this)">Teacher 📚</button>
           <button class="tone-preset-chip" data-preset="strict" onclick="setTonePreset('strict', this)">Strict</button>
         </div>
-        <textarea class="settings-input settings-textarea" id="settings-ai-tone" placeholder="e.g. You are a friendly barangay assistant named Bayani. You speak in Taglish and always encourage students. Keep answers short and practical." oninput="detectActivePreset(this.value)"></textarea>
+        <textarea class="settings-input settings-textarea" id="settings-ai-tone" placeholder="e.g. You are a friendly barangay assistant named Bayani. You always encourage students. Keep answers short and practical." oninput="detectActivePreset(this.value)"></textarea>
         <span class="settings-hint">Pick a preset above or write your own system prompt — the hidden instruction that shapes how the AI thinks, speaks, and responds.</span>
       </div>
 
-      <!-- AI Knowledge & Abilities -->
+    </div>
+
+    <!-- Training Pane -->
+    <div class="settings-body" data-settings-pane="training" style="display:none;">
+
+      <!-- AI Knowledge & Abilities (moved from Personalize) -->
       <div class="settings-field">
         <label class="settings-label" for="settings-ai-knowledge">AI Knowledge &amp; Abilities</label>
         <textarea class="settings-input settings-textarea" id="settings-ai-knowledge" placeholder="e.g. You can help with coding in Python, JavaScript, and Dart. You know about the DEVCON Barangay AI Code Camp curriculum. You are familiar with Flutter and Firebase."></textarea>
-        <span class="settings-hint">Tell the AI what it knows and what it can help with. This is appended to the personality prompt so the AI stays aware of its own capabilities.</span>
+        <span class="settings-hint">Tell the AI what it knows and what it can help with. Appended to the personality prompt so the AI stays aware of its own capabilities.</span>
       </div>
 
+      <hr class="settings-divider">
+
+      <div class="settings-field">
+        <label class="settings-label">Train Your AI with Files</label>
+        <span class="settings-hint" style="margin-bottom:6px;">
+          Upload reference files (text, markdown, JSON, CSV). Their content is injected into the AI's system prompt as background knowledge — so the AI "knows" what's in them. This is not model fine-tuning; it works locally in your browser.
+        </span>
+
+        <div id="training-dropzone"
+             ondragover="event.preventDefault(); this.classList.add('drag');"
+             ondragleave="this.classList.remove('drag');"
+             ondrop="handleTrainingDrop(event)"
+             onclick="document.getElementById('training-file-input').click()"
+             style="margin-top:8px; padding:18px; border:2px dashed var(--border); border-radius:10px; text-align:center; cursor:pointer; color:var(--text-muted); font-size:13px; transition:all 0.15s;">
+          <div style="font-weight:600; color:var(--text-primary); margin-bottom:4px;">Drop files here or click to browse</div>
+          <div style="font-size:11.5px;">Accepts .txt, .md, .json, .csv, .pdf, .doc, .docx &nbsp;·&nbsp; up to 2 MB each</div>
+          <input id="training-file-input" type="file" multiple accept=".txt,.md,.markdown,.json,.csv,.log,.pdf,.doc,.docx,text/plain,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                 style="display:none;" onchange="handleTrainingFiles(this.files); this.value='';">
+        </div>
+
+        <div id="training-files-list" style="margin-top:12px; display:flex; flex-direction:column; gap:6px;"></div>
+        <div id="training-files-meta" style="margin-top:6px; font-size:11.5px; color:var(--text-muted);"></div>
+      </div>
+
+      <hr class="settings-divider">
+
+      <div class="settings-field">
+        <label class="settings-label" for="settings-training-notes">Additional Training Notes</label>
+        <textarea class="settings-input settings-textarea" id="settings-training-notes" placeholder="e.g. Always cite the uploaded barangay handbook when answering policy questions. Prefer examples from the uploaded curriculum."></textarea>
+        <span class="settings-hint">Free-form instructions about how the AI should use your uploaded files.</span>
+      </div>
     </div>
 
     <div class="settings-footer">
@@ -2530,6 +2645,21 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs" type="module"></script>
+<script type="module">
+  // pdf.js worker — required for PDF parsing
+  if (window.pdfjsLib || window['pdfjs-dist/build/pdf']) {
+    const lib = window.pdfjsLib || window['pdfjs-dist/build/pdf'];
+    lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
+  } else {
+    // Dynamic import fallback so the lib is reachable as window.pdfjsLib
+    import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs').then(mod => {
+      window.pdfjsLib = mod;
+      mod.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
+    });
+  }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -16,7 +16,6 @@ const TONE_PRESETS = {
   default:  '',
   friendly: 'You are {name} — a warm, encouraging AI assistant. You celebrate curiosity, use simple language, add friendly emojis occasionally, and always make the user feel confident and supported. Keep answers clear and concise.',
   formal:   'You are {name} — a professional AI assistant. Communicate in clear, structured, formal language. No slang or emojis. Provide thorough, accurate, well-formatted answers.',
-  taglish:  'Ikaw si {name} — isang AI assistant na nagsasalita ng Taglish (Tagalog-English mix). Maging palakaibiganin at natural sa pag-usap. Gamitin ang Filipino warmth habang nananatiling helpful at technical kung kinakailangan.',
   teacher:  'You are {name} — a patient, educational AI tutor. Break complex topics into clear steps, use analogies, ask clarifying questions, and prioritize helping the user understand rather than just giving answers.',
   strict:   'You are {name} — a precise, no-nonsense AI. Give direct, concise answers only. No filler phrases or excessive praise. Prioritize accuracy and brevity above all else.',
 };
@@ -30,12 +29,45 @@ let isDark = false;
 let isConnected = false;
 
 // ── SESSION MANAGEMENT ────────────────────────────────────────────────
+const SESSIONS_KEY = 'barangayai_sessions';
+const CURRENT_SESSION_KEY = 'barangayai_current_session';
+
+function saveSessionsToStorage() {
+  try {
+    localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+    if (currentSessionId) localStorage.setItem(CURRENT_SESSION_KEY, currentSessionId);
+  } catch (e) { console.warn('Failed to save sessions:', e); }
+}
+
+function loadSessionsFromStorage() {
+  try {
+    const raw = localStorage.getItem(SESSIONS_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || !parsed.length) return false;
+    sessions = parsed.map(s => ({
+      id: s.id,
+      title: s.title || 'New conversation',
+      displayMessages: Array.isArray(s.displayMessages) ? s.displayMessages : [],
+      created: s.created ? new Date(s.created) : new Date(),
+    }));
+    const savedCurrent = localStorage.getItem(CURRENT_SESSION_KEY);
+    if (savedCurrent && sessions.some(s => s.id === savedCurrent)) currentSessionId = savedCurrent;
+    else currentSessionId = sessions[0].id;
+    return true;
+  } catch (e) {
+    console.warn('Failed to load sessions:', e);
+    return false;
+  }
+}
+
 function createSession(title) {
   const id = 'sess_' + Date.now();
   const session = { id, title: title || 'New conversation', displayMessages: [], created: new Date() };
   sessions.unshift(session);
   currentSessionId = id;
   renderHistory();
+  saveSessionsToStorage();
   return session;
 }
 
@@ -50,6 +82,7 @@ function loadSession(id) {
   messages = session.displayMessages.map(m => ({ role: m.role, content: m.content }));
   renderHistory();
   renderSessionMessages(session);
+  try { localStorage.setItem(CURRENT_SESSION_KEY, currentSessionId); } catch {}
   if (window.innerWidth <= 640) {
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('overlay').classList.remove('visible');
@@ -95,6 +128,7 @@ function deleteSession(id) {
   } else {
     renderHistory();
   }
+  saveSessionsToStorage();
 }
 
 function renderSessionMessages(session) {
@@ -168,6 +202,11 @@ function applySettings(s) {
   if (mh) mh.textContent = name.toUpperCase();
   if (s.ai_tone !== undefined) window._AI_TONE_ACTIVE = s.ai_tone;
   if (s.ai_knowledge !== undefined) window._AI_KNOWLEDGE_ACTIVE = s.ai_knowledge;
+  window._TRAINING_FILES_ACTIVE = Array.isArray(s.training_files) ? s.training_files : [];
+  window._TRAINING_NOTES_ACTIVE = s.training_notes || '';
+  let _lang = s.reply_language || 'english';
+  if (_lang === 'tagalog') _lang = 'filipino';
+  window._REPLY_LANG_ACTIVE = _lang;
   window._GREETING_ACTIVE = s.welcome_greeting || null;
   const initials = name.slice(0, 2).toUpperCase();
   document.querySelectorAll('.avatar.ai').forEach(a => a.textContent = initials);
@@ -245,6 +284,20 @@ function openSettings() {
   greetInput.value     = s.welcome_greeting || '';
   if (knowledgeInput) knowledgeInput.value = s.ai_knowledge || '';
 
+  // Language picker
+  const langChoice = s.reply_language || 'english';
+  document.querySelectorAll('#lang-picker .lang-chip').forEach(el => {
+    if (el.disabled) return;
+    el.classList.toggle('active', el.dataset.lang === langChoice);
+  });
+
+  // Training tab
+  window._TRAINING_FILES_DRAFT = Array.isArray(s.training_files) ? s.training_files.slice() : [];
+  const notesInput = document.getElementById('settings-training-notes');
+  if (notesInput) notesInput.value = s.training_notes || '';
+  renderTrainingFilesList();
+  switchSettingsTab('personalize');
+
   document.getElementById('settings-brand-color-label').textContent = brandInput.value;
 
   document.querySelectorAll('#brand-swatches .color-swatch').forEach(el =>
@@ -285,6 +338,14 @@ function resetSettingsForm() {
   document.getElementById('settings-greeting').value = '';
   const ki = document.getElementById('settings-ai-knowledge');
   if (ki) ki.value = '';
+  const tn = document.getElementById('settings-training-notes');
+  if (tn) tn.value = '';
+  window._TRAINING_FILES_DRAFT = [];
+  renderTrainingFilesList();
+  document.querySelectorAll('#lang-picker .lang-chip').forEach(el => {
+    if (el.disabled) return;
+    el.classList.toggle('active', el.dataset.lang === 'english');
+  });
   document.getElementById('settings-brand-color-label').textContent = BRAND_COLOR;
   document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
   document.querySelector(`#brand-swatches [data-color="${BRAND_COLOR}"]`)?.classList.add('active');
@@ -299,12 +360,159 @@ function applyAndSaveSettings() {
     ai_tone:          document.getElementById('settings-ai-tone').value.trim(),
     welcome_greeting: document.getElementById('settings-greeting').value.trim(),
     ai_knowledge:     (document.getElementById('settings-ai-knowledge')?.value.trim() || ''),
+    training_files:   (window._TRAINING_FILES_DRAFT || []),
+    training_notes:   (document.getElementById('settings-training-notes')?.value.trim() || ''),
+    reply_language:   (document.querySelector('#lang-picker .lang-chip.active')?.dataset.lang || 'english'),
   };
   saveSettings(s);
   applySettings(s);
   closeSettings();
   showToast('Settings saved!');
 }
+
+// ── LANGUAGE PICKER ───────────────────────────────────────────────────
+function setLanguageChoice(lang, btn) {
+  document.querySelectorAll('#lang-picker .lang-chip').forEach(el => {
+    if (el.disabled) return;
+    el.classList.toggle('active', el === btn);
+  });
+}
+window.setLanguageChoice = setLanguageChoice;
+
+function buildLanguageRule(lang) {
+  const banned = `\n- NEVER respond in Indonesian, Malay, Spanish, or any other language. Do not use Indonesian words like "Buatan", "kegiatan", "pengguna", "merintangi", "lingkungan", "berbagai", "mungkin", "dengan", "yang", "ini" (in Indonesian sense), etc.`;
+  if (lang === 'filipino') {
+    return `\n\n## Language Rule (strict)\nRespond ONLY in Filipino, regardless of what language the user writes in.\n- Register: casual, conversational Filipino — the way a classmate or kuya/ate would talk. NOT formal, NOT literary, NOT news-anchor Tagalog, NOT deep/archaic words like "teknolohiya" when "tech" works, or "pangkalahatan" when nobody actually says it.\n- Match the user's energy: if they ask casually ("whats up", "ano ba"), reply casually ("kumusta!", "ayos lang"). If they ask a technical question, be helpful and clear.\n- Grammar must be correct natural Filipino. Common verb patterns: "Pwede kong gawin ito" (NOT "Pwede kong mag-isip" as a greeting). "Ano'ng ginagawa mo?" (NOT "Saan ka nagkaka-accomplish?").\n- Keep widely-used technical terms (AI, code, function, API, file, project, app) in English — do not invent or translate them awkwardly.\n- ESCAPE HATCH: If you do not know the natural Filipino word or phrasing for something, USE THE ENGLISH WORD instead of inventing or guessing. A correct Taglish sentence is far better than broken Filipino.${banned}`;
+  }
+  if (lang === 'taglish') {
+    return `\n\n## Language Rule (strict, BETA)\nRespond in Taglish — natural code-switching between Filipino and English the way Filipinos actually speak.\n- Mix Filipino sentence structure with English technical terms and common English words.\n- Casual, conversational register. Talk like a classmate, not like a textbook.\n- Example tone: "Pwede mong i-run yung code sa terminal, tapos i-check mo yung output."\n- Grammar in the Filipino parts must be correct natural Filipino. If you're unsure of a Filipino word, just use the English one — that's what Taglish does anyway.${banned}`;
+  }
+  // default: english
+  return `\n\n## Language Rule (strict)\nRespond ONLY in English, regardless of what language the user writes in. Use clear, simple English.${banned}`;
+}
+
+// ── TRAINING TAB ──────────────────────────────────────────────────────
+window.switchSettingsTab = switchSettingsTab;
+window.handleTrainingDrop = handleTrainingDrop;
+window.handleTrainingFiles = handleTrainingFiles;
+window.removeTrainingFile = removeTrainingFile;
+
+function switchSettingsTab(tab, btn) {
+  document.querySelectorAll('[data-settings-tab]').forEach(el => {
+    el.classList.toggle('active', el.dataset.settingsTab === tab);
+  });
+  document.querySelectorAll('[data-settings-pane]').forEach(el => {
+    el.style.display = el.dataset.settingsPane === tab ? '' : 'none';
+  });
+}
+
+const TRAINING_MAX_FILE_BYTES = 2 * 1024 * 1024;   // 2 MB per file
+const TRAINING_MAX_TOTAL_BYTES = 8 * 1024 * 1024;  // 8 MB total
+const TRAINING_TEXT_EXT = ['txt','md','markdown','json','csv','log'];
+const TRAINING_PDF_EXT  = ['pdf'];
+const TRAINING_DOCX_EXT = ['docx','doc'];
+const TRAINING_ALLOWED_EXT = [...TRAINING_TEXT_EXT, ...TRAINING_PDF_EXT, ...TRAINING_DOCX_EXT];
+const TRAINING_EXTRACTED_CAP = 200 * 1024; // cap extracted text per file at ~200 KB to protect context window
+
+async function extractPdfText(file) {
+  const lib = window.pdfjsLib;
+  if (!lib) throw new Error('pdf.js not loaded');
+  const buf = await file.arrayBuffer();
+  const pdf = await lib.getDocument({ data: buf }).promise;
+  let out = '';
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const tc = await page.getTextContent();
+    out += tc.items.map(it => it.str).join(' ') + '\n\n';
+    if (out.length > TRAINING_EXTRACTED_CAP) { out = out.slice(0, TRAINING_EXTRACTED_CAP) + '\n…[truncated]'; break; }
+  }
+  return out.trim();
+}
+
+async function extractDocxText(file) {
+  if (!window.mammoth) throw new Error('mammoth.js not loaded');
+  const buf = await file.arrayBuffer();
+  const result = await window.mammoth.extractRawText({ arrayBuffer: buf });
+  let text = (result.value || '').trim();
+  if (text.length > TRAINING_EXTRACTED_CAP) text = text.slice(0, TRAINING_EXTRACTED_CAP) + '\n…[truncated]';
+  return text;
+}
+
+function handleTrainingDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag');
+  if (e.dataTransfer?.files?.length) handleTrainingFiles(e.dataTransfer.files);
+}
+
+async function handleTrainingFiles(fileList) {
+  const files = Array.from(fileList || []);
+  const draft = window._TRAINING_FILES_DRAFT || (window._TRAINING_FILES_DRAFT = []);
+  let added = 0, skipped = [];
+
+  for (const file of files) {
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (!TRAINING_ALLOWED_EXT.includes(ext)) { skipped.push(`${file.name} (unsupported type)`); continue; }
+    if (file.size > TRAINING_MAX_FILE_BYTES) { skipped.push(`${file.name} (too large, max 2 MB)`); continue; }
+    const totalSoFar = draft.reduce((n, f) => n + (f.size || 0), 0);
+    if (totalSoFar + file.size > TRAINING_MAX_TOTAL_BYTES) { skipped.push(`${file.name} (total quota exceeded)`); continue; }
+    if (draft.some(f => f.name === file.name && f.size === file.size)) { skipped.push(`${file.name} (already added)`); continue; }
+    try {
+      let content;
+      if (TRAINING_PDF_EXT.includes(ext))       content = await extractPdfText(file);
+      else if (TRAINING_DOCX_EXT.includes(ext)) content = await extractDocxText(file);
+      else                                      content = await file.text();
+      if (!content || !content.trim()) { skipped.push(`${file.name} (no extractable text)`); continue; }
+      draft.push({ name: file.name, size: file.size, content, addedAt: Date.now() });
+      added++;
+    } catch (err) {
+      console.error('Training extract error:', err);
+      skipped.push(`${file.name} (${err.message || 'parse error'})`);
+    }
+  }
+  renderTrainingFilesList();
+  if (added) showToast(`Added ${added} file${added === 1 ? '' : 's'}`);
+  if (skipped.length) showToast(`Skipped: ${skipped.join(', ')}`);
+}
+
+function removeTrainingFile(index) {
+  const draft = window._TRAINING_FILES_DRAFT || [];
+  draft.splice(index, 1);
+  renderTrainingFilesList();
+}
+
+function renderTrainingFilesList() {
+  const list = document.getElementById('training-files-list');
+  const meta = document.getElementById('training-files-meta');
+  if (!list) return;
+  const draft = window._TRAINING_FILES_DRAFT || [];
+  list.innerHTML = '';
+  if (!draft.length) {
+    if (meta) meta.textContent = 'No files yet. Files are saved with your settings when you click Apply & Save.';
+    return;
+  }
+  draft.forEach((f, i) => {
+    const row = document.createElement('div');
+    row.className = 'training-file-item';
+    row.innerHTML = `
+      <span style="font-size:14px;">📄</span>
+      <span class="tf-name" title="${escapeAttr(f.name)}">${escapeHtml(f.name)}</span>
+      <span class="tf-size">${formatBytes(f.size)}</span>
+      <button class="tf-remove" title="Remove" aria-label="Remove">✕</button>
+    `;
+    row.querySelector('.tf-remove').addEventListener('click', () => removeTrainingFile(i));
+    list.appendChild(row);
+  });
+  const total = draft.reduce((n, f) => n + (f.size || 0), 0);
+  if (meta) meta.textContent = `${draft.length} file${draft.length === 1 ? '' : 's'} · ${formatBytes(total)} total · saved on Apply & Save`;
+}
+
+function formatBytes(n) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s) { return escapeHtml(s); }
 
 function showToast(msg) {
   const t = document.createElement('div');
@@ -462,6 +670,38 @@ function escHtml(str) {
     .replace(/>/g, '&gt;');
 }
 
+// ── COPY CODE BLOCK ───────────────────────────────────────────────────
+function copyCodeBlock(btn) {
+  const block = btn.closest('.code-block');
+  if (!block) return;
+  const pre = block.querySelector('pre');
+  if (!pre) return;
+  const text = pre.textContent;
+  const label = btn.querySelector('.code-copy-label');
+  const done = () => {
+    btn.classList.add('copied');
+    if (label) label.textContent = 'Copied';
+    setTimeout(() => { btn.classList.remove('copied'); if (label) label.textContent = 'Copy'; }, 1500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+window.copyCodeBlock = copyCodeBlock;
+
+function fallbackCopy(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); cb && cb(); } catch {}
+  document.body.removeChild(ta);
+}
+
 // ── MARKDOWN RENDERER ─────────────────────────────────────────────────
 function inlineFmt(text) {
   const codes = [];
@@ -499,8 +739,14 @@ function renderTable(lines) {
 function formatContent(rawText) {
   const codeBlocks = [];
   let text = rawText.replace(/```([\w]*)\n?([\s\S]*?)```/g, (_, lang, code) => {
-    const label = lang ? `<div class="code-lang-label">${escHtml(lang)}</div>` : '';
-    codeBlocks.push(`<div class="code-block">${label}<pre>${escHtml(code.trim())}</pre></div>`);
+    const header = `<div class="code-block-header">
+        <span class="code-lang-label">${lang ? escHtml(lang) : 'code'}</span>
+        <button class="code-copy-btn" onclick="copyCodeBlock(this)" title="Copy code" aria-label="Copy code">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <span class="code-copy-label">Copy</span>
+        </button>
+      </div>`;
+    codeBlocks.push(`<div class="code-block">${header}<pre>${escHtml(code.replace(/\n+$/, ''))}</pre></div>`);
     return `\x00c${codeBlocks.length - 1}\x00`;
   });
 
@@ -677,6 +923,7 @@ function updateHistory(firstMessage) {
   renderHistory();
   const titleEl = document.getElementById('chat-title');
   if (titleEl && session) titleEl.textContent = session.title;
+  saveSessionsToStorage();
 }
 
 // ── XHR FALLBACK ──────────────────────────────────────────────────────
@@ -727,15 +974,29 @@ async function sendMessage() {
   const _runtimeKnowledge = window._AI_KNOWLEDGE_ACTIVE || '';
   const _basePrompt = _runtimeTone ||
     `You are ${_runtimeName} — an open source AI assistant built by the Filipino developer community. You run locally via Ollama and Qwen on school lab hardware. Help with programming, open source, AI/ML, local LLM setup, and Filipino tech topics. Be friendly and practical. You may use Filipino/Taglish warmth but stay clear and technical when needed.`;
-  const systemPrompt = _runtimeKnowledge
-    ? `${_basePrompt}\n\n## Your Knowledge & Abilities\n${_runtimeKnowledge}`
-    : _basePrompt;
+  const _focusRule = `\n\n## Answer Scope Rule (strict)\nAnswer ONLY what the user explicitly asked for. Do not add adjacent, related, or "bonus" information unless the user asked for it.\n- If the user says "list my projects only", return ONLY projects — no education, no skills, no certifications, no closing offers to add more.\n- If the user asks "what is X", define X — do not also explain Y and Z.\n- If the user asks for a list of N items, return exactly that list — no preamble like "Sure, here's a summary…" and no trailing "If you want, I can also…".\n- Treat words like "only", "just", "specifically" as hard filters. Everything outside that filter must be excluded even if it seems helpful.\n- When information is missing from the provided reference material to answer the exact question, say so briefly instead of substituting related information.\n- Prefer short, direct answers over comprehensive ones. Brevity = accuracy here.`;
+  const _languageChoice = window._REPLY_LANG_ACTIVE || 'english';
+  const _languageRule = buildLanguageRule(_languageChoice);
+  let systemPrompt = _runtimeKnowledge
+    ? `${_basePrompt}${_focusRule}${_languageRule}\n\n## Your Knowledge & Abilities\n${_runtimeKnowledge}`
+    : `${_basePrompt}${_focusRule}${_languageRule}`;
+
+  const _trainingFiles = Array.isArray(window._TRAINING_FILES_ACTIVE) ? window._TRAINING_FILES_ACTIVE : [];
+  const _trainingNotes = window._TRAINING_NOTES_ACTIVE || '';
+  if (_trainingFiles.length || _trainingNotes) {
+    let trainingBlock = '\n\n## Training Reference Material\nThe user has provided the following reference material. Use it as authoritative background knowledge when relevant.\n';
+    if (_trainingNotes) trainingBlock += `\n### Instructions\n${_trainingNotes}\n`;
+    for (const f of _trainingFiles) {
+      trainingBlock += `\n### File: ${f.name}\n${f.content}\n`;
+    }
+    systemPrompt += trainingBlock;
+  }
 
   const payload = {
     model: window.ACTIVE_MODEL,
     messages: [{ role: 'system', content: systemPrompt }, ...messages],
     max_tokens: 1024,
-    temperature: 0.7
+    temperature: 0.3
   };
 
   const startTime = Date.now();
@@ -1045,6 +1306,7 @@ function clearChat() {
   if (session) { session.displayMessages = []; session.title = 'New conversation'; }
   resetWelcomeScreen();
   renderHistory();
+  saveSessionsToStorage();
 }
 
 function newChat() {
@@ -1086,8 +1348,20 @@ window.addEventListener('load', () => {
   const el = document.getElementById('welcome-greeting');
   if (el) el.textContent = window._GREETING_ACTIVE || greetings[Math.floor(Math.random() * greetings.length)];
 
-  // Create the initial session
-  createSession();
+  // Restore previous sessions if any, otherwise start fresh
+  if (loadSessionsFromStorage()) {
+    const session = getCurrentSession();
+    if (session && session.displayMessages.length) {
+      messages = session.displayMessages.map(m => ({ role: m.role, content: m.content }));
+      renderHistory();
+      renderSessionMessages(session);
+    } else {
+      renderHistory();
+      resetWelcomeScreen();
+    }
+  } else {
+    createSession();
+  }
 
   openModal();
   document.getElementById('message-input').focus();
