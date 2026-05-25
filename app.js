@@ -620,7 +620,7 @@ function appendMsgMeta(chatArea, elapsedMs, completionTokens, fullText) {
   const meta = document.createElement('div');
   meta.className = 'msg-meta';
   const secs = (elapsedMs / 1000).toFixed(1) + 's';
-  const tokens = completionTokens ?? (fullText ? Math.round(fullText.length / 4) : null);
+  const tokens = fullText ? (completionTokens ?? Math.round(fullText.length / 4)) : null;
   const parts = [secs];
   if (tokens) parts.push('~' + tokens + ' tokens');
   parts.push(window.ACTIVE_MODEL);
@@ -786,7 +786,7 @@ async function sendMessage() {
         if (data === '[DONE]') break;
         try {
           const parsed = JSON.parse(data);
-          if (parsed.usage) completionTokens = parsed.usage.completion_tokens ?? parsed.usage.total_tokens ?? null;
+          if (parsed.usage) completionTokens = parsed.usage.completion_tokens ?? null;
           const delta = parsed.choices?.[0]?.delta?.content || '';
           if (delta) { fullText += delta; bubble.innerHTML = formatContent(fullText); scrollToBottom(); }
         } catch {}
