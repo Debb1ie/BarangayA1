@@ -29,36 +29,20 @@ let isDark = false;
 let isConnected = false;
 
 // ── SESSION MANAGEMENT ────────────────────────────────────────────────
-const SESSIONS_KEY = 'barangayai_sessions';
-const CURRENT_SESSION_KEY = 'barangayai_current_session';
 
 function saveSessionsToStorage() {
-  try {
-    localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
-    if (currentSessionId) localStorage.setItem(CURRENT_SESSION_KEY, currentSessionId);
-  } catch (e) { console.warn('Failed to save sessions:', e); }
+  if (window.BarangayDB) window.BarangayDB.dbSaveSessions(sessions, currentSessionId);
 }
 
 function loadSessionsFromStorage() {
-  try {
-    const raw = localStorage.getItem(SESSIONS_KEY);
-    if (!raw) return false;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || !parsed.length) return false;
-    sessions = parsed.map(s => ({
-      id: s.id,
-      title: s.title || 'New conversation',
-      displayMessages: Array.isArray(s.displayMessages) ? s.displayMessages : [],
-      created: s.created ? new Date(s.created) : new Date(),
-    }));
-    const savedCurrent = localStorage.getItem(CURRENT_SESSION_KEY);
-    if (savedCurrent && sessions.some(s => s.id === savedCurrent)) currentSessionId = savedCurrent;
-    else currentSessionId = sessions[0].id;
-    return true;
-  } catch (e) {
-    console.warn('Failed to load sessions:', e);
-    return false;
-  }
+  if (!window.BarangayDB) return false;
+  const { sessions: loaded, currentId } = window.BarangayDB.dbLoadSessions();
+  if (!loaded.length) return false;
+  sessions = loaded;
+  currentSessionId = (currentId && loaded.some(s => s.id === currentId))
+    ? currentId
+    : loaded[0].id;
+  return true;
 }
 
 function createSession(title) {
@@ -82,7 +66,7 @@ function loadSession(id) {
   messages = session.displayMessages.map(m => ({ role: m.role, content: m.content }));
   renderHistory();
   renderSessionMessages(session);
-  try { localStorage.setItem(CURRENT_SESSION_KEY, currentSessionId); } catch {}
+  if (window.BarangayDB) window.BarangayDB.dbSetCurrentSession(currentSessionId);
   if (window.innerWidth <= 640) {
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('overlay').classList.remove('visible');
@@ -171,15 +155,14 @@ function renderSessionMessages(session) {
 }
 
 // ── PERSONALIZATION ───────────────────────────────────────────────────
-const SETTINGS_KEY = 'barangayai_settings';
 
 function loadSettings() {
-  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); }
-  catch { return {}; }
+  if (window.BarangayDB) return window.BarangayDB.dbLoadSettings();
+  return {};
 }
 
 function saveSettings(s) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  if (window.BarangayDB) window.BarangayDB.dbSaveSettings(s);
 }
 
 function applySettings(s) {
@@ -1320,7 +1303,8 @@ function newChat() {
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
+  if (window.BarangayDB) await window.BarangayDB.initDB();
   document.documentElement.style.setProperty('--dc-blue', BRAND_COLOR);
   document.documentElement.style.setProperty('--dc-accent', ACCENT_COLOR);
 
