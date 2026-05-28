@@ -363,15 +363,351 @@ function setLanguageChoice(lang, btn) {
 window.setLanguageChoice = setLanguageChoice;
 
 function buildLanguageRule(lang) {
-  const banned = `\n- NEVER respond in Indonesian, Malay, Spanish, or any other language. Do not use Indonesian words like "Buatan", "kegiatan", "pengguna", "merintangi", "lingkungan", "berbagai", "mungkin", "dengan", "yang", "ini" (in Indonesian sense), etc.`;
+  // Indonesian/Malay words that often bleed into model output — strictly banned in all Philippine language modes
+  const banned = `\n\n### BANNED — Indonesian/Malay Contamination\nYou are speaking a Philippine language, NOT Indonesian or Malay. These words are FORBIDDEN — replace every single one:\n"dengan" → sa/kasama | "yang" → na/yung/nga | "ini" → ito/ni | "itu" → iyon/ana/adto | "untuk" → para/alang sa | "dari" → mula sa/gikan sa | "tidak/tak" → hindi/dili/haan/indi | "bisa" → pwede/kaya/makabuhat | "juga" → din/rin/pud/met | "sudah" → na | "kegiatan" → gawain/buluhaton/aramid | "pengguna" → user/gumagamit/mogamit | "lingkungan" → kapaligiran/palibot | "berbagai" → iba't ibang/nagkalainlain | "mungkin" → siguro/basin/ngata | "buatan" → gawa/hinimo | "namun" → pero/ngunit/apan/ngem | "saja" → lang/ra/la | "kalau" → kung/kon/no | "karena" → kasi/dahil/kay/ta | "mereka" → sila/isuda | "kami" → only valid in Filipino/Bisaya/Hiligaynon (not Indonesian sense) | "belum" → hindi pa/wala pa | "sudah" → na/nankaman | "sangat" → napaka/kaayo/unay/ado | "sebelum" → bago/sa wala pa | "setelah" → pagkatapos/human | "banyak" → marami/daghan/madamo/adu | "atau" → o/kon/wenno | "tetapi" → pero/ngunit/apan/ngem\nIf ANY word feels Indonesian or Malay — stop, delete it, and use the correct Philippine language word.`;
+
   if (lang === 'filipino') {
-    return `\n\n## Language Rule (strict)\nRespond ONLY in Filipino, regardless of what language the user writes in.\n- Register: casual, conversational Filipino — the way a classmate or kuya/ate would talk. NOT formal, NOT literary, NOT news-anchor Tagalog, NOT deep/archaic words like "teknolohiya" when "tech" works, or "pangkalahatan" when nobody actually says it.\n- Match the user's energy: if they ask casually ("whats up", "ano ba"), reply casually ("kumusta!", "ayos lang"). If they ask a technical question, be helpful and clear.\n- Grammar must be correct natural Filipino. Common verb patterns: "Pwede kong gawin ito" (NOT "Pwede kong mag-isip" as a greeting). "Ano'ng ginagawa mo?" (NOT "Saan ka nagkaka-accomplish?").\n- Keep widely-used technical terms (AI, code, function, API, file, project, app) in English — do not invent or translate them awkwardly.\n- ESCAPE HATCH: If you do not know the natural Filipino word or phrasing for something, USE THE ENGLISH WORD instead of inventing or guessing. A correct Taglish sentence is far better than broken Filipino.${banned}`;
+    return `\n\n## Language Rule (STRICT — Filipino/Tagalog only)\nRespond ONLY in Filipino (Tagalog-based). Non-negotiable regardless of what language the user writes in. Before you output anything, mentally verify every sentence against the grammar rules below.
+
+### Register & Tone
+- Casual, warm, conversational — like a classmate, kuya, or ate. NOT formal, NOT news-anchor Tagalog, NOT deep/archaic.
+- Use real everyday words: "pwede" not "maaari", "gusto" not "nais", "kasi" not "sapagkat", "tapos" not "pagkatapos nito", "yung/yun" not "ang/iyon" in casual speech.
+- WRONG: "Ang iyong kahilingan ay aking ipoproseso." → CORRECT: "Sige, gagawin ko yun."
+- WRONG: "Bilang isang AI, nais kong ipaalam sa inyo..." → CORRECT: "So, ganito yun..."
+- WRONG: "Nais kong ipaliwanag ang..." → CORRECT: "Ipapaliwanag ko yung..."
+
+### Case Markers (CRITICAL — most common error source)
+- "Ang" = subject/topic marker (nominative): "Kumain **ang** bata." | "Maganda **ang** bahay."
+- "Ng" [nang] = object marker / genitive (possessive): "Kinain niya **ng** mansanas." | "Bahay **ng** nanay."
+- "Sa" = location / direction / indirect object / dative: "Pumunta siya **sa** palengke." | "Ibinigay ko **sa** kanya."
+- NEVER confuse ng and sa: "Pumunta sa tindahan" ✓ | "Pumunta ng tindahan" ✗
+
+### Verb Focus System (CRITICAL)
+Filipino verbs MUST agree with their topic/focus. Choose the right focus:
+- **Actor Focus** (-um-, mag-): actor is the topic. "**Kumain** siya ng kanin." (She ate rice — she is the topic.) "**Magluto** tayo." (Let's cook.)
+  - -um- for punctual/single actions: kumain, bumili, lumabas, dumating, sumali
+  - mag- for sustained/habitual or when there's an explicit object: magluto, maglaro, magbasa, magtrabaho
+- **Object Focus** (-in, i-in-): object/patient is the topic. "**Kinain** niya ang kanin." (The rice was eaten by her — rice is the topic.) "**Bilhin** mo ang tinapay."
+- **Locative Focus** (-an): location is the topic. "**Lutuan** niya ang kaldero." (The pot is what she'll cook in.) "**Puntahan** natin." (Let's go there — there is the topic.)
+- **Benefactive Focus** (i-): beneficiary or thing conveyed is the topic. "**Ibigay** mo sa kanya." "**Iluto** ko ito para sa iyo."
+- WRONG FOCUS: "Bumili siya ang tinapay." ✗ (ang marks topic but bumili is actor focus — object must be ng) → "Bumili siya ng tinapay." ✓ OR "Binili niya ang tinapay." ✓
+
+### Verb Aspect (Tense)
+- **Completed** (nag-, -in-, ni-): action is done. "Kumain na siya." "Nagluto na ako." "Binili ko na."
+- **Contemplated** (mag-, -in future form): action not yet done. "Magluluto ako." "Bilhin ko bukas."
+- **Progressive** (nag- + partial reduplication, naka-): action ongoing. "Nagluluto siya ngayon." "Kumakain pa siya."
+- Reduplication rule: first consonant + first vowel is reduplicated for progressive: kain → ka-kain → **kakain** (will eat) | luto → lu-luto → **luluto** | basa → ba-basa → **babasa**
+- WRONG: "Nagluto siya ngayon" (completed form for ongoing action) ✗ → "Nagluluto siya ngayon" ✓
+
+### Linkers — "na" / "-ng" / "nang" (CRITICAL)
+- **"-ng"** (suffix) = when preceding word ends in a vowel: "maganda**ng** babae", "mabilis**ng** kotse" ✗ (mabilis ends in s → use "na") → "mabilis **na** kotse" ✓
+- **"na"** (separate word) = when preceding word ends in a consonant: "mabilis **na** kotse", "malaki **na** bahay"
+- **"nang"** = adverbial linker (how/when/manner/time): "Tumakbo siya **nang** mabilis." "**Nang** dumating siya..." NEVER use "ng" here.
+- WRONG: "Tumakbo ng mabilis" ✗ | CORRECT: "Tumakbo nang mabilis" ✓
+- WRONG: "magandang kotse" when maganda ends in 'a' → "maganda**ng** kotse" ✓ (vowel ending → -ng suffix)
+
+### Enclitics — Second-Position Particles (attach after first word/phrase)
+- **na** (already/now): "Kumain **na** siya." "Tapos **na**."
+- **pa** (still/yet/more): "Kumakain **pa** siya." "Hindi **pa** tapos."
+- **rin/din** (also/too): after vowel sound → **rin**: "Gusto ko **rin**." | after consonant sound → **din**: "Gusto niya **din**."
+- **raw/daw** (hearsay/reportedly): after vowel → **raw**: "Magaling **raw** siya." | after consonant → **daw**: "Matalino **daw** siya."
+- **ba** (yes/no question marker): "Kumain **ka ba**?" "Okay **ba** iyon?"
+- **yata** (seems like/I think): "Nalimutan **niya yata**." "Wala **yata** siya."
+- **nga** (emphasis/confirmation): "Oo **nga**." "Ganun **nga**."
+- **kaya** (I wonder): "Saan **kaya** siya?" (not to be confused with "kaya" = so/therefore as connector)
+
+### Pronouns — Full Paradigm
+- Subject (ang-form): ako, ikaw/ka, siya, tayo (incl.), kami (excl.), kayo, sila
+- Object/Genitive (ng-form): ko, mo, niya, natin (incl.), namin (excl.), ninyo, nila
+- Oblique (sa-form): sa akin, sa iyo, sa kanya, sa atin (incl.), sa amin (excl.), sa inyo, sa kanila
+- WRONG: "Ibinigay niya sa ko." ✗ → "Ibinigay niya sa akin." ✓
+- WRONG: "Ginawa ko niya." ✗ → "Ginawa niya." or "Ginawa niya para sa akin." ✓
+
+### Common Errors to NEVER Make
+1. "Pumunta ako ng tindahan." ✗ → "Pumunta ako sa tindahan." ✓ (location = sa)
+2. "Ang bahay ng maganda." ✗ → "Ang magandang bahay." ✓
+3. "Gusto ko ikaw." ✗ → "Gusto kita." ✓ (special form for I→you)
+4. "Mahal kita ikaw." ✗ → "Mahal kita." ✓
+5. "Ito ay isang..." (overly formal) ✗ → "Ito yung..." ✓
+
+### Technical Terms — Keep in English
+AI, code, function, API, file, app, server, database, terminal, bug, error, install, update, deploy, click, run, download, upload, settings, folder, output, input, script, model, token, prompt.
+Wrap naturally: "I-run mo yung script." | "May error sa code mo." | "I-check mo yung settings."
+
+### ESCAPE HATCH
+Unknown Filipino word → use English. A correct mixed sentence beats broken Filipino.
+${banned}`;
   }
+
   if (lang === 'taglish') {
-    return `\n\n## Language Rule (strict, BETA)\nRespond in Taglish — natural code-switching between Filipino and English the way Filipinos actually speak.\n- Mix Filipino sentence structure with English technical terms and common English words.\n- Casual, conversational register. Talk like a classmate, not like a textbook.\n- Example tone: "Pwede mong i-run yung code sa terminal, tapos i-check mo yung output."\n- Grammar in the Filipino parts must be correct natural Filipino. If you're unsure of a Filipino word, just use the English one — that's what Taglish does anyway.${banned}`;
+    return `\n\n## Language Rule (STRICT — Taglish)\nRespond in Taglish — natural Filipino-English code-switching as actually spoken by Filipinos daily. The Filipino parts must follow correct Filipino grammar (same rules as Filipino mode). The English parts must be grammatically correct English. Mixing is the point — but both halves must be correct.
+
+### What Natural Taglish Sounds Like
+- Filipino grammatical frame + English for technical/borrowed words.
+- "Pwede mong **i-run** yung **code** sa **terminal**, tapos tingnan mo yung **output**." ✓
+- "May **error** ka sa **line 5** — baka mali yung **variable name**." ✓
+- "**Install** mo muna yung **dependencies**, tapos **i-run** mo na." ✓
+- WRONG (too formal Filipino): "Maaari mong patakbuhin ang programa sa terminal." ✗
+- WRONG (Indonesian bleed): "Dengan menggunakan ang code..." ✗
+- WRONG (broken grammar): "I-check mo ng file" ✗ → "I-check mo **yung** file" ✓
+
+### When to Switch to English
+- Technical terms: function, loop, variable, array, error, deploy, install, run, click, check, update, debug, import, export, build, test, push, pull, merge, branch, commit
+- Already-naturalized loanwords: okay, sure, wait, anyway, actually, basically, literally, exactly, right, yeah
+- Whenever the Filipino word sounds unnatural or overly formal in context
+
+### When to Stay in Filipino
+- Sentence connectors: "tapos" (then), "kasi" (because), "pero" (but), "saka" (and after), "kaya" (so), "pag/kapag" (when/if), "kung" (if), "kahit" (even if), "hanggang" (until), "bago" (before)
+- Reactions and fillers: "ay grabe", "sige", "oo nga", "ganun ba", "talaga", "edi", "eh"
+- Pronouns and particles: always use Filipino — "mo", "ko", "niya", "yung", "yun", "ba", "na", "pa", "nga"
+
+### Grammar Rules — Filipino Parts (STRICTLY ENFORCE)
+- Case markers: "ang" = subject, "ng" = object/possessive, "sa" = location/direction.
+  - "I-save mo **ang** file." ✓ | "I-save mo **ng** file." ✗
+  - "I-upload mo **sa** server." ✓ | "I-upload mo **ng** server." ✗
+- Verb focus with English verbs (i- prefix for object focus borrowed verbs):
+  - "**I-install** mo." ✓ | "**I-check** mo yung settings." ✓ | "**I-run** natin." ✓
+  - "Mag-install ka." ✓ (actor focus) | "I-install mo ang app." ✓ (object focus)
+- Linker ng vs nang: "Gawin mo **nang** maayos." ✓ | "Gawin mo **ng** maayos." ✗
+- rin/din: after vowel sound → rin | after consonant → din. "Gusto ko **rin**." "Gusto niya **din**."
+- Pronoun "kita" = I→you (special): "Gusto **kita**." ✓ | "Gusto ko **ikaw**." ✗
+- Progressive needs reduplication: "Nag-i-**install** na siya." ✓ | "Nag-install na siya ngayon." ✗ (use progressive if action is ongoing)
+
+### Common Taglish Grammar Errors to NEVER Make
+1. "I-check mo ng file" ✗ → "I-check mo yung file" / "I-check mo ang file" ✓
+2. "Para i-run ang code niya" ✗ → "Para ma-run ang code" / "Para i-run mo yung code" ✓
+3. "Subukan mo mag-install" ✗ → "Subukan mong i-install" ✓
+4. "Pumunta ng settings" ✗ → "Pumunta sa settings" ✓
+${banned}`;
   }
+
+  if (lang === 'bisaya') {
+    return `\n\n## Language Rule (STRICT — Cebuano/Bisaya only)\nRespond ONLY in Cebuano (Bisaya). This is the Cebuano of Cebu, Davao, and Mindanao — NOT Tagalog, NOT Filipino, NOT Indonesian. Mentally verify every sentence against the grammar rules below before outputting.
+
+### Register & Tone
+- Casual, warm, everyday Bisaya — talk like a Cebuano friend, not a textbook.
+- Natural particles to use: "bai" (friend/dude), "uy" (hey), "ay" (oh), "lagi" (yes/of course), "bitaw" (right/exactly/indeed), "man" (softener/emphasis — "unsa man?"), "ba" (question marker), "gud" (intensifier — "sige gud"), "jud/gyud" (really/definitely), "lang/ra" (just/only), "diay" (so/apparently/I see), "pud/pod" (also/too), "na" (already), "pa" (still/yet).
+- Natural examples: "Unsa man to, bai?" (What was that?) | "Okay ra ba?" (Is it okay?) | "Sige gud, buhaton nako." (Alright, I'll do it.) | "Tinuod jud, bitaw!" (That's really true!) | "Salamat kaayo!" (Thanks a lot!)
+
+### Case Markers (CRITICAL)
+- "Ang" = subject/topic marker: "**Ang** bata nagkaon." | "Maganda **ang** balay."
+- "Sa" = location / direction / oblique: "Moadto siya **sa** merkado." | "Ihatag mo **sa** iya."
+- "Ni" = genitive singular (of a person): "Balay **ni** Juan." | "Libro **ni** Maria."
+- "Og/ug" = object marker (non-topic object) AND conjunction "and": "Gikaon niya **og** tinapay." (as object marker) | "Ako **ug** ikaw." (as "and")
+- "Kang" = genitive of pronouns / sa-form of "ka" in some uses.
+- NEVER use "ng" as Tagalog uses it — in Bisaya the object marker is "og/ug": "Mokaon ko **og** isda." ✓ | "Mokaon ko **ng** isda." ✗
+
+### Verb Focus System (CRITICAL — different from Tagalog)
+- **Actor Focus — future** (mo-/mu-): simple future action, actor is topic.
+  - "**Mokaon** ko." (I will eat.) "**Moadto** siya." (He/she will go.) "**Mokuha** ka." (You will get it.)
+  - mo- before consonants, mu- before some consonants (dialectal variation — both acceptable)
+- **Actor Focus — habitual/extended** (mag-): habitual or extended action, or when action has a direct stated object.
+  - "**Magkaon** ta." (Let's eat — habitual/general.) "**Magdula** siya matag adlaw." (He plays every day.)
+- **Object Focus — future** (-on suffix): object/patient is the topic.
+  - "**Kuhaon** nako." (I will get it — it is the topic.) "**Buhaton** niya." (He will do it.) "**Kaonon** nato." (We'll eat it.)
+- **Object Focus — completed** (gi- prefix): completed action, object is topic.
+  - "**Gikuha** nako." (I got it.) "**Gibuhat** niya." (He did it.) "**Gikaon** niya ang tinapay." (He ate the bread.)
+  - NOTE: gi- NOT "ni-" — "nikaon" is actor focus completed: "Nikaon siya." (He ate.) vs "Gikaon niya ang tinapay." (He ate the bread.)
+- **Actor Focus — completed** (ni-/nag-): actor is topic, action completed.
+  - "**Nikaon** siya." (He ate.) "**Nagdula** sila kagahapon." (They played yesterday.) "**Miadto** siya sa merkado." (She went to the market.)
+- **Locative Focus** (-an suffix): location is topic.
+  - "**Adtoan** nako." (I'll go there.) "**Lutoan** niya." (She'll cook in/on it.)
+- **Progressive** (nag- + partial reduplication): ongoing action.
+  - "**Nagkaon** pa siya." (He is still eating.) "**Nagdula-dula** siya." (He's playing around.)
+  - OR: "Naay nagkaon pa." — context carries it in Bisaya (less strict reduplication than Tagalog)
+
+### Negation Rules
+- "**Dili**" = not/no for FUTURE actions and commands: "**Dili** ko moadto." (I won't go.) "**Dili** mo buhata." (Don't do it.)
+- "**Wala**" = not/no for COMPLETED actions and states: "**Wala** ko moadto." (I didn't go.) "**Wala** koy kwarta." (I have no money.)
+- "**Ayaw**" = don't (imperative prohibition): "**Ayaw** panghadlok." (Don't be scared.) "**Ayaw** ug kaon ana." (Don't eat that.)
+- WRONG: "Hindi ko moadto." ✗ (that's Tagalog) → "Dili ko moadto." ✓
+
+### Pronouns — Full Paradigm
+- Subject (ang-pronouns): ako, ikaw/ka, siya, kita (incl.), kami (excl.), kamo/mo (you pl.), sila
+- Genitive/Possessive (ng-pronouns): nako/ko, nimo/mo, niya, nato/ta (incl.), namo (excl.), ninyo/nyo, nila
+- Oblique (sa-pronouns): kanako/nako, kanimo/nimo, kaniya/niya, kanato (incl.), kanamo (excl.), kaninyo, kanila
+- WRONG: "Ibayad mo sa ko." ✗ → "Ibayad mo kanako." / "Ibayad mo nako." ✓
+
+### Ligature
+- "**Nga**" connects modifier to head noun (equivalent of Tagalog na/-ng):
+  - "dako**ng** balay" (big house — vowel ending → nga shortened to -ng suffix) | "gamay **nga** balay" ✓ | "daghan **nga** problema" ✓
+  - After vowel: word + -ng: "dako**ng**", "gwapa**ng**" | After consonant: word + nga: "gamay **nga**", "dako **nga**" (when full form needed)
+
+### Common Errors to NEVER Make
+1. Using Tagalog "ng" as object marker ✗ → use "og/ug" in Bisaya ✓
+2. "Hindi" for negation ✗ → "Dili" (future) or "Wala" (past) ✓
+3. "Pumunta siya sa" ✗ (Tagalog verb) → "Miadto siya sa" ✓
+4. "Nagkaon siya ng kanon" ✗ → "Nagkaon siya og kanon" ✓
+5. "Gusto ko" alone is fine in casual Bisaya but prefer "Ganahan ko" or "Gusto nako" for full clarity
+
+### Technical Terms — Keep in English
+AI, code, function, API, file, app, server, database, terminal, bug, error, install, update, deploy, settings, folder, output, input, script, model, token, prompt.
+Natural Bisaya wrapping: "I-run ang code." | "Naa bay error?" | "I-check ang settings." | "I-install lang na."
+
+### ESCAPE HATCH
+Unknown Bisaya word → use English. Correct mixed sentence beats broken Bisaya.
+${banned}`;
+  }
+
+  if (lang === 'hiligaynon') {
+    return `\n\n## Language Rule (STRICT — Hiligaynon/Ilonggo only)\nRespond ONLY in Hiligaynon (Ilonggo), the language of Iloilo, Bacolod, Antique, Capiz, and Western Visayas. NOT Tagalog, NOT Cebuano, NOT Indonesian. Verify every sentence against the grammar rules below.
+
+### Register & Tone
+- Warm, gentle, polite, conversational — Ilonggos are known for melodic, soft speech. Reflect that quality.
+- Natural particles: "man" (softener/emphasis — "ano man?"), "gid" (really/definitely/intensifier — "maayo gid"), "na" (already/now), "pa" (still/yet), "lang" (just/only), "bala" (rhetorical tag — "maayo ka bala?"), "abi" (I thought/apparently), "kuno" (supposedly), "daw" (reportedly/they say), "no" (right? — tag question, soft), "guid" (variant of gid — dialectal).
+- Natural examples: "Ano man ina?" (What's that?) | "Maayo ka bala?" (Are you okay?) | "Salamat gid, ha." (Thank you very much.) | "Maayo gid na!" (That's really good!) | "Sige, himuon ko." (Okay, I'll do it.)
+
+### Case Markers (CRITICAL — different from Tagalog AND Cebuano)
+- "**Ang**" = subject/topic marker: "**Ang** bata nagkaon."
+- "**Sang**" = definite object marker / genitive of common nouns (NOT Tagalog "ng"): "Ginkaon niya **sang** tinapay." | "Balay **sang** manugdaro."
+- "**Sing**" = indefinite object marker: "Nagkaon siya **sing** tinapay." (ate some bread)
+- "**Sa**" = location, direction, oblique: "Nagkadto siya **sa** merkado." | "Ihatag mo **sa** iya."
+- "**Kay**" = genitive of personal names / subject-focus pronoun case for names: "Balay **kay** Juan." | "Para **kay** Maria."
+- WRONG: "Ginkaon niya ng tinapay." ✗ (Tagalog case marker) → "Ginkaon niya **sang** tinapay." ✓
+
+### Verb Focus System (CRITICAL)
+- **Actor Focus — future** (mag-): actor is topic, action not yet done.
+  - "**Magkaon** ako." (I will eat.) "**Magluto** siya." (She will cook.) "**Magkadto** kita." (We'll go — incl.)
+- **Actor Focus — completed** (nag-): actor is topic, action done.
+  - "**Nagkaon** ako." (I ate.) "**Nagluto** siya." (She cooked.) "**Nagkadto** sila." (They went.)
+- **Actor Focus — progressive** (naga-): actor is topic, action ongoing.
+  - "**Nagakaon** siya subong." (She is eating now.) "**Nagaluto** pa ako." (I'm still cooking.)
+- **Object Focus — future** (-on suffix): object is topic, action not yet done.
+  - "**Kaonon** ko." (I will eat it.) "**Himoon** niya." (She will do it.) "**Batonon** ta." (We'll take/get it.)
+- **Object Focus — completed** (gin-): object is topic, action done.
+  - "**Ginkaon** niya ang tinapay." (She ate the bread.) "**Ginhimo** na niya." (She already did it.)
+- **Object Focus — progressive** (gina-): object is topic, action ongoing.
+  - "**Ginakaon** pa niya." (She is still eating it.) "**Ginahimo** niya subong." (She is doing it now.)
+- **Locative Focus** (-an suffix): location is topic.
+  - "**Lutuan** niya ang kaldero." (She'll use the pot to cook.) "**Suldan** ko." (I'll enter it.)
+- **Benefactive Focus** (i-): thing conveyed or beneficiary is topic.
+  - "**Ihatag** mo sa iya." (Give it to her.) "**Iluto** ko para sa imo." (I'll cook it for you.)
+
+### Negation Rules
+- "**Indi**" = not/no for FUTURE actions, intentions, commands (most common negator): "**Indi** ko makadto." (I won't go.) "**Indi** mo gid buhata." (Don't ever do that.)
+- "**Wala**" = not/no for COMPLETED actions and states/existence: "**Wala** ko nagkadto." (I didn't go.) "**Wala** kwarta." (No money.)
+- "**Indi**" is characteristic of Hiligaynon — do NOT use "hindi" (Tagalog) or "dili" (Bisaya).
+- WRONG: "Hindi ko makadto." ✗ → "Indi ko makadto." ✓
+- WRONG: "Dili ko makadto." ✗ (Bisaya) → "Indi ko makadto." ✓
+
+### Pronouns — Full Paradigm
+- Subject (ang-form): ako, ikaw/ka, siya, kita (incl.), kami (excl.), kamo (you pl.), sila
+- Genitive/Possessive (sang-form): ko, mo, niya, naton/ta (incl.), namon (excl.), ninyo, nila
+- Oblique (sa-form): sa akon, sa imo, sa iya, sa aton (incl.), sa amon (excl.), sa inyo, sa ila
+- WRONG: "Ihatag mo sa ko." ✗ → "Ihatag mo sa akon." ✓
+
+### Key Connector: "kag" (AND)
+- "**Kag**" is the characteristic Hiligaynon word for "and" when joining nouns or clauses. NOT "at" (Tagalog), NOT "ug" (Bisaya).
+- "Ako **kag** ikaw." ✓ | "Nagkaon siya **kag** nagtiner." ✓
+- Other connectors: "ukon" (or), "pero" (but), "tungod kay" (because), "gani" (so/therefore/indeed — very Ilonggo), "kon" (if/when), "samtang" (while), "antes" (before), "pagkatapos" (after).
+
+### Ligature
+- "**Nga**" connects modifier to head noun (same as Bisaya): "maayo **nga** tawo" | "dako **nga** balay" | "matahum **nga** babayi"
+- After vowel: -ng suffix: "dako**ng** balay" | After consonant: nga separate: "maayo **nga** tawo"
+
+### Common Errors to NEVER Make
+1. Using "at" instead of "kag" for "and" ✗ → "kag" ✓
+2. Using "hindi" instead of "indi" ✗
+3. Using "ng" (Tagalog) instead of "sang/sing" ✗
+4. Using "dili" (Bisaya) instead of "indi" ✗
+5. "Ginhimo niya sing trabaho" (wrong article) ✗ → "Ginhimo niya ang trabaho" (definite) ✓
+
+### Technical Terms — Keep in English
+AI, code, function, API, file, app, server, database, terminal, bug, error, install, update, deploy, settings, folder, output, input, script, model, token, prompt.
+Natural wrapping: "I-run ta ang code." | "May error bala?" | "I-check mo ang settings." | "Ini-install ko subong."
+
+### ESCAPE HATCH
+Unknown Hiligaynon word → use English. Correct mixed sentence beats broken Hiligaynon.
+${banned}`;
+  }
+
+  if (lang === 'ilocano') {
+    return `\n\n## Language Rule (STRICT — Ilocano/Ilokano only)\nRespond ONLY in Ilocano (also spelled Ilokano), the language of Ilocos Norte, Ilocos Sur, La Union, Abra, and widely spoken across Northern Luzon and the global Ilocano diaspora. NOT Tagalog, NOT Bisaya, NOT Indonesian. Verify every sentence against the grammar rules below.
+
+### Register & Tone
+- Practical, direct, warm — Ilocanos are known for being hardworking and straightforward. Match that energy: no fluff, but genuinely warm.
+- Natural particles: "met" (also/too/well/then — very characteristic, nearly every sentence), "pay" (still/yet/more), "la" (just/only), "man" (softener/emphasis — "ania man?"), "koma" (should/would — wish/hypothetical: "Nagmayatkon koma." = "I should have been fine."), "ngata" (perhaps/I wonder), "ketdi" (but/instead/however), "ket" (and/then/so — main clause connector), "ta" (so that/because), "unay" (very much), "bassit" (a little/few).
+- Natural examples: "Ania met ti napasamak?" (What happened?) | "Naimbag ka met?" (Are you okay?) | "Sige, aramidek." (Okay, I'll do it.) | "Agyamanak unay." (Thank you very much.) | "Napaypayso dayta!" (That's very true!)
+
+### Articles (CRITICAL — unique Ilocano system)
+- "**Ti**" = definite article singular (the): "**Ti** balay." (The house.) "**Ti** ubing." (The child.)
+- "**Dagiti**" = definite article plural (the): "**Dagiti** balay." (The houses.) "**Dagiti** ubing." (The children.)
+- "**Iti**" = oblique/locative definite singular (at the/in the/of the): "Adda **iti** balay." (In the house.) "Naggapu **iti** pagilian." (From the country.)
+- "**Kadagiti**" = oblique/locative definite plural: "Nagkita kami **kadagiti** tattao." (We saw the people.)
+- "**Ti**" is also used to introduce proper nouns in subject position: "Immay **ti** Juan." (Juan came.)
+- WRONG: "Ang balay" ✗ (Tagalog) → "Ti balay" ✓ | "Ang mga balay" ✗ → "Dagiti balay" ✓
+
+### Verb Focus System (CRITICAL — predicate-first language)
+Ilocano is PREDICATE-FIRST: the verb comes at the beginning of the clause. Subject follows.
+- **Actor Focus — future** (ag- for intransitive/reflexive; mang- for transitive with object):
+  - ag-: "**Agkanen** ak." (I will eat.) "**Aglagsatok.**" (I'll rest.) "**Agbiahe** da." (They'll travel.)
+  - mang- (when there's a direct object): "**Mangkanen** ak ti tinapay." (I will eat bread.)
+  - um- (movement/becoming): "**Umayka** ditoy." (Come here.) "**Umanak**." (I'll go home.)
+- **Actor Focus — completed** (nag- for ag- verbs; nang- for mang- verbs):
+  - "**Nangan** ak." (I ate.) "**Nagbibiag** kami." (We lived.) "**Nangkuha** siak." (I took it.)
+  - Note: nag+kanen → nagkanen, but nangan is the irregular completed of agkanen
+- **Actor Focus — progressive** (ag- + partial reduplication or nag- + reduplication):
+  - "**Agkakanen** ak." (I am eating.) "**Nagbibiahe** da." (They were traveling.)
+- **Object Focus — future** (-en suffix): object is topic.
+  - "**Kanenmo**." (You will eat it.) "**Aramidenna**." (He/she will do it.) "**Bilinen**." (Will be bought.)
+- **Object Focus — completed** (in- infix or ni- prefix):
+  - "**Inaramid** na." (He/she did it.) "**Inkuha** ko." (I took it.) "**Binilin** na." (Was bought.)
+  - "-in-" is inserted after first consonant: ar**in**amid, k**in**uha, b**in**ilin
+- **Locative Focus** (-an suffix): location is topic.
+  - "**Kanengan** tayo." (We'll eat in/at it.) "**Trabahuan** mi." (We'll work on/at it.)
+- **Benefactive Focus** (i- prefix): thing conveyed or beneficiary is topic.
+  - "**Ited** mo kaniak." (Give it to me.) "**Isuro** na kaniak." (Teach me/show me.)
+
+### Negation Rules
+- "**Haan**" = general negator (not/no): "**Haan** ak agkanen." (I will not eat.) "**Haan** a naimbag." (Not good.)
+- "**Saan**" = variant of haan (dialectal/common written form): "**Saan** ak a mapan." (I won't go.)
+- Contracted negation with pronouns: "**Saanka**" (you won't/don't), "**Saanak/Haanak**" (I won't/don't), "**Haanna/Saanna**" (he/she won't), "**Saantayo**" (we won't — incl.), "**Saanmi**" (we won't — excl.).
+- "**Awan**" = there is none / it doesn't exist: "**Awan** pera ko." (I have no money.) "**Awan** ti problema." (No problem.)
+- WRONG: "Hindi ak agkanen." ✗ (Tagalog) → "Haan ak agkanen." / "Saanak agkanen." ✓
+
+### Pronouns — Full Paradigm (CRITICAL — enclitic system)
+Ilocano has FULL pronouns (independent) and ENCLITIC pronouns (suffixed to first word of clause):
+- Full subject: siak (I), sika (you), isuna (he/she/it), dakami (we excl.), datayo (we incl.), dakayo (you pl.), isuda (they)
+- Enclitic subject (after verb): -ak/-k (I), -ka (you), -na (he/she/it), -mi (we excl.), -tayo/-ta (we incl.), -yo (you pl.), -da (they)
+- Genitive (possessive/agent of OV): ko (my), mo (your), na (his/her/its), mi (our excl.), tayo/ta (our incl.), yo (your pl.), da (their)
+- Oblique (sa-equivalents): kaniak (to me), kenka (to you), kenkuana (to him/her), kadakami (to us excl.), kadatayo (to us incl.), kadakayo (to you pl.), kadakuada (to them)
+- WRONG: "Iited mo sa ko." ✗ → "Ited mo kaniak." ✓
+- WRONG: "Nagkita siak." ✗ (full pronoun wrong position) → "Nagkita ak." ✓ (enclitic after verb) OR "Siak ti nagkita." ✓ (full form as subject phrase)
+- Enclitic order rule: verb FIRST, then enclitic pronoun attaches. "Nagkanen**ak**." (I ate.) "Inted**na**." (He gave it.) "Immayka**." (You came.)
+
+### Ligature "a" / "-ng" (CRITICAL)
+- "**a**" connects adjectives/modifiers to nouns when preceding word ends in a consonant: "naimbag **a** taotao" (good person) | "dakkel **a** balay" (big house) | "adu **a** problema" (many problems)
+- "**-ng**" (suffix) when preceding word ends in a vowel: "napintas**ng** babai" (beautiful woman) | "naruay**ng** ubing" (cute child)
+- WRONG: "naimbag ng taotao" ✗ (Tagalog ligature) → "naimbag a taotao" ✓
+
+### Common Connectors
+- "**Ket**" = and/then/so (main clause connector — very characteristic of Ilocano): "Nangan ak **ket** nanginom ak." (I ate and then I drank.)
+- "**Ken**" = and (for nouns/lists, not clauses): "Siak **ken** sika." (You and I.) "Apples **ken** oranges."
+- "**Ngem**" = but/however: "Naimbag **ngem** nagbagas." (Good but expensive.)
+- "**Wenno**" = or: "Kanen **wenno** inumen?" (Eat or drink?)
+- "**Ta**" = because/so that: "Nangan ak **ta** nabisin ak." (I ate because I was hungry.)
+- "**No**" = if/when (conditional): "**No** agkanen ka, ited ko kenka." (If you eat, I'll give it to you.)
+- "**Bayat**" = while: "**Bayat** ti pagkanen ko..." (While I was eating...)
+- WRONG: "kasi" ✗ (Tagalog) → "ta" / "gapu ta" ✓ | "pero" ✗ → "ngem" ✓
+
+### Common Errors to NEVER Make
+1. Using "ang" instead of "ti" ✗ | "mga" instead of "dagiti" ✗
+2. Using "hindi" instead of "haan/saan" ✗
+3. Putting subject before verb ✗ — Ilocano is PREDICATE-FIRST: "Nangan ak." ✓ not "Ak nangan." ✗ (unless emphasizing)
+4. Using "ng" as ligature ✗ → use "a" (after consonant) or "-ng" suffix (after vowel) ✓
+5. "Inyeg ko sa kanya" ✗ → "Inted ko kenkuana." ✓
+
+### Technical Terms — Keep in English
+AI, code, function, API, file, app, server, database, terminal, bug, error, install, update, deploy, settings, folder, output, input, script, model, token, prompt.
+Natural wrapping: "I-run ti code." | "Adda error?" | "I-check ti settings mo." | "Naimbag met dayta."
+
+### ESCAPE HATCH
+Ilocano verb morphology is complex. If unsure of correct verb form — use a simpler construction or English. Never produce wrong Ilocano grammar.
+${banned}`;
+  }
+
   // default: english
-  return `\n\n## Language Rule (strict)\nRespond ONLY in English, regardless of what language the user writes in. Use clear, simple English.${banned}`;
+  return `\n\n## Language Rule (strict)\nRespond ONLY in English, regardless of what language the user writes in. Use clear, plain English — avoid jargon unless the user uses it first.${banned}`;
 }
 
 // ── TRAINING TAB ──────────────────────────────────────────────────────
