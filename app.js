@@ -27,6 +27,7 @@ let currentSessionId = null;
 let isStreaming = false;
 let isDark = false;
 let isConnected = false;
+let _modelWarm = false;      // true after first successful model response in this session
 
 // ── SESSION MANAGEMENT ────────────────────────────────────────────────
 
@@ -1158,9 +1159,16 @@ function appendTypingIndicator() {
   row.innerHTML = `
     <div class="avatar ai">${getAIAvatar()}</div>
     <div class="bubble ai thinking-bubble">
-      <div class="thinking-spinner"></div>
-      <span class="thinking-label" id="thinking-label">Thinking</span>
-      <span class="thinking-model-tag">${window.ACTIVE_MODEL}</span>
+      <div class="thinking-top-row">
+        <div class="thinking-spinner"></div>
+        <span class="thinking-label" id="thinking-label">Thinking</span>
+        <span class="thinking-model-tag">${window.ACTIVE_MODEL}</span>
+      </div>
+      <div class="thinking-steps-header" onclick="toggleThinkingSteps(this)">
+        <span>Process</span>
+        <span class="thinking-steps-chevron up">▼</span>
+      </div>
+      <div class="thinking-steps-list" id="thinking-steps-list"></div>
     </div>`;
   chatArea.appendChild(row);
 
@@ -1177,8 +1185,105 @@ function appendTypingIndicator() {
 
 function removeTypingIndicator() {
   clearInterval(window._thinkingInterval);
+  clearInterval(window._thinkTimerInterval);
+  window._thinkTimerInterval = null;
   const el = document.getElementById('typing-row');
   if (el) el.remove();
+}
+
+function toggleThinkingSteps(headerEl) {
+  const list = headerEl.nextElementSibling;
+  const chevron = headerEl.querySelector('.thinking-steps-chevron');
+  if (!list) return;
+  list.classList.toggle('hidden');
+  chevron.classList.toggle('up');
+}
+
+function updateThinkingStep(stepId, status, label) {
+  const list = document.getElementById('thinking-steps-list');
+  if (!list) return;
+  let step = document.getElementById(`ts-${stepId}`);
+  if (!step) {
+    step = document.createElement('div');
+    step.id = `ts-${stepId}`;
+    list.appendChild(step);
+  }
+  step.className = `thinking-step step-${status}`;
+  const iconHtml = status === 'active'
+    ? '<div class="step-mini-spinner"></div>'
+    : status === 'done'
+      ? '<span style="color:#22c55e;font-size:11px">✓</span>'
+      : status === 'error'
+        ? '<span style="color:#ef4444;font-size:11px">✗</span>'
+        : '<span style="opacity:0.35;font-size:10px">○</span>';
+  step.innerHTML = `<span class="step-icon">${iconHtml}</span><span>${escHtml(label)}</span>`;
+  scrollToBottom();
+}
+
+function parseThinkDisplay(text) {
+  const start = text.indexOf('<think>');
+  if (start === -1) return { think: '', display: text };
+  const end = text.indexOf('</think>');
+  if (end === -1) {
+    return { think: text.slice(start + 7), display: text.slice(0, start), partial: true };
+  }
+  return {
+    think: text.slice(start + 7, end),
+    display: (text.slice(0, start) + text.slice(end + 8)).trim(),
+    partial: false
+  };
+}
+
+function renderThinkInBubble(bubble, think, display, partial) {
+  let thinkBlock = bubble.querySelector('.think-block');
+  if (!thinkBlock) {
+    thinkBlock = document.createElement('div');
+    thinkBlock.className = 'think-block';
+    thinkBlock.dataset.startMs = Date.now();
+    thinkBlock.innerHTML = `
+      <div class="think-block-header" onclick="toggleThinkBlock(this)">
+        <span class="think-icon">⊗</span>
+        <span class="think-header-label">Thinking...</span>
+        <span class="think-block-chevron">›</span>
+      </div>
+      <div class="think-block-body hidden"></div>`;
+    bubble.appendChild(thinkBlock);
+    const main = document.createElement('div');
+    main.className = 'think-main-content';
+    bubble.appendChild(main);
+
+    window._thinkTimerInterval = setInterval(() => {
+      const label = thinkBlock.querySelector('.think-header-label');
+      if (label) {
+        const secs = Math.floor((Date.now() - +thinkBlock.dataset.startMs) / 1000);
+        label.textContent = `Thinking for ${secs}s...`;
+      }
+    }, 500);
+  }
+
+  const body = thinkBlock.querySelector('.think-block-body');
+  body.textContent = think;
+  body.scrollTop = body.scrollHeight;
+
+  if (!partial && window._thinkTimerInterval) {
+    clearInterval(window._thinkTimerInterval);
+    window._thinkTimerInterval = null;
+    const secs = Math.round((Date.now() - +thinkBlock.dataset.startMs) / 1000);
+    const label = thinkBlock.querySelector('.think-header-label');
+    if (label) label.textContent = `Thought for ${secs} second${secs !== 1 ? 's' : ''}`;
+    const icon = thinkBlock.querySelector('.think-icon');
+    if (icon) icon.classList.add('think-done');
+  }
+
+  const main = bubble.querySelector('.think-main-content');
+  if (main) main.innerHTML = display ? formatContent(display) : '';
+}
+
+function toggleThinkBlock(headerEl) {
+  const body = headerEl.nextElementSibling;
+  const chevron = headerEl.querySelector('.think-block-chevron');
+  body.classList.toggle('hidden');
+  chevron.classList.toggle('open');
 }
 
 function appendMsgMeta(chatArea, elapsedMs, completionTokens, fullText) {
@@ -1287,6 +1392,7 @@ async function sendMessage() {
   if (session) session.displayMessages.push({ role: 'user', content: text, time: userTime });
 
   appendTypingIndicator();
+  updateThinkingStep('context', 'active', 'Building context...');
 
   const _runtimeName      = window._AI_NAME_ACTIVE || AI_NAME;
   const _runtimeTone      = (window._AI_TONE_ACTIVE !== undefined ? window._AI_TONE_ACTIVE : AI_TONE);
@@ -1310,6 +1416,16 @@ async function sendMessage() {
     }
     systemPrompt += trainingBlock;
   }
+
+  if (_trainingFiles.length || _trainingNotes) {
+    const fileCount = _trainingFiles.length;
+    const noteLabel = _trainingNotes ? ' + notes' : '';
+    updateThinkingStep('files', 'done', `Knowledge base loaded · ${fileCount} file${fileCount !== 1 ? 's' : ''}${noteLabel}`);
+  }
+  updateThinkingStep('context', 'done', 'Context ready');
+  updateThinkingStep('model', 'active', _modelWarm
+    ? `Sending to ${window.ACTIVE_MODEL}...`
+    : `Loading model from disk · ${window.ACTIVE_MODEL}...`);
 
   const payload = {
     model: window.ACTIVE_MODEL,
@@ -1355,6 +1471,8 @@ async function sendMessage() {
     const decoder = new TextDecoder();
     let fullText = '';
     let completionTokens = null;
+    let _usingReasoningField = false; // true if model sends reasoning_content separately
+    let _dbgChunk = 0;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -1366,14 +1484,49 @@ async function sendMessage() {
         if (data === '[DONE]') break;
         try {
           const parsed = JSON.parse(data);
+          if (_dbgChunk++ < 3) console.log('[stream delta]', JSON.stringify(parsed.choices?.[0]?.delta));
           if (parsed.usage) completionTokens = parsed.usage.completion_tokens ?? null;
-          const delta = parsed.choices?.[0]?.delta?.content || '';
-          if (delta) { fullText += delta; bubble.innerHTML = formatContent(fullText); scrollToBottom(); }
-        } catch {}
+          const rc = parsed.choices?.[0]?.delta?.reasoning_content;
+          const cc = parsed.choices?.[0]?.delta?.content;
+          let delta = '';
+          if (rc) {
+            _usingReasoningField = true;
+            if (!fullText.includes('<think>')) fullText += '<think>';
+            delta = rc;
+          } else if (cc) {
+            // Only auto-close if WE synthesized the <think> tag via reasoning_content
+            if (_usingReasoningField && fullText.includes('<think>') && !fullText.includes('</think>')) {
+              fullText += '</think>';
+            }
+            delta = cc;
+          }
+          if (delta) {
+            fullText += delta;
+            const tp = parseThinkDisplay(fullText);
+            if (tp.think) {
+              renderThinkInBubble(bubble, tp.think, tp.display, tp.partial ?? true);
+            } else {
+              bubble.innerHTML = formatContent(fullText);
+            }
+            scrollToBottom();
+          }
+        } catch (e) { if (_dbgChunk++ < 6) console.error('[stream parse error]', e.message, data?.slice(0, 120)); }
       }
     }
 
-    if (!fullText) bubble.innerHTML = '<em style="color:var(--text-muted)">No response received.</em>';
+    // If model used reasoning_content but never closed <think>, force-close so the block renders
+    if (fullText.includes('<think>') && !fullText.includes('</think>')) {
+      fullText += '</think>';
+      const tp = parseThinkDisplay(fullText);
+      renderThinkInBubble(bubble, tp.think, tp.display, false);
+    }
+
+    if (!fullText) {
+      bubble.innerHTML = '<em style="color:var(--text-muted)">No response received.</em>';
+      // Remove the user message so this failed turn doesn't poison history
+      messages.pop();
+      if (session && session.displayMessages.length) session.displayMessages.pop();
+    }
 
     const aiTime = getTime();
     const timeDiv = document.createElement('div');
@@ -1382,10 +1535,18 @@ async function sendMessage() {
     chatArea.appendChild(timeDiv);
     appendMsgMeta(chatArea, Date.now() - startTime, completionTokens, fullText);
 
-    messages.push({ role: 'assistant', content: fullText });
-    if (session) session.displayMessages.push({ role: 'assistant', content: fullText, time: aiTime });
+    const savedContent = fullText.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    if (savedContent) {
+      messages.push({ role: 'assistant', content: savedContent });
+      if (session) session.displayMessages.push({ role: 'assistant', content: savedContent, time: aiTime });
+    } else if (fullText) {
+      // model only generated thinking — pop the user message so history stays consistent
+      messages.pop();
+      if (session && session.displayMessages.length) session.displayMessages.pop();
+    }
     updateHistory(text);
     setConnected(true);
+    _modelWarm = true;
 
   } catch (streamErr) {
     removeTypingIndicator();
@@ -1411,6 +1572,7 @@ async function sendMessage() {
       if (session) session.displayMessages.push({ role: 'assistant', content: aiText, time: aiTime });
       updateHistory(text);
       setConnected(true);
+      _modelWarm = true;
 
     } catch (fetchErr) {
       // ── XHR last resort ─────────────────────────────────────────
@@ -1428,6 +1590,7 @@ async function sendMessage() {
           if (session) session.displayMessages.push({ role: 'assistant', content: xhrResult, time: xhrTime });
           updateHistory(text);
           setConnected(true);
+          _modelWarm = true;
           isStreaming = false;
           document.getElementById('send-btn').disabled = false;
           document.getElementById('message-input').focus();
