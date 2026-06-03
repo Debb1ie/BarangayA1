@@ -1159,16 +1159,33 @@ function appendTypingIndicator() {
   row.innerHTML = `
     <div class="avatar ai">${getAIAvatar()}</div>
     <div class="bubble ai thinking-bubble">
-      <div class="thinking-top-row">
+      <div class="thinking-top-row" onclick="toggleThinkingCollapse(this)" role="button" tabindex="0">
         <div class="thinking-spinner"></div>
         <span class="thinking-label" id="thinking-label">Thinking</span>
         <span class="thinking-model-tag">${window.ACTIVE_MODEL}</span>
+        <span class="thinking-top-chevron">▲</span>
       </div>
-      <div class="thinking-steps-header" onclick="toggleThinkingSteps(this)">
-        <span>Process</span>
-        <span class="thinking-steps-chevron up">▼</span>
+      <div class="thinking-collapsible" id="thinking-collapsible">
+        <div class="thinking-edu-card" id="thinking-edu-card">
+          <div class="thinking-edu-body">
+            <span class="thinking-edu-icon" id="thinking-edu-icon">⚙️</span>
+            <span class="thinking-edu-text" id="thinking-edu-text">Preparing your message...</span>
+          </div>
+          <div class="thinking-edu-footer">
+            <span class="thinking-edu-footer-label">While waiting, explore:</span>
+            <div class="thinking-edu-links">
+              <a href="https://ollama.com" target="_blank" rel="noopener">Ollama docs</a>
+              <a href="https://ollama.com/library/qwen2.5" target="_blank" rel="noopener">Qwen 2.5</a>
+              <a href="https://github.com/devcon-ph/barangay-ai" target="_blank" rel="noopener">GitHub repo</a>
+              <a href="https://devcon.ph" target="_blank" rel="noopener">DEVCON</a>
+            </div>
+          </div>
+        </div>
+        <div class="thinking-steps-section">
+          <div class="thinking-steps-label">Process</div>
+          <div class="thinking-steps-list" id="thinking-steps-list"></div>
+        </div>
       </div>
-      <div class="thinking-steps-list" id="thinking-steps-list"></div>
     </div>`;
   chatArea.appendChild(row);
 
@@ -1180,23 +1197,36 @@ function appendTypingIndicator() {
     labelEl.textContent = _thinkingPhrases[phraseIdx] + '.'.repeat(dotCount || 1);
   }, 450);
 
+  const eduIconEl = row.querySelector('#thinking-edu-icon');
+  const eduTextEl = row.querySelector('#thinking-edu-text');
+  const eduCard = row.querySelector('#thinking-edu-card');
+  window._setEduCard = (icon, text) => {
+    eduCard.style.opacity = '0';
+    setTimeout(() => {
+      eduIconEl.textContent = icon;
+      eduTextEl.textContent = text;
+      eduCard.style.opacity = '1';
+    }, 200);
+  };
+
   scrollToBottom();
 }
 
 function removeTypingIndicator() {
   clearInterval(window._thinkingInterval);
   clearInterval(window._thinkTimerInterval);
+  window._setEduCard = null;
   window._thinkTimerInterval = null;
   const el = document.getElementById('typing-row');
   if (el) el.remove();
 }
 
-function toggleThinkingSteps(headerEl) {
-  const list = headerEl.nextElementSibling;
-  const chevron = headerEl.querySelector('.thinking-steps-chevron');
-  if (!list) return;
-  list.classList.toggle('hidden');
-  chevron.classList.toggle('up');
+function toggleThinkingCollapse(topRow) {
+  const body = topRow.nextElementSibling;
+  const chevron = topRow.querySelector('.thinking-top-chevron');
+  if (!body) return;
+  const collapsed = body.classList.toggle('hidden');
+  chevron.style.transform = collapsed ? 'rotate(180deg)' : '';
 }
 
 function updateThinkingStep(stepId, status, label) {
@@ -1393,6 +1423,7 @@ async function sendMessage() {
 
   appendTypingIndicator();
   updateThinkingStep('context', 'active', 'Building context...');
+  if (window._setEduCard) window._setEduCard('🧩', 'Assembling your conversation history and system instructions into a single prompt for the model...');
 
   const _runtimeName      = window._AI_NAME_ACTIVE || AI_NAME;
   const _runtimeTone      = (window._AI_TONE_ACTIVE !== undefined ? window._AI_TONE_ACTIVE : AI_TONE);
@@ -1421,11 +1452,16 @@ async function sendMessage() {
     const fileCount = _trainingFiles.length;
     const noteLabel = _trainingNotes ? ' + notes' : '';
     updateThinkingStep('files', 'done', `Knowledge base loaded · ${fileCount} file${fileCount !== 1 ? 's' : ''}${noteLabel}`);
+    if (window._setEduCard) window._setEduCard('📂', `${fileCount} knowledge file${fileCount !== 1 ? 's' : ''}${noteLabel} loaded — the model will use this as context when forming its answer.`);
   }
   updateThinkingStep('context', 'done', 'Context ready');
-  updateThinkingStep('model', 'active', _modelWarm
-    ? `Sending to ${window.ACTIVE_MODEL}...`
-    : `Loading model from disk · ${window.ACTIVE_MODEL}...`);
+  if (_modelWarm) {
+    updateThinkingStep('model', 'active', `Sending to ${window.ACTIVE_MODEL}...`);
+    if (window._setEduCard) window._setEduCard('⚡', `Qwen is already loaded in memory. Sending your prompt and streaming tokens back to the browser now...`);
+  } else {
+    updateThinkingStep('model', 'active', `Loading model from disk · ${window.ACTIVE_MODEL}...`);
+    if (window._setEduCard) window._setEduCard('📦', `First request — loading Qwen 2.5 3B (~2 GB) from disk into RAM. This takes 5–15 seconds once. After this, all replies will be much faster.`);
+  }
 
   const payload = {
     model: window.ACTIVE_MODEL,
