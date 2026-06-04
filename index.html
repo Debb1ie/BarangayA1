@@ -1513,6 +1513,40 @@
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
   }
   .quickstart-body strong { color: var(--text-primary); }
+  .quickstart-body a { color: var(--dc-blue); font-weight: 600; text-decoration: none; }
+  .quickstart-body a:hover { text-decoration: underline; }
+  .qs-step { display: flex; gap: 9px; align-items: flex-start; }
+  .qs-num {
+    flex-shrink: 0;
+    width: 19px;
+    height: 19px;
+    margin-top: 1px;
+    border-radius: 50%;
+    background: var(--dc-blue);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .qs-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+  .qs-text strong { font-size: 12.5px; }
+  .qs-text code { align-self: flex-start; max-width: 100%; overflow-x: auto; }
+  .qs-tip {
+    margin-top: 2px;
+    padding: 8px 10px;
+    border-radius: 7px;
+    background: var(--bg-panel);
+    font-size: 11.5px;
+    line-height: 1.55;
+  }
+  .qs-tip code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 11px;
+  }
 
   /* ADDED MODELS / ENDPOINT MANAGER */
   .added-endpoints-section { margin-top: 4px; }
@@ -1549,7 +1583,7 @@
     padding: 12px 13px;
     background: var(--bg-primary);
   }
-  .ep-card-main { display: flex; align-items: center; gap: 9px; }
+  .ep-card-main { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
   .ep-card-name {
     font-size: 13.5px;
     font-weight: 700;
@@ -1576,7 +1610,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .ep-card-actions { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+  .ep-card-actions { display: flex; align-items: center; gap: 7px; flex-shrink: 0; margin-left: auto; }
   .ep-mini-btn {
     padding: 5px 12px;
     border-radius: 7px;
@@ -3273,9 +3307,6 @@
         </div>
         <div class="endpoint-row">
           <input class="settings-input" id="local-endpoint" type="text" placeholder="Paste endpoint URL, e.g. http://localhost:11434/v1" autocomplete="off">
-          <select class="endpoint-type" id="local-type">
-            <option>LLM</option><option>Embedding</option><option>Vision</option>
-          </select>
         </div>
         <input class="settings-input" id="local-key" type="password" placeholder="API key (optional — for protected local endpoints)" autocomplete="off">
         <div class="endpoint-actions">
@@ -3287,10 +3318,44 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,18 15,12 9,6"/></svg>
         </button>
         <div class="quickstart-body" id="quickstart-body" hidden>
-          <p>Run a model locally with <strong>Ollama</strong>, then paste its endpoint above:</p>
-          <code>ollama pull qwen2.5:3b</code>
-          <code>ollama serve</code>
-          <p>Endpoint: <strong>http://localhost:11434/v1</strong></p>
+          <p>Run a model on your own computer with <strong>Ollama</strong> — free, private, and works offline.</p>
+
+          <div class="qs-step">
+            <span class="qs-num">1</span>
+            <div class="qs-text">
+              <strong>Install Ollama</strong>
+              <span>Download for your OS from <a href="https://ollama.com/download" target="_blank" rel="noopener">ollama.com/download</a> and run the installer.</span>
+            </div>
+          </div>
+
+          <div class="qs-step">
+            <span class="qs-num">2</span>
+            <div class="qs-text">
+              <strong>Download a model</strong>
+              <span>In a terminal, pull a small model to start (≈2&nbsp;GB):</span>
+              <code>ollama pull qwen2.5:3b</code>
+            </div>
+          </div>
+
+          <div class="qs-step">
+            <span class="qs-num">3</span>
+            <div class="qs-text">
+              <strong>Start the server</strong>
+              <span>Leave this running while you chat:</span>
+              <code>ollama serve</code>
+            </div>
+          </div>
+
+          <div class="qs-step">
+            <span class="qs-num">4</span>
+            <div class="qs-text">
+              <strong>Connect it here</strong>
+              <span>Paste this endpoint in the field above, then click <strong>Add</strong>:</span>
+              <code>http://localhost:11434/v1</code>
+            </div>
+          </div>
+
+          <p class="qs-tip">💡 Tip: bigger models (<code>llama3.1:8b</code>, <code>qwen2.5:7b</code>) are smarter but need more RAM. Start small and scale up.</p>
         </div>
       </div>
 
@@ -3308,9 +3373,6 @@
         </div>
         <div class="endpoint-row">
           <input class="settings-input" id="api-key" type="password" placeholder="API key" autocomplete="off">
-          <select class="endpoint-type" id="api-type">
-            <option>LLM</option><option>Embedding</option><option>Vision</option>
-          </select>
           <button class="endpoint-btn ghost" id="api-test-btn" onclick="testEndpoint('api')">Test</button>
           <button class="endpoint-btn solid" id="api-add-btn" onclick="addEndpoint('api')">Add</button>
         </div>
