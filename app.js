@@ -8,8 +8,11 @@ const BRAND_COLOR = '#0057B8';
 const ACCENT_COLOR = '#00A8E8';
 const AI_TONE     = null;   // set a string here to override the default system prompt
 const SUGGESTIONS = null;   // set an array of { icon, label, desc, prompt } to override suggestion cards
+const CONTEXT_WINDOW = 32768; // model context window (tokens) — used for the "context used" stat
 // ─────────────────────────────────────────────────────────────────────
-window.ACTIVE_MODEL = MODEL;
+window.ACTIVE_MODEL = null;       // no model is selected by default — the user must pick one
+window.ACTIVE_BASE  = API_BASE;   // default endpoint used for discovery; switched when a model is selected
+window.ACTIVE_KEY   = API_KEY;
 
 // ── TONE PRESETS ──────────────────────────────────────────────────────
 const TONE_PRESETS = {
@@ -53,6 +56,8 @@ function createSession(title) {
   currentSessionId = id;
   renderHistory();
   saveSessionsToStorage();
+  const main = document.querySelector('.main');
+  if (main) main.classList.add('welcome-mode');
   return session;
 }
 
@@ -64,7 +69,7 @@ function loadSession(id) {
   const session = sessions.find(s => s.id === id);
   if (!session) return;
   currentSessionId = id;
-  messages = session.displayMessages.map(m => ({ role: m.role, content: m.content }));
+  messages = rebuildApiMessages(session.displayMessages);
   renderHistory();
   renderSessionMessages(session);
   if (window.BarangayDB) window.BarangayDB.dbSetCurrentSession(currentSessionId);
@@ -125,6 +130,9 @@ function renderSessionMessages(session) {
     return;
   }
 
+  const main = document.querySelector('.main');
+  if (main) main.classList.remove('welcome-mode');
+
   const avatarLabel = window._AI_NAME_ACTIVE
     ? window._AI_NAME_ACTIVE.slice(0, 2).toUpperCase()
     : AI_AVATAR;
@@ -142,12 +150,16 @@ function renderSessionMessages(session) {
     } else if (msg.role === 'assistant') {
       const row = document.createElement('div');
       row.className = 'message-row';
-      row.innerHTML = `<div class="avatar ai">${avatarLabel}</div><div class="bubble ai">${formatContent(msg.content)}</div>`;
+      const wasCancelled = isCancelledContent(msg.content);
+      const bodyText = wasCancelled ? stripCancelMark(msg.content) : msg.content;
+      row.innerHTML = `<div class="avatar ai">${avatarLabel}</div><div class="bubble ai">${formatContent(bodyText)}</div>`;
+      if (wasCancelled) row.querySelector('.bubble').appendChild(cancelledNoteEl());
       chatArea.appendChild(row);
       const t = document.createElement('div');
       t.className = 'message-time';
       t.textContent = msg.time || '';
       chatArea.appendChild(t);
+      if (msg.stats) renderMsgStats(chatArea, msg.stats);
     }
   }
 
@@ -167,6 +179,10 @@ function saveSettings(s) {
 }
 
 function applySettings(s) {
+  // Resolve active persona (overrides name + system prompt when set)
+  const _personas = Array.isArray(s.personas) ? s.personas : [];
+  const _activePersona = _personas.find(p => p.id === s.active_persona) || null;
+
   if (s.brand_color) {
     const c = s.brand_color;
     document.documentElement.style.setProperty('--dc-blue', c);
@@ -175,7 +191,7 @@ function applySettings(s) {
     document.documentElement.style.setProperty('--dc-blue-deeper', scaleColor(c, 0.22));
     window._BRAND_COLOR_ACTIVE = c;
   }
-  const name = s.ai_name || AI_NAME;
+  const name = (_activePersona && _activePersona.name) ? _activePersona.name : (s.ai_name || AI_NAME);
   window._AI_NAME_ACTIVE = name;
   document.getElementById('chat-title').textContent = name;
   const wt = document.querySelector('.welcome-title');
@@ -184,8 +200,17 @@ function applySettings(s) {
   if (bn) bn.textContent = name.toUpperCase();
   const mh = document.querySelector('.modal-header-text h2');
   if (mh) mh.textContent = name.toUpperCase();
-  if (s.ai_tone !== undefined) window._AI_TONE_ACTIVE = s.ai_tone;
+  if (_activePersona) {
+    window._AI_TONE_ACTIVE = _activePersona.systemPrompt || '';
+  } else if (s.ai_tone !== undefined) {
+    window._AI_TONE_ACTIVE = s.ai_tone;
+  }
   if (s.ai_knowledge !== undefined) window._AI_KNOWLEDGE_ACTIVE = s.ai_knowledge;
+  window._PROMPT_PREFIX_ACTIVE = s.prompt_prefix || '';
+  window._PROMPT_SUFFIX_ACTIVE = s.prompt_suffix || '';
+  window._TEMPERATURE_ACTIVE   = (typeof s.temperature === 'number') ? s.temperature : 0.3;
+  // max_tokens: null means "No limit"
+  window._MAX_TOKENS_ACTIVE    = (s.max_tokens === null || typeof s.max_tokens === 'number') ? s.max_tokens : 1024;
   window._TRAINING_FILES_ACTIVE = Array.isArray(s.training_files) ? s.training_files : [];
   window._TRAINING_NOTES_ACTIVE = s.training_notes || '';
   let _lang = s.reply_language || 'english';
@@ -254,6 +279,21 @@ function updateSettingsPreview() {
   if (prevGreeting) prevGreeting.textContent = greeting;
 }
 
+// Far-right position of the Max Tokens slider means "No limit"
+const MAX_TOKENS_SLIDER_MAX = 4224;
+
+function updateTemperatureLabel(val) {
+  const el = document.getElementById('settings-temperature-value');
+  if (el) el.textContent = Number(val).toFixed(1);
+}
+window.updateTemperatureLabel = updateTemperatureLabel;
+
+function updateMaxTokensLabel(val) {
+  const el = document.getElementById('settings-max-tokens-value');
+  if (el) el.textContent = (Number(val) >= MAX_TOKENS_SLIDER_MAX) ? 'No limit' : val;
+}
+window.updateMaxTokensLabel = updateMaxTokensLabel;
+
 function openSettings() {
   const s = loadSettings();
   const nameInput   = document.getElementById('settings-ai-name');
@@ -262,11 +302,33 @@ function openSettings() {
   const greetInput  = document.getElementById('settings-greeting');
 
   const knowledgeInput = document.getElementById('settings-ai-knowledge');
-  nameInput.value      = s.ai_name          || AI_NAME;
+  // Name + Personality fields are persona-aware — populated by loadPersonaFields() below.
+  // The "Default (no persona)" entry edits these base values:
+  window._BASE_NAME_DRAFT = s.ai_name || AI_NAME;
+  window._BASE_TONE_DRAFT = s.ai_tone || AI_TONE || '';
   brandInput.value     = s.brand_color      || BRAND_COLOR;
-  toneInput.value      = s.ai_tone          || AI_TONE || '';
   greetInput.value     = s.welcome_greeting || '';
   if (knowledgeInput) knowledgeInput.value = s.ai_knowledge || '';
+
+  // Model controls (prefix / suffix / temperature / max tokens)
+  const prefixInput = document.getElementById('settings-prompt-prefix');
+  const suffixInput = document.getElementById('settings-prompt-suffix');
+  const tempInput   = document.getElementById('settings-temperature');
+  const maxTokInput = document.getElementById('settings-max-tokens');
+  if (prefixInput) prefixInput.value = s.prompt_prefix || '';
+  if (suffixInput) suffixInput.value = s.prompt_suffix || '';
+  if (tempInput) {
+    const t = (typeof s.temperature === 'number') ? s.temperature : 0.3;
+    tempInput.value = t;
+    updateTemperatureLabel(t);
+  }
+  if (maxTokInput) {
+    // null = no limit → park the slider at its far-right position
+    const mt = (s.max_tokens === null) ? MAX_TOKENS_SLIDER_MAX
+             : (typeof s.max_tokens === 'number' ? s.max_tokens : 1024);
+    maxTokInput.value = mt;
+    updateMaxTokensLabel(maxTokInput.value);
+  }
 
   // Language picker
   const langChoice = s.reply_language || 'english';
@@ -280,6 +342,15 @@ function openSettings() {
   const notesInput = document.getElementById('settings-training-notes');
   if (notesInput) notesInput.value = s.training_notes || '';
   renderTrainingFilesList();
+
+  // Persona tab
+  window._PERSONAS_DRAFT = Array.isArray(s.personas)
+    ? s.personas.map(p => ({ id: p.id, name: p.name || '', systemPrompt: p.systemPrompt || '' }))
+    : [];
+  window._ACTIVE_PERSONA_DRAFT = s.active_persona || '';
+  renderPersonaDropdown();
+  loadPersonaFields();
+
   switchSettingsTab('personalize');
 
   document.getElementById('settings-brand-color-label').textContent = brandInput.value;
@@ -316,16 +387,28 @@ function setSwatchColor(type, val, el) {
 }
 
 function resetSettingsForm() {
-  document.getElementById('settings-ai-name').value  = AI_NAME;
+  window._BASE_NAME_DRAFT = AI_NAME;
+  window._BASE_TONE_DRAFT = AI_TONE || '';
   document.getElementById('settings-brand-color').value = BRAND_COLOR;
-  document.getElementById('settings-ai-tone').value  = AI_TONE || '';
   document.getElementById('settings-greeting').value = '';
   const ki = document.getElementById('settings-ai-knowledge');
   if (ki) ki.value = '';
   const tn = document.getElementById('settings-training-notes');
   if (tn) tn.value = '';
+  const pf = document.getElementById('settings-prompt-prefix');
+  if (pf) pf.value = '';
+  const sf = document.getElementById('settings-prompt-suffix');
+  if (sf) sf.value = '';
+  const tp = document.getElementById('settings-temperature');
+  if (tp) { tp.value = 0.3; updateTemperatureLabel(0.3); }
+  const mt = document.getElementById('settings-max-tokens');
+  if (mt) { mt.value = 1024; updateMaxTokensLabel(1024); }
   window._TRAINING_FILES_DRAFT = [];
   renderTrainingFilesList();
+  window._PERSONAS_DRAFT = [];
+  window._ACTIVE_PERSONA_DRAFT = '';
+  renderPersonaDropdown();
+  loadPersonaFields();
   document.querySelectorAll('#lang-picker .lang-chip').forEach(el => {
     if (el.disabled) return;
     el.classList.toggle('active', el.dataset.lang === 'english');
@@ -338,21 +421,172 @@ function resetSettingsForm() {
 }
 
 function applyAndSaveSettings() {
+  commitPersonaDraft();   // flush current Name/Personality edits into base draft or active persona
   const s = {
-    ai_name:          (document.getElementById('settings-ai-name').value.trim() || AI_NAME),
+    // Base name/tone come from the drafts (the fields may currently be showing a persona)
+    ai_name:          ((window._BASE_NAME_DRAFT || '').trim() || AI_NAME),
     brand_color:      document.getElementById('settings-brand-color').value,
-    ai_tone:          document.getElementById('settings-ai-tone').value.trim(),
+    ai_tone:          (window._BASE_TONE_DRAFT || '').trim(),
     welcome_greeting: document.getElementById('settings-greeting').value.trim(),
     ai_knowledge:     (document.getElementById('settings-ai-knowledge')?.value.trim() || ''),
     training_files:   (window._TRAINING_FILES_DRAFT || []),
     training_notes:   (document.getElementById('settings-training-notes')?.value.trim() || ''),
     reply_language:   (document.querySelector('#lang-picker .lang-chip.active')?.dataset.lang || 'english'),
+    prompt_prefix:    (document.getElementById('settings-prompt-prefix')?.value.trim() || ''),
+    prompt_suffix:    (document.getElementById('settings-prompt-suffix')?.value.trim() || ''),
+    temperature:      parseFloat(document.getElementById('settings-temperature')?.value ?? '0.3'),
+    max_tokens:       (() => {
+      const v = parseInt(document.getElementById('settings-max-tokens')?.value ?? '1024', 10);
+      return v >= MAX_TOKENS_SLIDER_MAX ? null : v;   // null = no limit
+    })(),
+    personas:         (window._PERSONAS_DRAFT || []),
+    active_persona:   (window._ACTIVE_PERSONA_DRAFT || ''),
   };
   saveSettings(s);
   applySettings(s);
   closeSettings();
   showToast('Settings saved!');
 }
+
+// ── PERSONAS ──────────────────────────────────────────────────────────
+function getActivePersonaDraft() {
+  const list = window._PERSONAS_DRAFT || [];
+  return list.find(p => p.id === window._ACTIVE_PERSONA_DRAFT) || null;
+}
+
+function renderPersonaDropdown() {
+  const sel = document.getElementById('settings-persona-select');
+  if (!sel) return;
+  sel.innerHTML = '';
+  const def = document.createElement('option');
+  def.value = '';
+  def.textContent = 'Default (no persona)';
+  sel.appendChild(def);
+  for (const p of (window._PERSONAS_DRAFT || [])) {
+    const o = document.createElement('option');
+    o.value = p.id;
+    o.textContent = p.name || 'Untitled persona';
+    sel.appendChild(o);
+  }
+  sel.value = window._ACTIVE_PERSONA_DRAFT || '';
+}
+
+// The Name + Personality fields are shared: "Default (no persona)" edits the base
+// config (_BASE_NAME_DRAFT / _BASE_TONE_DRAFT); a selected persona edits that persona.
+function loadPersonaFields() {
+  const nameEl = document.getElementById('settings-ai-name');
+  const toneEl = document.getElementById('settings-ai-tone');
+  const delBtn = document.getElementById('persona-delete-btn');
+  if (!nameEl || !toneEl) return;
+  const p = getActivePersonaDraft();
+  if (p) {
+    nameEl.value = p.name || '';
+    toneEl.value = p.systemPrompt || '';
+  } else {
+    nameEl.value = window._BASE_NAME_DRAFT || '';
+    toneEl.value = window._BASE_TONE_DRAFT || '';
+  }
+  if (delBtn) delBtn.style.display = p ? '' : 'none';
+  updateSettingsPreview();
+  detectActivePreset(toneEl.value);
+}
+
+function commitPersonaDraft() {
+  const nameEl = document.getElementById('settings-ai-name');
+  const toneEl = document.getElementById('settings-ai-tone');
+  if (!nameEl || !toneEl) return;
+  const p = getActivePersonaDraft();
+  if (p) {
+    p.name = nameEl.value.trim();
+    p.systemPrompt = toneEl.value;
+    const sel = document.getElementById('settings-persona-select');
+    if (sel) {
+      const opt = Array.from(sel.options).find(o => o.value === p.id);
+      if (opt) opt.textContent = p.name || 'Untitled persona';
+    }
+  } else {
+    window._BASE_NAME_DRAFT = nameEl.value.trim();
+    window._BASE_TONE_DRAFT = toneEl.value;
+  }
+}
+
+function selectPersona(id) {
+  commitPersonaDraft();   // save edits to the persona we're leaving
+  window._ACTIVE_PERSONA_DRAFT = id || '';
+  loadPersonaFields();
+}
+
+function newPersona() {
+  commitPersonaDraft();
+  const id = 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  (window._PERSONAS_DRAFT = window._PERSONAS_DRAFT || []).push({ id, name: '', systemPrompt: '' });
+  window._ACTIVE_PERSONA_DRAFT = id;
+  renderPersonaDropdown();
+  loadPersonaFields();
+  document.getElementById('settings-ai-name')?.focus();
+}
+
+function deletePersona() {
+  const p = getActivePersonaDraft();
+  if (!p) return;
+  if (!confirm(`Delete persona "${p.name || 'Untitled persona'}"?`)) return;
+  window._PERSONAS_DRAFT = (window._PERSONAS_DRAFT || []).filter(x => x.id !== p.id);
+  window._ACTIVE_PERSONA_DRAFT = '';
+  renderPersonaDropdown();
+  loadPersonaFields();
+}
+
+async function expandPersonaPrompt() {
+  const ta  = document.getElementById('settings-ai-tone');
+  const btn = document.getElementById('persona-expand-btn');
+  if (!ta || !btn) return;
+  const notes = ta.value.trim();
+  if (!notes) { showToast('Write a few rough notes first.'); return; }
+  if (!window.ACTIVE_MODEL) {
+    showToast(MODEL_LIST.some(m => m.model)
+      ? 'Select a model first — use the picker at the bottom of the chat.'
+      : 'No AI model installed yet. Pull one in a terminal: ollama pull qwen2.5:3b');
+    return;
+  }
+
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Expanding…';
+  try {
+    const sys = 'You are a prompt engineer. Expand the user\'s rough notes into a clear, well-structured system prompt for an AI assistant persona. Write in the second person ("You are…"). Be concrete about the persona\'s role, tone, behavior, and any constraints. Output ONLY the finished system prompt text — no preamble, no markdown headings, no surrounding quotes.';
+    const res = await fetch(`${window.ACTIVE_BASE}/chat/completions`, {
+      method: 'POST',
+      mode: 'cors',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.ACTIVE_KEY}` },
+      body: JSON.stringify({
+        model: window.ACTIVE_MODEL,
+        messages: [{ role: 'system', content: sys }, { role: 'user', content: notes }],
+        temperature: 0.7,
+        max_tokens: 600,
+        stream: false
+      })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const out = data?.choices?.[0]?.message?.content?.trim();
+    if (!out) throw new Error('empty response');
+    ta.value = out;
+    commitPersonaDraft();
+    detectActivePreset(out);
+    showToast('Expanded!');
+  } catch (e) {
+    showToast('Expand failed — check your model connection.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+window.selectPersona = selectPersona;
+window.newPersona = newPersona;
+window.deletePersona = deletePersona;
+window.commitPersonaDraft = commitPersonaDraft;
+window.expandPersonaPrompt = expandPersonaPrompt;
 
 // ── LANGUAGE PICKER ───────────────────────────────────────────────────
 function setLanguageChoice(lang, btn) {
@@ -855,35 +1089,436 @@ function handleBackdropClick(e) {
 }
 
 // ── MODEL SELECTOR ────────────────────────────────────────────────────
-const MODEL_MAP = {
-  qwen:  'qwen2.5:3b',
-  qwen3: 'qwen3.5:0.8b',
-};
+// host:port shown in the picker for the default local endpoint
+const MODEL_ENDPOINT = (() => {
+  try { const u = new URL(API_BASE); return u.host; } catch { return '127.0.0.1:11434'; }
+})();
+// Data-driven model registry. Each entry carries its own endpoint base + key,
+// so models added via the "Add Models" dialog (local or cloud) work too.
+// Nothing is seeded — real local models are discovered live from the endpoint
+// on startup (see initModelRegistry), and user-added endpoints are restored
+// from the DB. No model is auto-selected; the user chooses one.
+let MODEL_LIST = [];
+let _modelSeq = 0;
+
+// Enable/disable + deletion state for the endpoint manager (persisted in the DB).
+let _DISABLED_MODELS = new Set();    // keys "base||model" that are turned off
+let _REMOVED_ENDPOINTS = new Set();  // base URLs the user deleted (skipped on discovery)
+const _EXPANDED_ENDPOINTS = new Set(); // bases whose model list is expanded in the UI (view-only)
+
+function modelKey(m) { return `${m.base}||${m.model}`; }
+
+function loadModelPrefs() {
+  if (!(window.BarangayDB && window.BarangayDB.dbGetItem)) return;
+  _DISABLED_MODELS  = new Set(window.BarangayDB.dbGetItem('disabled_models', []) || []);
+  _REMOVED_ENDPOINTS = new Set(window.BarangayDB.dbGetItem('removed_endpoints', []) || []);
+}
+function persistDisabledModels() {
+  if (window.BarangayDB && window.BarangayDB.dbSetItem) window.BarangayDB.dbSetItem('disabled_models', [..._DISABLED_MODELS]);
+}
+function persistRemovedEndpoints() {
+  if (window.BarangayDB && window.BarangayDB.dbSetItem) window.BarangayDB.dbSetItem('removed_endpoints', [..._REMOVED_ENDPOINTS]);
+}
+
+const modelIcon = '<svg class="model-dd-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M9 15h6"/></svg>';
+
+function renderModelList(filter) {
+  const list = document.getElementById('model-dd-list');
+  if (!list) return;
+  const q = (filter || '').trim().toLowerCase();
+  const rows = MODEL_LIST.filter(m =>
+    m.enabled !== false && (!q || m.model.toLowerCase().includes(q) || m.endpoint.toLowerCase().includes(q))
+  );
+  if (!rows.length) {
+    const hasAny = MODEL_LIST.length > 0;
+    list.innerHTML = `<div class="model-dd-empty">${hasAny ? 'No models enabled — turn some on in “Add Models”' : 'No models found'}</div>`;
+    return;
+  }
+  list.innerHTML = rows.map(m => `
+    <button class="model-dropdown-opt${window.ACTIVE_MODEL === m.model ? ' active' : ''}" onclick="selectModelFromDropdown('${m.id}')">
+      ${modelIcon}
+      <span class="model-dd-meta">
+        <span class="model-dd-name">${escHtml(m.model)}</span>
+        <span class="model-dd-endpoint">${escHtml(m.endpoint)}</span>
+      </span>
+      <span class="model-dd-dot"></span>
+    </button>`).join('');
+}
+
+function filterModels(value) {
+  renderModelList(value);
+}
 
 function selectModel(id) {
-  if (!MODEL_MAP[id]) return;
-  window.ACTIVE_MODEL = MODEL_MAP[id];
+  const m = MODEL_LIST.find(x => x.id === id);
+  if (!m) return;
+  window.ACTIVE_MODEL = m.model;
+  window.ACTIVE_BASE  = m.base || API_BASE;
+  window.ACTIVE_KEY   = m.key  || API_KEY;
 
-  document.querySelectorAll('.model-opt').forEach(el => {
-    el.classList.remove('active');
-    const tag = el.querySelector('.active-tag');
-    if (tag) tag.remove();
-  });
+  // Update composer trigger label
+  const labelEl = document.getElementById('model-select-label');
+  if (labelEl) labelEl.textContent = m.model;
 
-  const btn = document.getElementById('model-opt-' + id);
-  if (btn) {
-    btn.classList.add('active');
-    const tag = document.createElement('span');
-    tag.className = 'active-tag';
-    tag.textContent = 'Active';
-    btn.appendChild(tag);
-  }
+  // Re-render picker rows to reflect active state
+  renderModelList(document.getElementById('model-dd-search')?.value || '');
 
   // Update subtitle
   const subtitle = document.getElementById('header-subtitle');
-  if (subtitle) subtitle.textContent = `AI Sa Barangay · Ollama + ${MODEL_MAP[id]} · Local · Open Source`;
+  if (subtitle) subtitle.textContent = `AI Sa Barangay · ${m.kind === 'local' ? 'Ollama + ' : ''}${m.model} · ${m.kind === 'local' ? 'Local · Open Source' : m.endpoint}`;
 
-  showToast(`Switched to ${MODEL_MAP[id]}`);
+  showToast(`Switched to ${m.model}`);
+}
+
+// Clear the active model (e.g. after it was disabled or its endpoint deleted).
+function deselectModel() {
+  window.ACTIVE_MODEL = null;
+  const labelEl = document.getElementById('model-select-label');
+  if (labelEl) labelEl.textContent = 'Select model';
+  const subtitle = document.getElementById('header-subtitle');
+  if (subtitle) {
+    subtitle.textContent = MODEL_LIST.some(m => m.enabled !== false)
+      ? 'AI Sa Barangay · No model selected — choose one below'
+      : 'AI Sa Barangay · No model available';
+  }
+}
+
+// ── ENDPOINT MANAGER (Added Models) ───────────────────────────────────
+const _epIconLocal = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>';
+const _epIconApi = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+const _epChevron = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>';
+const _epCopyIcon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+
+function renderAddedEndpoints() {
+  const host = document.getElementById('added-endpoints-list');
+  if (!host) return;
+  if (!MODEL_LIST.length) {
+    host.innerHTML = '<div class="added-endpoints-empty">No endpoints yet — add a local or cloud endpoint above.</div>';
+    return;
+  }
+  // Group models by endpoint base, preserving insertion order.
+  const groups = [];
+  const byBase = new Map();
+  for (const m of MODEL_LIST) {
+    if (!byBase.has(m.base)) {
+      const g = { base: m.base, endpoint: m.endpoint, kind: m.kind, models: [] };
+      byBase.set(m.base, g);
+      groups.push(g);
+    }
+    byBase.get(m.base).models.push(m);
+  }
+  window._ENDPOINT_GROUPS = groups;
+
+  host.innerHTML = groups.map((g, gi) => {
+    const total   = g.models.length;
+    const enabled = g.models.filter(m => m.enabled !== false).length;
+    const anyOn   = enabled > 0;
+    const expanded = _EXPANDED_ENDPOINTS.has(g.base);
+    const kindLabel = g.kind === 'local' ? 'LOCAL' : 'API';
+    const kindIcon  = g.kind === 'local' ? _epIconLocal : _epIconApi;
+    const modelsHtml = expanded ? `
+          <div class="ep-models">
+            ${g.models.map((m, mi) => `
+            <div class="ep-model-row">
+              <span class="ep-model-name${m.enabled === false ? ' disabled' : ''}">${escHtml(m.model)}</span>
+              <button class="ep-toggle${m.enabled !== false ? ' on' : ''}" title="${m.enabled !== false ? 'Disable' : 'Enable'} this model" onclick="toggleModelEnabled(${gi}, ${mi})"></button>
+            </div>`).join('')}
+          </div>` : '';
+    return `
+      <div class="ep-group">
+        <div class="ep-group-label">${kindIcon}<span>${kindLabel}</span></div>
+        <div class="ep-card">
+          <div class="ep-card-main">
+            <span class="ep-card-name">${escHtml(g.endpoint)}</span>
+            <span class="ep-badge${anyOn ? '' : ' off'}">${enabled}/${total} models enabled</span>
+            <span class="ep-manage-hint" onclick="toggleEndpointExpand(${gi})">${expanded ? 'Hide models' : 'Click to manage models'}</span>
+            <div class="ep-card-actions">
+              <button class="ep-mini-btn" onclick="toggleEndpointEnabled(${gi})">${anyOn ? 'Disable' : 'Enable'}</button>
+              <button class="ep-mini-btn danger" onclick="deleteEndpoint(${gi})">Delete</button>
+              <button class="ep-chevron${expanded ? ' open' : ''}" onclick="toggleEndpointExpand(${gi})" aria-label="Expand models">${_epChevron}</button>
+            </div>
+          </div>
+          <div class="ep-url-row">
+            <span>${escHtml(g.base)}</span>
+            <button class="ep-url-copy" title="Copy endpoint URL" onclick="copyEndpointUrl(${gi})">${_epCopyIcon}</button>
+          </div>
+          ${modelsHtml}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function _epGroup(gi) { return (window._ENDPOINT_GROUPS || [])[gi] || null; }
+
+function setModelEnabled(m, on) {
+  m.enabled = on;
+  const k = modelKey(m);
+  if (on) _DISABLED_MODELS.delete(k); else _DISABLED_MODELS.add(k);
+}
+
+// Re-sync picker + header after enabling/disabling/removing models.
+function afterModelAvailabilityChange() {
+  if (window.ACTIVE_MODEL) {
+    const stillUsable = MODEL_LIST.find(m => m.model === window.ACTIVE_MODEL && m.enabled !== false);
+    if (!stillUsable) deselectModel();
+  }
+  renderModelList(document.getElementById('model-dd-search')?.value || '');
+  renderAddedEndpoints();
+}
+
+function toggleEndpointExpand(gi) {
+  const g = _epGroup(gi);
+  if (!g) return;
+  if (_EXPANDED_ENDPOINTS.has(g.base)) _EXPANDED_ENDPOINTS.delete(g.base);
+  else _EXPANDED_ENDPOINTS.add(g.base);
+  renderAddedEndpoints();
+}
+
+function toggleEndpointEnabled(gi) {
+  const g = _epGroup(gi);
+  if (!g) return;
+  const anyOn = g.models.some(m => m.enabled !== false);
+  g.models.forEach(m => setModelEnabled(m, !anyOn));   // all off → enable all; otherwise disable all
+  persistDisabledModels();
+  afterModelAvailabilityChange();
+}
+
+function toggleModelEnabled(gi, mi) {
+  const g = _epGroup(gi);
+  if (!g) return;
+  const m = g.models[mi];
+  if (!m) return;
+  setModelEnabled(m, m.enabled === false);   // flip
+  persistDisabledModels();
+  afterModelAvailabilityChange();
+}
+
+function deleteEndpoint(gi) {
+  const g = _epGroup(gi);
+  if (!g) return;
+  if (!confirm(`Delete endpoint "${g.endpoint}"? Its ${g.models.length} model(s) will be removed from the picker.`)) return;
+  g.models.forEach(m => _DISABLED_MODELS.delete(modelKey(m)));
+  MODEL_LIST = MODEL_LIST.filter(m => m.base !== g.base);
+  _EXPANDED_ENDPOINTS.delete(g.base);
+  _REMOVED_ENDPOINTS.add(g.base);            // skip on next discovery until re-added
+  persistRemovedEndpoints();
+  persistDisabledModels();
+  saveModels();                               // rewrite persisted user endpoints without these
+  afterModelAvailabilityChange();
+  showToast('Endpoint removed');
+}
+
+function copyEndpointUrl(gi) {
+  const g = _epGroup(gi);
+  if (!g) return;
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(g.base).then(() => showToast('Endpoint URL copied')).catch(() => showToast('Copy failed'));
+  } else {
+    showToast(g.base);
+  }
+}
+
+function toggleModelDropdown() {
+  const dd = document.getElementById('model-dropdown');
+  const btn = document.getElementById('model-select-btn');
+  if (!dd) return;
+  const isOpen = dd.classList.contains('open');
+  dd.classList.toggle('open');
+  if (btn) btn.classList.toggle('open', !isOpen);
+  if (!isOpen) {
+    renderModelList('');
+    const search = document.getElementById('model-dd-search');
+    if (search) { search.value = ''; setTimeout(() => search.focus(), 0); }
+  }
+}
+
+function selectModelFromDropdown(id) {
+  selectModel(id);
+  const dd = document.getElementById('model-dropdown');
+  const btn = document.getElementById('model-select-btn');
+  if (dd) dd.classList.remove('open');
+  if (btn) btn.classList.remove('open');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  const dd = document.getElementById('model-dropdown');
+  const btn = document.getElementById('model-select-btn');
+  if (dd && btn && !dd.contains(e.target) && !btn.contains(e.target)) {
+    dd.classList.remove('open');
+    btn.classList.remove('open');
+  }
+});
+
+// ── ADD MODELS DIALOG (endpoints — local or cloud) ────────────────────
+function openAddModels() {
+  // Close the model picker if it's open
+  const dd = document.getElementById('model-dropdown');
+  const sbtn = document.getElementById('model-select-btn');
+  if (dd) dd.classList.remove('open');
+  if (sbtn) sbtn.classList.remove('open');
+  document.getElementById('add-models-modal').style.display = 'flex';
+  renderAddedEndpoints();
+}
+function closeAddModels() {
+  document.getElementById('add-models-modal').style.display = 'none';
+}
+function handleAddModelsBackdrop(e) {
+  if (e.target === document.getElementById('add-models-modal')) closeAddModels();
+}
+function toggleQuickstart() {
+  const body = document.getElementById('quickstart-body');
+  const row  = document.getElementById('quickstart-row');
+  if (!body) return;
+  const open = body.hasAttribute('hidden') ? false : true;
+  if (open) { body.setAttribute('hidden', ''); row.classList.remove('open'); }
+  else      { body.removeAttribute('hidden');  row.classList.add('open'); }
+}
+
+const PROVIDER_ENDPOINTS = {
+  DeepSeek: 'https://api.deepseek.com/v1',
+  OpenAI:   'https://api.openai.com/v1',
+  Together: 'https://api.together.xyz/v1',
+  Groq:     'https://api.groq.com/openai/v1',
+  Custom:   '',
+};
+function onProviderChange(provider) {
+  const input = document.getElementById('api-endpoint');
+  if (input && provider in PROVIDER_ENDPOINTS) input.value = PROVIDER_ENDPOINTS[provider];
+}
+
+// Normalise a base URL (ensure it ends without trailing slash, has /v1 for cloud is user's job)
+function normaliseBase(url) {
+  return (url || '').trim().replace(/\/+$/, '');
+}
+
+async function testEndpoint(kind) {
+  const base = normaliseBase(document.getElementById(kind + '-endpoint').value);
+  const key  = (document.getElementById(kind + '-key')?.value || '').trim() || (kind === 'local' ? API_KEY : '');
+  if (!base) { showToast('Enter an endpoint URL first'); return; }
+  const btn = document.getElementById(kind + '-test-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Testing…'; }
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(`${base}/models`, {
+      headers: key ? { 'Authorization': `Bearer ${key}` } : {},
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    if (res.ok) showToast('✓ Endpoint reachable');
+    else showToast(`Endpoint responded ${res.status}`);
+  } catch {
+    showToast('Could not reach endpoint');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Test'; }
+  }
+}
+
+// Query an OpenAI-compatible /models endpoint and return the list of model ids.
+async function discoverModels(base, key) {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(`${base}/models`, {
+      headers: key ? { 'Authorization': `Bearer ${key}` } : {},
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.data || data.models || []).map(m => m.id || m.name).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+// Persist user-added endpoints so they survive reloads.
+function saveModels() {
+  if (!(window.BarangayDB && window.BarangayDB.dbSaveModels)) return;
+  const userModels = MODEL_LIST
+    .filter(m => m.source === 'user')
+    .map(({ model, endpoint, base, key, kind }) => ({ model, endpoint, base, key, kind, source: 'user' }));
+  window.BarangayDB.dbSaveModels(userModels);
+}
+
+function addModelEntry({ model, base, key, kind, source = 'user' }) {
+  const endpoint = (() => { try { return new URL(base).host; } catch { return base; } })();
+  // Avoid duplicates (same model + endpoint)
+  const existing = MODEL_LIST.find(m => m.model === model && m.base === base);
+  if (existing) return existing;
+  const id = 'm' + (++_modelSeq);
+  const entry = { id, model, endpoint, base, key, kind, source, enabled: !_DISABLED_MODELS.has(`${base}||${model}`) };
+  MODEL_LIST.push(entry);
+  renderModelList(document.getElementById('model-dd-search')?.value || '');
+  renderAddedEndpoints();
+  if (source === 'user') saveModels();
+  return entry;
+}
+
+// On startup: restore persisted user endpoints, then discover live local models.
+async function initModelRegistry() {
+  loadModelPrefs();   // disabled models + removed endpoints
+  if (window.BarangayDB && window.BarangayDB.dbLoadModels) {
+    for (const m of window.BarangayDB.dbLoadModels()) {
+      if (_REMOVED_ENDPOINTS.has(m.base)) continue;
+      addModelEntry({ model: m.model, base: m.base, key: m.key, kind: m.kind, source: 'user' });
+    }
+  }
+  // Discover models actually available on the default local endpoint (unless the user deleted it).
+  if (!_REMOVED_ENDPOINTS.has(API_BASE)) {
+    const ids = await discoverModels(API_BASE, API_KEY);
+    for (const id of ids) {
+      addModelEntry({ model: id, base: API_BASE, key: API_KEY, kind: 'local', source: 'discovered' });
+    }
+  }
+  renderModelList(document.getElementById('model-dd-search')?.value || '');
+  renderAddedEndpoints();
+
+  // No model is auto-selected — reflect that in the header until the user picks one.
+  if (!window.ACTIVE_MODEL) {
+    const subtitle = document.getElementById('header-subtitle');
+    if (subtitle) {
+      subtitle.textContent = MODEL_LIST.some(m => m.model)
+        ? 'AI Sa Barangay · No model selected — choose one below'
+        : 'AI Sa Barangay · No model installed — pull one with Ollama';
+    }
+    const labelEl = document.getElementById('model-select-label');
+    if (labelEl) labelEl.textContent = 'Select model';
+  }
+}
+
+async function addEndpoint(kind) {
+  const base = normaliseBase(document.getElementById(kind + '-endpoint').value);
+  const key  = (document.getElementById(kind + '-key')?.value || '').trim() || (kind === 'local' ? API_KEY : '');
+  if (!base) { showToast('Enter an endpoint URL first'); return; }
+
+  // Re-adding an endpoint the user previously deleted clears its removed flag.
+  if (_REMOVED_ENDPOINTS.delete(base)) persistRemovedEndpoints();
+
+  const btn = document.getElementById(kind + '-add-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
+
+  let added = 0;
+  let first = null;
+
+  // Try to discover models from the endpoint
+  const ids = await discoverModels(base, key);
+  ids.forEach(id => { const e = addModelEntry({ model: id, base, key, kind, source: 'user' }); if (!first) first = e; added++; });
+
+  // Cloud providers usually don't expose /models without scopes — fall back to provider default
+  if (!added) {
+    const fallback = kind === 'api'
+      ? (document.getElementById('api-provider')?.value === 'OpenAI' ? 'gpt-4o-mini' : 'deepseek-chat')
+      : 'custom-model';
+    first = addModelEntry({ model: fallback, base, key, kind, source: 'user' });
+    added = 1;
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Add'; }
+  showToast(added > 1 ? `Added ${added} models` : `Added ${first.model}`);
+  if (first) selectModel(first.id);
+  closeAddModels();
 }
 
 // ── CONNECTIVITY CHECK ────────────────────────────────────────────────
@@ -901,19 +1536,23 @@ async function checkConnectivity() {
     return;
   } catch {}
 
-  try {
-    const ctrl2 = new AbortController();
-    const timeout2 = setTimeout(() => ctrl2.abort(), 8000);
-    await fetch(`${API_BASE}/chat/completions`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: window.ACTIVE_MODEL, messages: [{ role: 'user', content: 'hi' }], max_tokens: 1, stream: false }),
-      signal: ctrl2.signal
-    });
-    clearTimeout(timeout2);
-    setConnected(true);
-    return;
-  } catch {}
+  // Only probe chat completions if a model is actually selected (otherwise the
+  // GET /models check above is what tells us whether Ollama is reachable).
+  if (window.ACTIVE_MODEL) {
+    try {
+      const ctrl2 = new AbortController();
+      const timeout2 = setTimeout(() => ctrl2.abort(), 8000);
+      await fetch(`${API_BASE}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: window.ACTIVE_MODEL, messages: [{ role: 'user', content: 'hi' }], max_tokens: 1, stream: false }),
+        signal: ctrl2.signal
+      });
+      clearTimeout(timeout2);
+      setConnected(true);
+      return;
+    } catch {}
+  }
 
   setConnected(false);
 }
@@ -972,6 +1611,64 @@ function handleKey(e) {
     e.preventDefault();
     sendMessage();
   }
+}
+
+// ── SEND / STOP BUTTON ────────────────────────────────────────────────
+let _streamAbort = null;     // AbortController for the in-flight generation
+let _userCancelled = false;  // true when the user pressed Stop
+
+const _ICON_SEND = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9 22,2"/></svg>';
+const _ICON_STOP = '<svg width="15" height="15" viewBox="0 0 24 24" fill="white"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>';
+
+// Toggle the composer button between Send and Stop.
+function setSendMode(streaming) {
+  const btn = document.getElementById('send-btn');
+  if (!btn) return;
+  btn.disabled = false;
+  btn.classList.toggle('stop', streaming);
+  btn.title = streaming ? 'Stop generating' : 'Send message';
+  btn.innerHTML = streaming ? _ICON_STOP : _ICON_SEND;
+}
+
+function handleSendClick() {
+  if (isStreaming) stopGeneration();
+  else sendMessage();
+}
+
+// Abort the current generation; the stream handler shows the cancelled note.
+function stopGeneration() {
+  _userCancelled = true;
+  if (_streamAbort) { try { _streamAbort.abort(); } catch {} }
+}
+
+// Builds the "cancelled by the user" note (reused live and on session reload).
+function cancelledNoteEl() {
+  const n = document.createElement('div');
+  n.className = 'cancelled-note';
+  n.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2.5"/></svg><span>The prompt was cancelled by the user.</span>';
+  return n;
+}
+
+// Cancelled assistant messages carry this marker in their stored content. It lets
+// us (a) re-render the note after reload and (b) exclude the whole turn from the
+// model's context — without needing a DB schema change.
+const CANCEL_MARK = '␛__CANCELLED__';
+function isCancelledContent(c) { return typeof c === 'string' && c.includes(CANCEL_MARK); }
+function stripCancelMark(c) { return (c || '').split(CANCEL_MARK).join(''); }
+
+// Rebuild the API message list from a session's display messages, dropping any
+// cancelled turn (the cancelled assistant reply AND the question it answered) so
+// the model never sees an unanswered/aborted prompt.
+function rebuildApiMessages(displayMessages) {
+  const out = [];
+  for (const m of (displayMessages || [])) {
+    if (m.role === 'assistant' && isCancelledContent(m.content)) {
+      if (out.length && out[out.length - 1].role === 'user') out.pop();
+      continue;
+    }
+    out.push({ role: m.role, content: m.content });
+  }
+  return out;
 }
 
 function suggest(text) {
@@ -1133,6 +1830,8 @@ function formatContent(rawText) {
 function hideWelcome() {
   const ws = document.getElementById('welcome-screen');
   if (ws) ws.remove();
+  const main = document.querySelector('.main');
+  if (main) main.classList.remove('welcome-mode');
 }
 
 function appendUserMessage(text) {
@@ -1316,21 +2015,106 @@ function toggleThinkBlock(headerEl) {
   chevron.classList.toggle('open');
 }
 
-function appendMsgMeta(chatArea, elapsedMs, completionTokens, fullText) {
+// Resolve raw timing/usage into a self-contained, serializable stats object
+// so it can be re-rendered later (e.g. when a saved conversation is reopened).
+function makeMsgStats(elapsedMs, completionTokens, fullText, promptTokens, prepMs) {
+  const outputExact = completionTokens != null;
+  const outputTokens = (fullText != null) ? (completionTokens ?? Math.round(fullText.length / 4)) : (completionTokens ?? null);
+  const inputExact = promptTokens != null;
+  return {
+    model: window.ACTIVE_MODEL,
+    secs: elapsedMs / 1000,
+    prepSecs: (prepMs != null) ? prepMs / 1000 : null,   // time-to-first-token (model load + prompt eval)
+    inputTokens: promptTokens ?? null,
+    inputExact,
+    outputTokens,
+    outputExact
+  };
+}
+
+function appendMsgMeta(chatArea, elapsedMs, completionTokens, fullText, promptTokens, prepMs) {
+  const stats = makeMsgStats(elapsedMs, completionTokens, fullText, promptTokens, prepMs);
+  renderMsgStats(chatArea, stats);
+  return stats;
+}
+
+function renderMsgStats(chatArea, stats) {
+  const secs = stats.secs;
+  const { model, inputTokens, inputExact, outputTokens, outputExact } = stats;
+  const totalTokens = (inputTokens ?? 0) + (outputTokens ?? 0);
+
+  // Speed (tokens/sec) — only meaningful when we have a real output count
+  const speed = (outputExact && secs > 0) ? (outputTokens / secs).toFixed(1) + ' tok/s' : 'n/a';
+  const prepStr = (stats.prepSecs != null) ? stats.prepSecs.toFixed(2) + 's' : 'n/a';
+  const contextPct = totalTokens ? ((totalTokens / CONTEXT_WINDOW) * 100) : 0;
+  const contextStr = contextPct < 0.1 && contextPct > 0 ? '<0.1' : contextPct.toFixed(1);
+
+  // ── Compact summary row (clickable) ──────────────────────────────────
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-meta-wrap';
+
   const meta = document.createElement('div');
-  meta.className = 'msg-meta';
-  const secs = (elapsedMs / 1000).toFixed(1) + 's';
-  const tokens = fullText ? (completionTokens ?? Math.round(fullText.length / 4)) : null;
-  const parts = [secs];
-  if (tokens) parts.push('~' + tokens + ' tokens');
-  parts.push(window.ACTIVE_MODEL);
-  meta.innerHTML = parts.map((p, i) =>
-    i < parts.length - 1
+  meta.className = 'msg-meta msg-meta-clickable';
+  meta.title = 'Click for message stats';
+  const summaryParts = [];
+  if (outputTokens != null) summaryParts.push(outputTokens + ' tok');
+  summaryParts.push(secs.toFixed(2) + 's');
+  meta.innerHTML = summaryParts.map((p, i) =>
+    i < summaryParts.length - 1
       ? `<span>${p}</span><span class="msg-meta-dot">·</span>`
       : `<span>${p}</span>`
-  ).join('');
-  chatArea.appendChild(meta);
+  ).join('') +
+    `<svg class="msg-meta-chevron" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+  meta.onclick = (e) => { e.stopPropagation(); toggleMsgStats(meta); };
+
+  // ── Stats popover ─────────────────────────────────────────────────────
+  const tilde = (exact) => exact ? '' : '~';
+  const fmtTok = (n, exact) => n == null ? 'n/a' : `<b>${n} token${n === 1 ? '' : 's'}${tilde(exact)}</b>`;
+  const pop = document.createElement('div');
+  pop.className = 'msg-stats-popover hidden';
+  pop.innerHTML = `
+    <div class="msg-stats-title">Message Stats</div>
+    <div class="msg-stats-rows">
+      <div class="msg-stats-row"><span class="msg-stats-k">Model</span><span class="msg-stats-v mono">${escHtml(model)}</span></div>
+      <div class="msg-stats-row"><span class="msg-stats-k">Input</span><span class="msg-stats-v">${fmtTok(inputTokens, inputExact)}</span></div>
+      <div class="msg-stats-row"><span class="msg-stats-k">Output</span><span class="msg-stats-v">${fmtTok(outputTokens, outputExact)}</span></div>
+      <div class="msg-stats-row"><span class="msg-stats-k">Total</span><span class="msg-stats-v">${totalTokens ? `<b>${totalTokens} tokens</b>` : 'n/a'}</span></div>
+      <div class="msg-stats-row"><span class="msg-stats-k">Speed</span><span class="msg-stats-v">${speed}</span></div>
+      <div class="msg-stats-row" title="Prep time — how long before the first token arrived (loading the model into memory + reading your prompt). Large on the first message, small once the model is warm."><span class="msg-stats-k">Prep</span><span class="msg-stats-v">${prepStr}</span></div>
+      <div class="msg-stats-row"><span class="msg-stats-k">Time</span><span class="msg-stats-v">${secs.toFixed(2)}s</span></div>
+      <div class="msg-stats-row"><span class="msg-stats-k">Cost</span><span class="msg-stats-v">n/a</span></div>
+    </div>
+    <div class="msg-stats-divider"></div>
+    <div class="msg-stats-row"><span class="msg-stats-k">Context</span><span class="msg-stats-v"><b>${contextStr}% used</b></span></div>
+    <div class="msg-stats-note">~ estimated token count</div>`;
+
+  wrap.appendChild(meta);
+  wrap.appendChild(pop);
+  chatArea.appendChild(wrap);
 }
+
+function toggleMsgStats(metaEl) {
+  const pop = metaEl.parentElement.querySelector('.msg-stats-popover');
+  const isOpen = !pop.classList.contains('hidden');
+  // Close any other open popovers first
+  document.querySelectorAll('.msg-stats-popover').forEach(p => p.classList.add('hidden'));
+  document.querySelectorAll('.msg-meta-clickable.open').forEach(m => m.classList.remove('open'));
+  if (!isOpen) {
+    pop.classList.remove('hidden', 'up');
+    metaEl.classList.add('open');
+    // Open upward if the popover would overflow the bottom of the viewport
+    // (the stats row sits at a message's bottom, often near the composer).
+    const rect = metaEl.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    if (spaceBelow < pop.offsetHeight + 24) pop.classList.add('up');
+  }
+}
+
+// Close stats popovers when clicking anywhere else
+document.addEventListener('click', () => {
+  document.querySelectorAll('.msg-stats-popover').forEach(p => p.classList.add('hidden'));
+  document.querySelectorAll('.msg-meta-clickable.open').forEach(m => m.classList.remove('open'));
+});
 
 function appendAIMessage(text) {
   const chatArea = document.getElementById('chat-area');
@@ -1366,6 +2150,10 @@ document.getElementById('chat-area').addEventListener('scroll', function() {
   const btn = document.getElementById('scroll-btn');
   const atBottom = scrollHeight - scrollTop - clientHeight < 80;
   btn.classList.toggle('visible', !atBottom && scrollHeight > clientHeight + 200);
+
+  // Close any open stats popover on scroll so it doesn't float over the messages.
+  document.querySelectorAll('.msg-stats-popover:not(.hidden)').forEach(p => p.classList.add('hidden'));
+  document.querySelectorAll('.msg-meta-clickable.open').forEach(m => m.classList.remove('open'));
 });
 
 // ── HISTORY ───────────────────────────────────────────────────────────
@@ -1384,9 +2172,9 @@ function updateHistory(firstMessage) {
 function xhrFallback(payload) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE}/chat/completions`, true);
+    xhr.open('POST', `${window.ACTIVE_BASE}/chat/completions`, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Authorization', `Bearer ${API_KEY}`);
+    xhr.setRequestHeader('Authorization', `Bearer ${window.ACTIVE_KEY}`);
     xhr.timeout = 30000;
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
@@ -1400,6 +2188,69 @@ function xhrFallback(payload) {
   });
 }
 
+// ── EDUCATIONAL ERROR BUBBLE ──────────────────────────────────────────
+// Renders the same teaching-style error card used for connection failures.
+function renderErrorBubble(errorData) {
+  const chatArea = document.getElementById('chat-area');
+  if (!chatArea) return;
+  hideWelcome();
+  const errId = 'err-' + Date.now();
+  const err = document.createElement('div');
+  err.className = 'error-bubble';
+  err.id = errId;
+  err.innerHTML = `
+    <div class="error-bubble-top">
+      <div class="error-bubble-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div>
+        <div class="error-bubble-title">${escHtml(errorData.title)}</div>
+        <div class="error-bubble-desc">${escHtml(errorData.desc)}</div>
+      </div>
+    </div>
+    <div class="error-bubble-steps">
+      <div class="error-bubble-steps-title">What to do next</div>
+      ${errorData.steps.map((s, i) => `
+      <div class="error-step">
+        <div class="error-step-num">${i + 1}</div>
+        <span>${escHtml(s.text)}${s.code ? ` <code>${escHtml(s.code)}</code>` : ''}</span>
+      </div>`).join('')}
+    </div>
+    <button class="error-bubble-dismiss" onclick="document.getElementById('${errId}').remove()">Dismiss</button>`;
+  chatArea.appendChild(err);
+  scrollToBottom();
+}
+
+// Two distinct, educational states when there is no model to send to.
+const NO_MODEL_ERROR = {
+  title: "No AI model is installed on this computer",
+  desc: "An AI model is the “brain” that writes the replies — it lives as a file on your machine and has to be downloaded once before you can chat. Right now Ollama has none to load, so there is nothing to talk to yet.",
+  steps: [
+    { text: 'Make sure Ollama (the program that runs models locally) is installed and running:', code: 'OLLAMA_ORIGINS=* ollama serve' },
+    { text: 'Download a small, fast starter model — about 2 GB, one time only:', code: 'ollama pull qwen2.5:3b' },
+    { text: 'Check what is installed any time with:', code: 'ollama list' },
+    { text: 'Refresh this page — the model will appear in the picker at the bottom of the chat, then select it' },
+  ],
+};
+const SELECT_MODEL_ERROR = {
+  title: "Choose a model before you start chatting",
+  desc: "Good news — your computer already has AI model(s) ready. But none is selected yet, so the app does not know which “brain” to send your message to. Each model has its own size, speed, and strengths, so the choice is yours.",
+  steps: [
+    { text: 'Click the model selector at the bottom of the chat, beside the message box' },
+    { text: 'Pick a model from the list — smaller models reply faster, larger ones tend to be more capable' },
+    { text: 'Send your message again once a model is highlighted' },
+  ],
+};
+
+// Returns true if a model is selected. Otherwise shows the right educational
+// error (none installed vs. installed-but-not-selected) and returns false.
+function ensureModelSelected() {
+  if (window.ACTIVE_MODEL) return true;
+  const hasModels = MODEL_LIST.some(m => m.model);
+  renderErrorBubble(hasModels ? SELECT_MODEL_ERROR : NO_MODEL_ERROR);
+  return false;
+}
+
 // ── SEND MESSAGE ──────────────────────────────────────────────────────
 async function sendMessage() {
   if (isStreaming) return;
@@ -1407,9 +2258,14 @@ async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
 
+  // No model selected → teach the user what to do (keeps their typed message).
+  if (!ensureModelSelected()) return;
+
   input.value = '';
   input.style.height = 'auto';
-  document.getElementById('send-btn').disabled = true;
+  _userCancelled = false;
+  _streamAbort = new AbortController();
+  setSendMode(true);   // button becomes a Stop button
   isStreaming = true;
 
   // Ensure a session exists
@@ -1463,26 +2319,46 @@ async function sendMessage() {
     if (window._setEduCard) window._setEduCard('📦', `First request — loading Qwen 2.5 3B (~2 GB) from disk into RAM. This takes 5–15 seconds once. After this, all replies will be much faster.`);
   }
 
+  // Apply prefix / suffix to the message sent to the model (history stays clean)
+  const _prefix = window._PROMPT_PREFIX_ACTIVE || '';
+  const _suffix = window._PROMPT_SUFFIX_ACTIVE || '';
+  let _outgoing = messages;
+  if (_prefix || _suffix) {
+    _outgoing = messages.slice();
+    const lastUser = _outgoing.length - 1;
+    if (lastUser >= 0 && _outgoing[lastUser].role === 'user') {
+      _outgoing[lastUser] = {
+        ..._outgoing[lastUser],
+        content: `${_prefix ? _prefix + '\n\n' : ''}${_outgoing[lastUser].content}${_suffix ? '\n\n' + _suffix : ''}`
+      };
+    }
+  }
+
+  const _temperature = (typeof window._TEMPERATURE_ACTIVE === 'number') ? window._TEMPERATURE_ACTIVE : 0.3;
   const payload = {
     model: window.ACTIVE_MODEL,
-    messages: [{ role: 'system', content: systemPrompt }, ...messages],
-    max_tokens: 1024,
-    temperature: 0.3
+    messages: [{ role: 'system', content: systemPrompt }, ..._outgoing],
+    temperature: _temperature
   };
+  // _MAX_TOKENS_ACTIVE === null means "No limit" → omit the cap entirely
+  if (window._MAX_TOKENS_ACTIVE !== null) {
+    payload.max_tokens = (typeof window._MAX_TOKENS_ACTIVE === 'number') ? window._MAX_TOKENS_ACTIVE : 1024;
+  }
 
   const startTime = Date.now();
 
   // ── Streaming attempt ────────────────────────────────────────────────
   try {
-    const response = await fetch(`${API_BASE}/chat/completions`, {
+    const response = await fetch(`${window.ACTIVE_BASE}/chat/completions`, {
       method: 'POST',
       mode: 'cors',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`,
+        'Authorization': `Bearer ${window.ACTIVE_KEY}`,
         'Accept': 'text/event-stream'
       },
-      body: JSON.stringify({ ...payload, stream: true, stream_options: { include_usage: true } })
+      body: JSON.stringify({ ...payload, stream: true, stream_options: { include_usage: true } }),
+      signal: _streamAbort.signal
     });
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -1506,10 +2382,14 @@ async function sendMessage() {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let fullText = '';
+    let firstTokenAt = null;   // timestamp of first streamed token → prep/TTFT
     let completionTokens = null;
+    let promptTokens = null;
     let _usingReasoningField = false; // true if model sends reasoning_content separately
     let _dbgChunk = 0;
 
+    let cancelled = false;
+    try {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -1521,7 +2401,10 @@ async function sendMessage() {
         try {
           const parsed = JSON.parse(data);
           if (_dbgChunk++ < 3) console.log('[stream delta]', JSON.stringify(parsed.choices?.[0]?.delta));
-          if (parsed.usage) completionTokens = parsed.usage.completion_tokens ?? null;
+          if (parsed.usage) {
+            completionTokens = parsed.usage.completion_tokens ?? completionTokens;
+            promptTokens = parsed.usage.prompt_tokens ?? promptTokens;
+          }
           const rc = parsed.choices?.[0]?.delta?.reasoning_content;
           const cc = parsed.choices?.[0]?.delta?.content;
           let delta = '';
@@ -1537,6 +2420,7 @@ async function sendMessage() {
             delta = cc;
           }
           if (delta) {
+            if (firstTokenAt === null) firstTokenAt = Date.now();
             fullText += delta;
             const tp = parseThinkDisplay(fullText);
             if (tp.think) {
@@ -1549,6 +2433,11 @@ async function sendMessage() {
         } catch (e) { if (_dbgChunk++ < 6) console.error('[stream parse error]', e.message, data?.slice(0, 120)); }
       }
     }
+    } catch (readErr) {
+      // Stop button aborts the reader — handle gracefully; rethrow real errors.
+      if (_userCancelled || readErr.name === 'AbortError') cancelled = true;
+      else throw readErr;
+    }
 
     // If model used reasoning_content but never closed <think>, force-close so the block renders
     if (fullText.includes('<think>') && !fullText.includes('</think>')) {
@@ -1557,24 +2446,32 @@ async function sendMessage() {
       renderThinkInBubble(bubble, tp.think, tp.display, false);
     }
 
-    if (!fullText) {
+    if (!fullText && !cancelled) {
       bubble.innerHTML = '<em style="color:var(--text-muted)">No response received.</em>';
       // Remove the user message so this failed turn doesn't poison history
       messages.pop();
       if (session && session.displayMessages.length) session.displayMessages.pop();
     }
 
+    // Show the cancellation note (after any partial answer the model managed to stream).
+    if (cancelled) bubble.appendChild(cancelledNoteEl());
+
     const aiTime = getTime();
     const timeDiv = document.createElement('div');
     timeDiv.className = 'message-time';
     timeDiv.textContent = aiTime;
     chatArea.appendChild(timeDiv);
-    appendMsgMeta(chatArea, Date.now() - startTime, completionTokens, fullText);
+    const prepMs = (firstTokenAt != null) ? (firstTokenAt - startTime) : null;
+    const stats = appendMsgMeta(chatArea, Date.now() - startTime, completionTokens, fullText, promptTokens, prepMs);
 
     const savedContent = fullText.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-    if (savedContent) {
+    if (cancelled) {
+      // Cancelled turns stay visible but are excluded from the model's context.
+      messages.pop();   // remove the unanswered user turn we pushed at send start
+      if (session) session.displayMessages.push({ role: 'assistant', content: savedContent + CANCEL_MARK, time: aiTime, stats, cancelled: true });
+    } else if (savedContent) {
       messages.push({ role: 'assistant', content: savedContent });
-      if (session) session.displayMessages.push({ role: 'assistant', content: savedContent, time: aiTime });
+      if (session) session.displayMessages.push({ role: 'assistant', content: savedContent, time: aiTime, stats });
     } else if (fullText) {
       // model only generated thinking — pop the user message so history stays consistent
       messages.pop();
@@ -1587,12 +2484,26 @@ async function sendMessage() {
   } catch (streamErr) {
     removeTypingIndicator();
 
+    // User pressed Stop before any tokens streamed → show the note, skip fallback.
+    if (_userCancelled || streamErr.name === 'AbortError') {
+      const ca = document.getElementById('chat-area');
+      const row = document.createElement('div');
+      row.className = 'message-row';
+      row.innerHTML = `<div class="avatar ai">${getAIAvatar()}</div><div class="bubble ai"></div>`;
+      row.querySelector('.bubble').appendChild(cancelledNoteEl());
+      ca.appendChild(row);
+      messages.pop();   // drop the unanswered user turn from API context
+      if (session) session.displayMessages.push({ role: 'assistant', content: CANCEL_MARK, time: getTime(), cancelled: true });
+      scrollToBottom();
+      return;
+    }
+
     // ── Non-streaming fallback ───────────────────────────────────────
     try {
-      const res2 = await fetch(`${API_BASE}/chat/completions`, {
+      const res2 = await fetch(`${window.ACTIVE_BASE}/chat/completions`, {
         method: 'POST',
         mode: 'cors',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.ACTIVE_KEY}` },
         body: JSON.stringify({ ...payload, stream: false })
       });
 
@@ -1603,9 +2514,9 @@ async function sendMessage() {
       const aiTime = getTime();
       appendAIMessage(aiText);
       const fallbackTokens = data.usage?.completion_tokens ?? data.usage?.total_tokens ?? null;
-      appendMsgMeta(document.getElementById('chat-area'), Date.now() - startTime, fallbackTokens, aiText);
+      const stats = appendMsgMeta(document.getElementById('chat-area'), Date.now() - startTime, fallbackTokens, aiText, data.usage?.prompt_tokens ?? null);
       messages.push({ role: 'assistant', content: aiText });
-      if (session) session.displayMessages.push({ role: 'assistant', content: aiText, time: aiTime });
+      if (session) session.displayMessages.push({ role: 'assistant', content: aiText, time: aiTime, stats });
       updateHistory(text);
       setConnected(true);
       _modelWarm = true;
@@ -1621,14 +2532,14 @@ async function sendMessage() {
           removeTypingIndicator();
           const xhrTime = getTime();
           appendAIMessage(xhrResult);
-          appendMsgMeta(document.getElementById('chat-area'), Date.now() - startTime, null, xhrResult);
+          const stats = appendMsgMeta(document.getElementById('chat-area'), Date.now() - startTime, null, xhrResult);
           messages.push({ role: 'assistant', content: xhrResult });
-          if (session) session.displayMessages.push({ role: 'assistant', content: xhrResult, time: xhrTime });
+          if (session) session.displayMessages.push({ role: 'assistant', content: xhrResult, time: xhrTime, stats });
           updateHistory(text);
           setConnected(true);
           _modelWarm = true;
           isStreaming = false;
-          document.getElementById('send-btn').disabled = false;
+          setSendMode(false);
           document.getElementById('message-input').focus();
           return;
         } catch {
@@ -1695,43 +2606,21 @@ async function sendMessage() {
       }
 
       removeTypingIndicator();
-      const chatArea = document.getElementById('chat-area');
-      const errId = 'err-' + Date.now();
-      const err = document.createElement('div');
-      err.className = 'error-bubble';
-      err.id = errId;
-      err.innerHTML = `
-        <div class="error-bubble-top">
-          <div class="error-bubble-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          </div>
-          <div>
-            <div class="error-bubble-title">${escHtml(errorData.title)}</div>
-            <div class="error-bubble-desc">${escHtml(errorData.desc)}</div>
-          </div>
-        </div>
-        <div class="error-bubble-steps">
-          <div class="error-bubble-steps-title">What to do next</div>
-          ${errorData.steps.map((s, i) => `
-          <div class="error-step">
-            <div class="error-step-num">${i + 1}</div>
-            <span>${escHtml(s.text)}${s.code ? ` <code>${escHtml(s.code)}</code>` : ''}</span>
-          </div>`).join('')}
-        </div>
-        <button class="error-bubble-dismiss" onclick="document.getElementById('${errId}').remove()">Dismiss</button>`;
-      chatArea.appendChild(err);
-      scrollToBottom();
+      renderErrorBubble(errorData);
       setConnected(false);
     }
   } finally {
     isStreaming = false;
-    document.getElementById('send-btn').disabled = false;
+    _streamAbort = null;
+    setSendMode(false);
     document.getElementById('message-input').focus();
   }
 }
 
 // ── WELCOME SCREEN ────────────────────────────────────────────────────
 function resetWelcomeScreen() {
+  const main = document.querySelector('.main');
+  if (main) main.classList.add('welcome-mode');
   const chatArea = document.getElementById('chat-area');
   chatArea.innerHTML = '';
   const ws = document.createElement('div');
@@ -1741,63 +2630,30 @@ function resetWelcomeScreen() {
   const greeting = window._GREETING_ACTIVE || greetings[Math.floor(Math.random() * greetings.length)];
   const _activeName = window._AI_NAME_ACTIVE || AI_NAME;
   ws.innerHTML = `
-    <div class="logo-wrapper">
-      <div class="welcome-icon">${(_activeName).slice(0, 2).toUpperCase()}</div>
-      <div class="logo-tooltip">
-        <div class="logo-tooltip-label">Powered by</div>
-        <div class="logo-tooltip-brand">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H7l5-8v4h4l-5 8z"/></svg>
-          Alibaba Cloud
-        </div>
-      </div>
-    </div>
-    <div>
-      <div class="welcome-greeting">${greeting}</div>
+    <div class="welcome-icon">${(_activeName).slice(0, 2).toUpperCase()}</div>
+    <div class="welcome-hero">
       <div class="welcome-title">${_activeName}</div>
-      <div class="welcome-sub">Built by Filipino developers, running Qwen locally via Ollama. Open source, free to use, free to learn from, free to build on.</div>
+      <div class="welcome-greeting">${greeting}</div>
     </div>
-    <div class="community-desc">
-      <div class="community-desc-inner">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><polyline points="16,18 22,12 16,6"/><polyline points="8,6 2,12 8,18"/></svg>
-        <span>This is an <strong>open community AI project</strong> — built and maintained by Filipino developers. Fork it, customize it, make it yours.</span>
-      </div>
-    </div>
-    <div class="community-desc">
-      <div class="community-desc-inner">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span>Runs on <strong>Ollama + Qwen 2.5 3B</strong> on your own machine. No cloud. No API fees. No data leaving this computer.</span>
-      </div>
-    </div>
-    <div class="suggestion-grid" id="suggestion-grid-welcome">
-      <button class="suggestion-card" onclick="suggest('What is DEVCON Barangay AI Code Camps? What will I learn and build today?')">
-        <span class="suggestion-card-icon">🏕️</span>
-        <div class="suggestion-card-label">About Barangay AI</div>
-        <div class="suggestion-card-desc">What is this project?</div>
+    <div class="welcome-brief">Built by Filipino developers · Runs on Ollama + Qwen locally · Open source, no cloud, no fees</div>
+    <div class="suggestion-chips" id="suggestion-grid-welcome">
+      <button class="suggestion-chip" onclick="suggest('What is DEVCON Barangay AI Code Camps? What will I learn and build today?')">
+        <span class="suggestion-chip-icon">🏕️</span> About Barangay AI
       </button>
-      <button class="suggestion-card" onclick="suggest('I am a beginner. Give me a simple first coding exercise — write a Python function to call a local Ollama API endpoint and print the response.')">
-        <span class="suggestion-card-icon">💻</span>
-        <div class="suggestion-card-label">Start Coding</div>
-        <div class="suggestion-card-desc">Beginner first exercise</div>
+      <button class="suggestion-chip" onclick="suggest('I am a beginner. Give me a simple first coding exercise — write a Python function to call a local Ollama API endpoint and print the response.')">
+        <span class="suggestion-chip-icon">💻</span> Start Coding
       </button>
-      <button class="suggestion-card" onclick="suggest('Please check my grammar and suggest improvements. Here is my text: [paste your text here]')">
-        <span class="suggestion-card-icon">✍️</span>
-        <div class="suggestion-card-label">Grammar Checker</div>
-        <div class="suggestion-card-desc">Fix and improve your writing</div>
+      <button class="suggestion-chip" onclick="suggest('Please check my grammar and suggest improvements. Here is my text: [paste your text here]')">
+        <span class="suggestion-chip-icon">✍️</span> Grammar Check
       </button>
-      <button class="suggestion-card" onclick="suggest('Please review my code, suggest improvements, and explain any issues you find. Here is my code: [paste your code here]')">
-        <span class="suggestion-card-icon">🔍</span>
-        <div class="suggestion-card-label">Code Review Buddy</div>
-        <div class="suggestion-card-desc">Review and improve your code</div>
+      <button class="suggestion-chip" onclick="suggest('Please review my code, suggest improvements, and explain any issues you find. Here is my code: [paste your code here]')">
+        <span class="suggestion-chip-icon">🔍</span> Code Review
       </button>
-      <button class="suggestion-card" onclick="suggest('How does a local AI model work? Explain what Ollama does and what Qwen is, using simple analogies a high school student would understand.')">
-        <span class="suggestion-card-icon">🧠</span>
-        <div class="suggestion-card-label">How It Works</div>
-        <div class="suggestion-card-desc">Simple explanation</div>
+      <button class="suggestion-chip" onclick="suggest('How does a local AI model work? Explain what Ollama does and what Qwen is, using simple analogies a high school student would understand.')">
+        <span class="suggestion-chip-icon">🧠</span> How It Works
       </button>
-      <button class="suggestion-card" onclick="suggest('How do I contribute to an open source project on GitHub as a complete beginner? Walk me through forking a repo and opening a pull request step by step.')">
-        <span class="suggestion-card-icon">🤝</span>
-        <div class="suggestion-card-label">Contribute</div>
-        <div class="suggestion-card-desc">Fork, edit, pull request</div>
+      <button class="suggestion-chip" onclick="suggest('How do I contribute to an open source project on GitHub as a complete beginner? Walk me through forking a repo and opening a pull request step by step.')">
+        <span class="suggestion-chip-icon">🤝</span> Contribute
       </button>
     </div>`;
   chatArea.appendChild(ws);
@@ -1808,10 +2664,8 @@ function resetWelcomeScreen() {
     const grid = ws.querySelector('#suggestion-grid-welcome');
     if (grid) {
       grid.innerHTML = SUGGESTIONS.map(s => `
-        <button class="suggestion-card" onclick="suggest(${JSON.stringify(s.prompt)})">
-          <span class="suggestion-card-icon">${s.icon}</span>
-          <div class="suggestion-card-label">${s.label}</div>
-          <div class="suggestion-card-desc">${s.desc}</div>
+        <button class="suggestion-chip" onclick="suggest(${JSON.stringify(s.prompt)})">
+          <span class="suggestion-chip-icon">${s.icon}</span> ${s.label}
         </button>`).join('');
     }
   }
@@ -1840,6 +2694,7 @@ function newChat() {
 // ── INIT ──────────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
   if (window.BarangayDB) await window.BarangayDB.initDB();
+  initModelRegistry();   // restore saved endpoints + discover live local models
   document.documentElement.style.setProperty('--dc-blue', BRAND_COLOR);
   document.documentElement.style.setProperty('--dc-accent', ACCENT_COLOR);
 
@@ -1852,13 +2707,11 @@ window.addEventListener('load', async () => {
   if (Object.keys(saved).length) applySettings(saved);
 
   if (SUGGESTIONS) {
-    const grid = document.querySelector('.suggestion-grid');
+    const grid = document.querySelector('.suggestion-chips');
     if (grid) {
       grid.innerHTML = SUGGESTIONS.map(s => `
-        <button class="suggestion-card" onclick="suggest(${JSON.stringify(s.prompt)})">
-          <span class="suggestion-card-icon">${s.icon}</span>
-          <div class="suggestion-card-label">${s.label}</div>
-          <div class="suggestion-card-desc">${s.desc}</div>
+        <button class="suggestion-chip" onclick="suggest(${JSON.stringify(s.prompt)})">
+          <span class="suggestion-chip-icon">${s.icon}</span> ${s.label}
         </button>`).join('');
     }
   }
@@ -1871,7 +2724,7 @@ window.addEventListener('load', async () => {
   if (loadSessionsFromStorage()) {
     const session = getCurrentSession();
     if (session && session.displayMessages.length) {
-      messages = session.displayMessages.map(m => ({ role: m.role, content: m.content }));
+      messages = rebuildApiMessages(session.displayMessages);
       renderHistory();
       renderSessionMessages(session);
     } else {

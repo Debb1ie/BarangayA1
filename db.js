@@ -62,8 +62,11 @@ function _createSchema() {
     role       TEXT    NOT NULL,
     content    TEXT    NOT NULL,
     time       TEXT,
+    stats      TEXT,
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
   )`);
+  // Migration for DBs created before the `stats` column existed
+  try { _db.run(`ALTER TABLE messages ADD COLUMN stats TEXT`); } catch (e) { /* already exists */ }
   _db.run(`CREATE TABLE IF NOT EXISTS settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -156,8 +159,8 @@ function dbSaveSessions(sessions, currentSessionId) {
     ]);
     for (const m of (s.displayMessages || [])) {
       _db.run(
-        'INSERT INTO messages (session_id, role, content, time) VALUES (?,?,?,?)',
-        [s.id, m.role, m.content, m.time || null]
+        'INSERT INTO messages (session_id, role, content, time, stats) VALUES (?,?,?,?,?)',
+        [s.id, m.role, m.content, m.time || null, m.stats ? JSON.stringify(m.stats) : null]
       );
     }
   }
@@ -176,11 +179,15 @@ function dbLoadSessions() {
   const loaded = [];
   for (const [id, title, created] of sessRes[0].values) {
     const msgRes = _db.exec(
-      'SELECT role, content, time FROM messages WHERE session_id = ? ORDER BY id ASC',
+      'SELECT role, content, time, stats FROM messages WHERE session_id = ? ORDER BY id ASC',
       [id]
     );
     const displayMessages = msgRes.length
-      ? msgRes[0].values.map(([role, content, time]) => ({ role, content, time: time || undefined }))
+      ? msgRes[0].values.map(([role, content, time, stats]) => {
+          const m = { role, content, time: time || undefined };
+          if (stats) { try { m.stats = JSON.parse(stats); } catch (e) { /* ignore */ } }
+          return m;
+        })
       : [];
     loaded.push({ id, title, displayMessages, created: new Date(created) });
   }
@@ -231,6 +238,33 @@ function dbLoadSettings() {
   return s;
 }
 
+// ── Public: model endpoints ───────────────────────────────────────────
+
+function dbSaveModels(models) {
+  if (!_db) return;
+  _db.run('INSERT OR REPLACE INTO settings VALUES (?,?)', ['model_endpoints', JSON.stringify(models || [])]);
+  _persistDB();
+}
+
+function dbLoadModels() {
+  if (!_db) return [];
+  const res = _db.exec("SELECT value FROM settings WHERE key = 'model_endpoints'");
+  return res.length ? JSON.parse(res[0].values[0][0]) : [];
+}
+
+// Generic JSON key/value store (used for model enable/disable + removed endpoints).
+function dbSetItem(key, value) {
+  if (!_db) return;
+  _db.run('INSERT OR REPLACE INTO settings VALUES (?,?)', [key, JSON.stringify(value)]);
+  _persistDB();
+}
+
+function dbGetItem(key, fallback) {
+  if (!_db) return fallback;
+  const res = _db.exec("SELECT value FROM settings WHERE key = '" + key + "'");
+  return res.length ? JSON.parse(res[0].values[0][0]) : fallback;
+}
+
 // ── Exports ───────────────────────────────────────────────────────────
 
 window.BarangayDB = {
@@ -240,4 +274,8 @@ window.BarangayDB = {
   dbSetCurrentSession,
   dbSaveSettings,
   dbLoadSettings,
+  dbSaveModels,
+  dbLoadModels,
+  dbSetItem,
+  dbGetItem,
 };

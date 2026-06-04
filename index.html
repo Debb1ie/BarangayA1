@@ -245,6 +245,7 @@
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
+    position: relative;
   }
 
   /* HEADER */
@@ -517,18 +518,18 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 40px 20px;
-    gap: 28px;
+    padding: 20px 20px 180px;
+    gap: 20px;
   }
 
   .welcome-icon {
-    width: 64px; height: 64px;
+    width: 56px; height: 56px;
     background: linear-gradient(135deg, var(--dc-blue), var(--dc-accent));
-    border-radius: 18px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 800;
     color: white;
     letter-spacing: -1px;
@@ -536,21 +537,29 @@
     flex-shrink: 0;
   }
 
+  .welcome-hero { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+  .welcome-brief {
+    font-size: 12px;
+    color: var(--text-muted);
+    max-width: 480px;
+    line-height: 1.5;
+    letter-spacing: 0.05px;
+  }
+
   .welcome-greeting {
     font-size: 13px;
-    color: var(--dc-blue);
-    font-weight: 600;
-    margin-bottom: 4px;
+    color: var(--text-muted);
+    font-weight: 500;
     letter-spacing: 0.1px;
   }
-  [data-theme="dark"] .welcome-greeting { color: var(--dc-accent); }
 
   .welcome-title {
-    font-size: 22px;
+    font-size: 28px;
     font-weight: 700;
     color: var(--text-primary);
     line-height: 1.2;
-    margin-bottom: 8px;
+    letter-spacing: -0.5px;
   }
   .welcome-sub {
     font-size: 13px;
@@ -558,17 +567,46 @@
     max-width: 340px;
     line-height: 1.65;
   }
-  .sovereign-term {
-    border-bottom: 1.5px dashed var(--text-muted);
-    cursor: help;
-    transition: border-color 0.15s, color 0.15s;
-  }
-  .sovereign-term:hover {
-    color: var(--dc-blue);
-    border-color: var(--dc-blue);
-  }
-  [data-theme="dark"] .sovereign-term:hover { color: var(--dc-accent); border-color: var(--dc-accent); }
 
+  /* SUGGESTION CHIPS (replaces big cards on welcome screen) */
+  .suggestion-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    max-width: 600px;
+  }
+  .suggestion-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 24px;
+    background: var(--bg-panel);
+    color: var(--text-secondary);
+    font-family: var(--font-main);
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .suggestion-chip:hover {
+    border-color: var(--dc-blue);
+    color: var(--dc-blue);
+    background: var(--dc-blue-light);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 12px rgba(0,87,184,0.1);
+  }
+  [data-theme="dark"] .suggestion-chip:hover {
+    border-color: var(--dc-accent);
+    color: var(--dc-accent);
+    background: var(--dc-accent-light);
+  }
+  .suggestion-chip-icon { font-size: 14px; line-height: 1; }
+
+  /* Keep old suggestion-grid for any legacy references */
   .suggestion-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -1008,6 +1046,96 @@
     opacity: 0.45;
   }
 
+  /* CLICKABLE MESSAGE STATS */
+  .msg-meta-wrap {
+    position: relative;
+    margin-left: 42px;
+  }
+  .msg-meta-clickable {
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+    width: fit-content;
+  }
+  .msg-meta-clickable:hover { color: var(--text-secondary); background: var(--border-light); }
+  .msg-meta-chevron {
+    margin-left: 5px;
+    opacity: 0.5;
+    transition: transform 0.2s;
+    vertical-align: -1px;
+  }
+  .msg-meta-clickable.open .msg-meta-chevron { transform: rotate(180deg); }
+
+  .msg-stats-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 50;
+    min-width: 230px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 13px 15px 11px;
+    box-shadow: 0 8px 32px rgba(0,87,184,0.18), 0 2px 8px rgba(0,0,0,0.06);
+    animation: statsPop 0.16s cubic-bezier(0.4,0,0.2,1);
+  }
+  [data-theme="dark"] .msg-stats-popover {
+    box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  }
+  .msg-stats-popover.hidden { display: none; }
+  /* Flip above the trigger when there isn't room below (e.g. last message) */
+  .msg-stats-popover.up {
+    top: auto;
+    bottom: calc(100% + 6px);
+    animation-name: statsPopUp;
+  }
+  @keyframes statsPop {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes statsPopUp {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .msg-stats-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.2px;
+    margin-bottom: 10px;
+  }
+  .msg-stats-rows { display: flex; flex-direction: column; gap: 6px; }
+  .msg-stats-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 11.5px;
+  }
+  .msg-stats-k {
+    color: var(--text-muted);
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+  .msg-stats-v {
+    color: var(--text-secondary);
+    text-align: right;
+  }
+  .msg-stats-v b { color: var(--text-primary); font-weight: 600; }
+  .msg-stats-v.mono { font-family: var(--font-mono); font-size: 11px; }
+  .msg-stats-divider {
+    height: 1px;
+    background: var(--border-light);
+    margin: 10px 0;
+  }
+  .msg-stats-note {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 9px;
+    opacity: 0.8;
+  }
+
   /* SOURCE CHIPS */
   .source-row {
     display: flex;
@@ -1037,7 +1165,44 @@
     padding: 10px 14px 14px;
     background: var(--bg-panel);
     border-top: 1px solid var(--border-light);
+    border-left: 1.5px solid transparent;
+    border-right: 1.5px solid transparent;
+    border-bottom: 1.5px solid transparent;
     flex-shrink: 0;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    transition: margin 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                border-radius 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.3s ease,
+                border-top-color 0.3s ease,
+                box-shadow 0.4s ease;
+  }
+
+  /* Floating state (welcome mode) — input lifts off the bottom with margins */
+  .main.welcome-mode .input-area {
+    margin: 0 20px 20px;
+    border-radius: var(--radius-lg);
+    border-top-color: var(--border);
+    border-left-color: var(--border);
+    border-right-color: var(--border);
+    border-bottom-color: var(--border);
+    box-shadow: 0 8px 40px rgba(0,87,184,0.15), 0 2px 8px rgba(0,87,184,0.08);
+  }
+  [data-theme="dark"] .main.welcome-mode .input-area {
+    box-shadow: 0 8px 40px rgba(0,168,232,0.1), 0 2px 8px rgba(0,0,0,0.2);
+  }
+  /* Hide footer details when floating — keep it compact like Gemini */
+  .main.welcome-mode .legal-disclaimer,
+  .main.welcome-mode .alibaba-footer {
+    display: none;
+  }
+
+  /* Chat mode: leave room for the fixed input bar */
+  .main:not(.welcome-mode) .chat-area {
+    padding-bottom: 180px;
   }
 
   .input-box {
@@ -1093,6 +1258,21 @@
   }
   .send-btn:hover { background: var(--dc-blue-dark); transform: scale(1.04); }
   .send-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  /* Stop / cancel state while the model is generating */
+  .send-btn.stop { background: #DC2626; }
+  .send-btn.stop:hover { background: #b91c1c; }
+  .cancelled-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border);
+    font-size: 12px;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+  .cancelled-note svg { flex-shrink: 0; opacity: 0.8; }
 
   .input-tip {
     text-align: center;
@@ -1100,6 +1280,399 @@
     color: var(--text-muted);
     margin-top: 6px;
     letter-spacing: 0.1px;
+  }
+
+  /* MODEL SELECT BUTTON (inside input box — Gemini Flash style) */
+  .model-select-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: var(--font-main);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.1px;
+  }
+  .model-select-btn:hover {
+    background: var(--dc-blue-light);
+    border-color: var(--dc-blue);
+    color: var(--dc-blue);
+  }
+  [data-theme="dark"] .model-select-btn:hover {
+    background: var(--dc-accent-light);
+    border-color: var(--dc-accent);
+    color: var(--dc-accent);
+  }
+  .model-select-btn svg { flex-shrink: 0; opacity: 0.6; transition: transform 0.2s; }
+  .model-select-btn:hover svg { opacity: 1; }
+  .model-select-btn.open svg { transform: rotate(180deg); }
+
+  /* MODEL DROPDOWN PANEL (search-style picker) */
+  .model-dropdown {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    right: 14px;
+    background: var(--bg-panel);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+    padding: 8px;
+    width: 280px;
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 20;
+    animation: dropdownIn 0.15s ease;
+  }
+  .model-dropdown.open { display: flex; }
+  @keyframes dropdownIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .model-dd-search-row { display: flex; align-items: center; gap: 6px; }
+  .model-dd-search {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    font-size: 12.5px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .model-dd-search:focus { border-color: var(--dc-accent); }
+  .model-dd-search::placeholder { color: var(--text-muted); }
+  .model-dd-add {
+    flex-shrink: 0;
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1.5px solid var(--dc-accent);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--dc-accent);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .model-dd-add:hover { background: var(--dc-accent); color: #fff; }
+  .model-dd-recent-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+    padding: 2px 4px 0;
+  }
+  .model-dd-list { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow-y: auto; }
+  .model-dd-empty { padding: 10px 6px; font-size: 12px; color: var(--text-muted); text-align: center; }
+  .model-dropdown-opt {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 10px;
+    border: none;
+    background: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--font-main);
+    font-size: 12.5px;
+    color: var(--text-primary);
+    font-weight: 500;
+    transition: background 0.12s;
+    text-align: left;
+    width: 100%;
+  }
+  .model-dropdown-opt:hover { background: var(--bg-primary); }
+  .model-dropdown-opt.active { background: var(--dc-blue-light); }
+  [data-theme="dark"] .model-dropdown-opt.active { background: var(--dc-accent-light); }
+  .model-dd-icon { flex-shrink: 0; opacity: 0.8; }
+  .model-dd-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .model-dd-name { font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .model-dropdown-opt.active .model-dd-name { color: var(--dc-accent); }
+  .model-dd-endpoint { font-size: 10.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .model-dd-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-left: auto;
+    background: #22C55E;
+  }
+
+  /* ADD MODELS — ENDPOINT CARDS */
+  .endpoint-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--bg-primary);
+  }
+  .endpoint-source {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 11px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-panel);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: var(--text-secondary);
+  }
+  .endpoint-source svg { opacity: 0.7; }
+  .endpoint-row { display: flex; align-items: center; gap: 8px; }
+  .endpoint-row .settings-input { flex: 1; min-width: 0; }
+  .endpoint-type, .endpoint-provider {
+    flex-shrink: 0;
+    background: var(--bg-panel);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 9px;
+    font-family: var(--font-main);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    outline: none;
+  }
+  .endpoint-type { width: 76px; }
+  .endpoint-provider { display: flex; align-items: center; }
+  .endpoint-type:focus, .endpoint-provider:focus { border-color: var(--dc-blue); }
+  .endpoint-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .endpoint-btn {
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-family: var(--font-main);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .endpoint-btn.ghost {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--text-secondary);
+  }
+  .endpoint-btn.ghost:hover:not(:disabled) { border-color: var(--dc-blue); color: var(--dc-blue); }
+  .endpoint-btn.solid {
+    background: var(--dc-blue);
+    border: 1.5px solid var(--dc-blue);
+    color: #fff;
+  }
+  .endpoint-btn.solid:hover:not(:disabled) { filter: brightness(1.08); }
+  .endpoint-btn:disabled { opacity: 0.6; cursor: default; }
+  .endpoint-quickstart {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-panel);
+    font-family: var(--font-main);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .endpoint-quickstart:hover { background: var(--bg-primary); }
+  .endpoint-quickstart svg { transition: transform 0.2s; opacity: 0.6; }
+  .endpoint-quickstart.open svg { transform: rotate(90deg); }
+  .quickstart-body {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 4px 4px 2px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .quickstart-body code {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11.5px;
+    color: var(--dc-blue);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .quickstart-body strong { color: var(--text-primary); }
+
+  /* ADDED MODELS / ENDPOINT MANAGER */
+  .added-endpoints-section { margin-top: 4px; }
+  .added-endpoints-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .added-endpoints-head svg { opacity: 0.65; }
+  .added-endpoints-sub { font-weight: 500; color: var(--text-muted); }
+  .added-endpoints-desc {
+    margin: 4px 0 12px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+  }
+  .ep-group { margin-bottom: 14px; }
+  .ep-group-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .ep-group-label svg { opacity: 0.6; }
+  .ep-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 13px;
+    background: var(--bg-primary);
+  }
+  .ep-card-main { display: flex; align-items: center; gap: 9px; }
+  .ep-card-name {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+  .ep-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(5,150,105,0.12);
+    color: #059669;
+    white-space: nowrap;
+  }
+  .ep-badge.off { background: var(--bg-panel); color: var(--text-muted); }
+  .ep-manage-hint {
+    flex: 1;
+    min-width: 0;
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ep-card-actions { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+  .ep-mini-btn {
+    padding: 5px 12px;
+    border-radius: 7px;
+    font-family: var(--font-main);
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--text-secondary);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .ep-mini-btn:hover { border-color: var(--dc-blue); color: var(--dc-blue); }
+  .ep-mini-btn.danger:hover { border-color: #DC2626; color: #DC2626; }
+  .ep-chevron {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  .ep-chevron:hover { background: var(--bg-panel); }
+  .ep-chevron svg { transition: transform 0.2s; }
+  .ep-chevron.open svg { transform: rotate(180deg); }
+  .ep-url-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .ep-url-copy {
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px;
+    display: inline-flex;
+    border-radius: 4px;
+  }
+  .ep-url-copy:hover { color: var(--dc-blue); }
+  .ep-models {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ep-model-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 6px 4px;
+    font-size: 12.5px;
+    color: var(--text-primary);
+  }
+  .ep-model-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ep-model-name.disabled { color: var(--text-muted); text-decoration: line-through; }
+  .ep-toggle {
+    flex-shrink: 0;
+    width: 34px;
+    height: 18px;
+    border-radius: 20px;
+    border: none;
+    background: var(--border);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .ep-toggle.on { background: var(--dc-blue); }
+  .ep-toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.15s;
+  }
+  .ep-toggle.on::after { transform: translateX(16px); }
+  .added-endpoints-empty {
+    padding: 16px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
   }
 
   /* SIDEBAR OVERLAY (mobile) */
@@ -1291,62 +1864,6 @@
     color: var(--dc-accent);
   }
 
-  /* MODEL SELECTOR */
-  .model-selector { width: 100%; }
-  .model-selector-label {
-    font-size: 9.5px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.25);
-    text-transform: uppercase;
-    letter-spacing: 0.9px;
-    margin-bottom: 5px;
-    padding: 0 2px;
-  }
-  .model-options { display: flex; flex-direction: column; gap: 3px; }
-  .model-opt {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 7px 10px;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    background: none;
-    cursor: pointer;
-    font-family: var(--font-main);
-    font-size: 12px;
-    color: rgba(255,255,255,0.45);
-    font-weight: 500;
-    text-align: left;
-    transition: all 0.15s;
-    width: 100%;
-  }
-  .model-opt:hover:not(:disabled) {
-    background: rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.75);
-  }
-  .model-opt.active {
-    background: color-mix(in srgb, var(--dc-blue) 18%, transparent);
-    border-color: color-mix(in srgb, var(--dc-blue) 45%, transparent);
-    color: rgba(255,255,255,0.85);
-  }
-  .model-opt:disabled { cursor: not-allowed; opacity: 0.55; }
-  .model-opt-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .model-opt.active .model-opt-dot { animation: pulse 2s infinite; }
-  .model-opt-name { flex: 1; }
-  .active-tag {
-    font-size: 9px;
-    font-weight: 700;
-    background: color-mix(in srgb, var(--dc-blue) 25%, transparent);
-    color: #7DD3FC;
-    border-radius: 4px;
-    padding: 1px 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
   .community-desc {
     width: 100%;
     max-width: 400px;
@@ -1904,6 +2421,108 @@
     color: var(--text-muted);
     line-height: 1.5;
   }
+  /* Model-control sliders */
+  .slider-head { display: flex; align-items: center; justify-content: space-between; }
+  .slider-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--dc-blue);
+    font-variant-numeric: tabular-nums;
+  }
+  [data-theme="dark"] .slider-value { color: var(--dc-accent); }
+  .settings-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+    margin: 4px 0 2px;
+    cursor: pointer;
+  }
+  .settings-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--dc-blue);
+    border: 2px solid var(--bg-card, #fff);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    cursor: pointer;
+  }
+  .settings-slider::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--dc-blue);
+    border: 2px solid var(--bg-card, #fff);
+    cursor: pointer;
+  }
+  [data-theme="dark"] .settings-slider::-webkit-slider-thumb { background: var(--dc-accent); }
+  [data-theme="dark"] .settings-slider::-moz-range-thumb { background: var(--dc-accent); }
+  .slider-scale {
+    display: flex;
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+  .slider-scale span { flex: 1; }
+  .slider-scale span:first-child { text-align: left; }
+  .slider-scale span:last-child { text-align: right; }
+  .slider-scale span:not(:first-child):not(:last-child) { text-align: center; }
+  /* Persona controls */
+  .persona-select-row { display: flex; gap: 8px; align-items: stretch; }
+  .persona-select-row select { flex: 1; min-width: 0; cursor: pointer; }
+  .persona-new-btn {
+    flex: 0 0 auto;
+    padding: 0 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-input, transparent);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--font-main);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .persona-new-btn:hover { border-color: var(--dc-blue); color: var(--dc-blue); }
+  .persona-prompt-wrap { position: relative; }
+  .persona-expand-btn {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    padding: 5px 11px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--dc-blue);
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    cursor: pointer;
+    font-family: var(--font-main);
+    transition: all 0.15s;
+  }
+  .persona-expand-btn:hover { border-color: var(--dc-blue); background: var(--dc-blue); color: #fff; }
+  .persona-expand-btn:disabled { opacity: 0.6; cursor: default; }
+  [data-theme="dark"] .persona-expand-btn { color: var(--dc-accent); }
+  [data-theme="dark"] .persona-expand-btn:hover { background: var(--dc-accent); color: #fff; border-color: var(--dc-accent); }
+  .persona-delete-btn {
+    align-self: flex-start;
+    margin-top: 4px;
+    padding: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-main);
+  }
+  .persona-delete-btn:hover { color: #DC2626; text-decoration: underline; }
   .color-row {
     display: flex;
     gap: 8px;
@@ -2205,25 +2824,11 @@
         <span id="sidebar-wifi-text">Connected · Model online</span>
       </div>
     </div>
-    <div class="model-selector" style="margin-top:8px">
-      <div class="model-selector-label">AI Model</div>
-      <div class="model-options">
-        <button class="model-opt active" id="model-opt-qwen" onclick="selectModel('qwen')">
-          <span class="model-opt-dot" style="background:#0EA5E9"></span>
-          <span class="model-opt-name">Qwen 2.5 3B</span>
-          <span class="active-tag">Active</span>
-        </button>
-        <button class="model-opt" id="model-opt-qwen3" onclick="selectModel('qwen3')">
-          <span class="model-opt-dot" style="background:#7C3AED"></span>
-          <span class="model-opt-name">Qwen 3.5 0.8B</span>
-        </button>
-      </div>
-    </div>
   </div>
 </aside>
 
 <!-- MAIN -->
-<main class="main">
+<main class="main welcome-mode" id="main-area">
   <header class="header">
     <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Toggle menu">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -2260,66 +2865,30 @@
   <div class="chat-area" id="chat-area">
     <!-- Welcome screen -->
     <div class="welcome-screen" id="welcome-screen">
-      <div class="logo-wrapper">
-        <div class="welcome-icon">DC</div>
-        <div class="logo-tooltip">
-          <div class="logo-tooltip-label">Powered by</div>
-          <div class="logo-tooltip-brand">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H7l5-8v4h4l-5 8z"/></svg>
-            Alibaba Cloud
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="welcome-greeting" id="welcome-greeting">Good to see you! 👋</div>
+      <div class="welcome-icon">DC</div>
+      <div class="welcome-hero">
         <div class="welcome-title">DEVCON BARANGAY AI</div>
-        <div class="welcome-sub">Built by Filipino developers, running Qwen 2.5 locally via Ollama. Open source, free to use, free to learn from, free to build on.</div>
+        <div class="welcome-greeting" id="welcome-greeting">Good to see you! 👋</div>
       </div>
-
-      <div class="community-desc">
-        <div class="community-desc-inner">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><polyline points="16,18 22,12 16,6"/><polyline points="8,6 2,12 8,18"/></svg>
-          <span>This is an <strong>open community AI project</strong> — built and maintained by Filipino developers. Fork it, customize it, make it yours.</span>
-        </div>
-      </div>
-
-      <div class="community-desc">
-        <div class="community-desc-inner">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <span>Runs on <strong>Ollama + Qwen 2.5 3B</strong> on your own machine. No cloud. No API fees. No data leaving this computer.</span>
-        </div>
-      </div>
-
-      <div class="suggestion-grid">
-        <button class="suggestion-card" onclick="suggest('What is DEVCON Barangay AI Code Camps? What will I learn and build today?')">
-          <span class="suggestion-card-icon">🏕️</span>
-          <div class="suggestion-card-label">About Barangay AI</div>
-          <div class="suggestion-card-desc">What is this project?</div>
+      <div class="welcome-brief">Built by Filipino developers · Runs on Ollama + Qwen locally · Open source, no cloud, no fees</div>
+      <div class="suggestion-chips" id="suggestion-grid">
+        <button class="suggestion-chip" onclick="suggest('What is DEVCON Barangay AI Code Camps? What will I learn and build today?')">
+          <span class="suggestion-chip-icon">🏕️</span> About Barangay AI
         </button>
-        <button class="suggestion-card" onclick="suggest('I am a beginner. Give me a simple first coding exercise — write a Python function to call a local Ollama API endpoint and print the response.')">
-          <span class="suggestion-card-icon">💻</span>
-          <div class="suggestion-card-label">Start Coding</div>
-          <div class="suggestion-card-desc">Beginner first exercise</div>
+        <button class="suggestion-chip" onclick="suggest('I am a beginner. Give me a simple first coding exercise — write a Python function to call a local Ollama API endpoint and print the response.')">
+          <span class="suggestion-chip-icon">💻</span> Start Coding
         </button>
-        <button class="suggestion-card" onclick="suggest('Please check my grammar and suggest improvements. Here is my text: [paste your text here]')">
-          <span class="suggestion-card-icon">✍️</span>
-          <div class="suggestion-card-label">Grammar Checker</div>
-          <div class="suggestion-card-desc">Fix and improve your writing</div>
+        <button class="suggestion-chip" onclick="suggest('Please check my grammar and suggest improvements. Here is my text: [paste your text here]')">
+          <span class="suggestion-chip-icon">✍️</span> Grammar Check
         </button>
-        <button class="suggestion-card" onclick="suggest('Please review my code, suggest improvements, and explain any issues you find. Here is my code: [paste your code here]')">
-          <span class="suggestion-card-icon">🔍</span>
-          <div class="suggestion-card-label">Code Review Buddy</div>
-          <div class="suggestion-card-desc">Review and improve your code</div>
+        <button class="suggestion-chip" onclick="suggest('Please review my code, suggest improvements, and explain any issues you find. Here is my code: [paste your code here]')">
+          <span class="suggestion-chip-icon">🔍</span> Code Review
         </button>
-        <button class="suggestion-card" onclick="suggest('How does a local AI model work? Explain what Ollama does and what Qwen is, using simple analogies a high school student would understand.')">
-          <span class="suggestion-card-icon">🧠</span>
-          <div class="suggestion-card-label">How It Works</div>
-          <div class="suggestion-card-desc">Simple explanation</div>
+        <button class="suggestion-chip" onclick="suggest('How does a local AI model work? Explain what Ollama does and what Qwen is, using simple analogies a high school student would understand.')">
+          <span class="suggestion-chip-icon">🧠</span> How It Works
         </button>
-        <button class="suggestion-card" onclick="suggest('How do I contribute to an open source project on GitHub as a complete beginner? Walk me through forking a repo and opening a pull request step by step.')">
-          <span class="suggestion-card-icon">🤝</span>
-          <div class="suggestion-card-label">Contribute</div>
-          <div class="suggestion-card-desc">Fork, edit, pull request</div>
+        <button class="suggestion-chip" onclick="suggest('How do I contribute to an open source project on GitHub as a complete beginner? Walk me through forking a repo and opening a pull request step by step.')">
+          <span class="suggestion-chip-icon">🤝</span> Contribute
         </button>
       </div>
     </div>
@@ -2329,7 +2898,16 @@
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
   </button>
 
-  <div class="input-area">
+  <div class="input-area" id="input-area">
+    <!-- Model picker (floats above input-box) -->
+    <div class="model-dropdown" id="model-dropdown">
+      <div class="model-dd-search-row">
+        <input type="text" class="model-dd-search" id="model-dd-search" placeholder="Search models…" oninput="filterModels(this.value)" autocomplete="off">
+        <button class="model-dd-add" title="Add a model" onclick="openAddModels()">+</button>
+      </div>
+      <div class="model-dd-recent-label">Recent</div>
+      <div class="model-dd-list" id="model-dd-list"></div>
+    </div>
     <div class="input-box">
       <textarea
         id="message-input"
@@ -2339,7 +2917,12 @@
         oninput="autoResize(this)"
       ></textarea>
       <div class="input-actions">
-        <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Send message">
+        <button class="model-select-btn" id="model-select-btn" onclick="toggleModelDropdown()" title="Select model">
+          <svg class="model-dd-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M9 15h6"/></svg>
+          <span id="model-select-label">Select model</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
+        </button>
+        <button class="send-btn" id="send-btn" onclick="handleSendClick()" title="Send message">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9 22,2"/></svg>
         </button>
       </div>
@@ -2664,6 +3247,89 @@
   </div>
 </div>
 
+<!-- ADD MODELS MODAL -->
+<div class="settings-modal" id="add-models-modal" onclick="handleAddModelsBackdrop(event)">
+  <div class="settings-card" id="add-models-card" style="max-width:460px">
+    <div class="settings-header">
+      <div class="settings-header-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="6" rx="1"/><rect x="2" y="13" width="20" height="6" rx="1"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="16" x2="6.01" y2="16"/></svg>
+      </div>
+      <div class="settings-header-text">
+        <h2>Add Models <span style="font-weight:500;color:var(--text-muted)">(Endpoints)</span></h2>
+        <p>Connect local models first, or add a cloud API.</p>
+      </div>
+      <button class="modal-close" onclick="closeAddModels()" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="settings-body">
+
+      <!-- LOCAL endpoint -->
+      <div class="endpoint-card">
+        <div class="endpoint-source">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span>LOCAL</span>
+        </div>
+        <div class="endpoint-row">
+          <input class="settings-input" id="local-endpoint" type="text" placeholder="Paste endpoint URL, e.g. http://localhost:11434/v1" autocomplete="off">
+          <select class="endpoint-type" id="local-type">
+            <option>LLM</option><option>Embedding</option><option>Vision</option>
+          </select>
+        </div>
+        <input class="settings-input" id="local-key" type="password" placeholder="API key (optional — for protected local endpoints)" autocomplete="off">
+        <div class="endpoint-actions">
+          <button class="endpoint-btn ghost" id="local-test-btn" onclick="testEndpoint('local')">Test</button>
+          <button class="endpoint-btn solid" id="local-add-btn" onclick="addEndpoint('local')">Add</button>
+        </div>
+        <button class="endpoint-quickstart" id="quickstart-row" onclick="toggleQuickstart()">
+          <span>Quickstart</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,18 15,12 9,6"/></svg>
+        </button>
+        <div class="quickstart-body" id="quickstart-body" hidden>
+          <p>Run a model locally with <strong>Ollama</strong>, then paste its endpoint above:</p>
+          <code>ollama pull qwen2.5:3b</code>
+          <code>ollama serve</code>
+          <p>Endpoint: <strong>http://localhost:11434/v1</strong></p>
+        </div>
+      </div>
+
+      <!-- CLOUD / API endpoint -->
+      <div class="endpoint-card">
+        <div class="endpoint-source">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <span>API</span>
+        </div>
+        <div class="endpoint-row">
+          <input class="settings-input" id="api-endpoint" type="text" value="https://api.deepseek.com/v1" autocomplete="off">
+          <select class="endpoint-provider" id="api-provider" onchange="onProviderChange(this.value)">
+            <option>DeepSeek</option><option>OpenAI</option><option>Together</option><option>Groq</option><option>Custom</option>
+          </select>
+        </div>
+        <div class="endpoint-row">
+          <input class="settings-input" id="api-key" type="password" placeholder="API key" autocomplete="off">
+          <select class="endpoint-type" id="api-type">
+            <option>LLM</option><option>Embedding</option><option>Vision</option>
+          </select>
+          <button class="endpoint-btn ghost" id="api-test-btn" onclick="testEndpoint('api')">Test</button>
+          <button class="endpoint-btn solid" id="api-add-btn" onclick="addEndpoint('api')">Add</button>
+        </div>
+      </div>
+
+      <!-- ADDED MODELS / ENDPOINT MANAGER -->
+      <div class="added-endpoints-section">
+        <div class="added-endpoints-head">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span>Added Models <span class="added-endpoints-sub">(Endpoints)</span></span>
+        </div>
+        <p class="added-endpoints-desc">Manage the endpoints you've added.</p>
+        <div id="added-endpoints-list"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- SETTINGS MODAL -->
 <div class="settings-modal" id="settings-modal" onclick="handleSettingsBackdrop(event)">
   <div class="settings-card" id="settings-card">
@@ -2682,6 +3348,7 @@
 
     <div class="modal-tabs" style="padding:0 22px; margin-top:4px;">
       <button class="modal-tab active" data-settings-tab="personalize" onclick="switchSettingsTab('personalize', this)">Personalize</button>
+      <button class="modal-tab" data-settings-tab="model" onclick="switchSettingsTab('model', this)">Model</button>
       <button class="modal-tab" data-settings-tab="training" onclick="switchSettingsTab('training', this)">Training</button>
     </div>
 
@@ -2697,11 +3364,25 @@
         <span class="preview-label">Preview</span>
       </div>
 
-      <!-- AI Name -->
+      <!-- Persona selector -->
       <div class="settings-field">
-        <label class="settings-label" for="settings-ai-name">AI Name</label>
-        <input class="settings-input" id="settings-ai-name" type="text" placeholder="e.g. Barangay AI, Bayani, Isko…" maxlength="40" oninput="updateSettingsPreview()">
-        <span class="settings-hint">This name appears in the header, welcome screen, and chat avatars.</span>
+        <label class="settings-label" for="settings-persona-select">Persona</label>
+        <div class="persona-select-row">
+          <select class="settings-input" id="settings-persona-select" onchange="selectPersona(this.value)">
+            <option value="">Default (no persona)</option>
+          </select>
+          <button type="button" class="persona-new-btn" onclick="newPersona()">+ New</button>
+        </div>
+        <span class="settings-hint">Save multiple personas and switch between them. The selected persona's name &amp; personality below are what the AI uses in chat.</span>
+      </div>
+
+      <hr class="settings-divider">
+
+      <!-- Name (per persona) -->
+      <div class="settings-field">
+        <label class="settings-label" for="settings-ai-name">Name</label>
+        <input class="settings-input" id="settings-ai-name" type="text" placeholder="e.g. Barangay AI, Bayani, Isko…" maxlength="40" oninput="commitPersonaDraft(); updateSettingsPreview()">
+        <span class="settings-hint">The AI's name — appears in the header, welcome screen, and chat avatars.</span>
       </div>
 
       <hr class="settings-divider">
@@ -2758,9 +3439,9 @@
         <span class="settings-hint">The greeting line shown above the AI name on the welcome screen. Leave blank to use a random greeting.</span>
       </div>
 
-      <!-- AI Personality / Tone -->
+      <!-- System Prompt / Personality (per persona) -->
       <div class="settings-field">
-        <label class="settings-label" for="settings-ai-tone">AI Personality &amp; Tone</label>
+        <label class="settings-label" for="settings-ai-tone">Personality &amp; System Prompt</label>
         <div class="tone-presets">
           <button class="tone-preset-chip active" data-preset="default" onclick="setTonePreset('default', this)">Default</button>
           <button class="tone-preset-chip" data-preset="friendly" onclick="setTonePreset('friendly', this)">Friendly 😊</button>
@@ -2768,8 +3449,12 @@
           <button class="tone-preset-chip" data-preset="teacher" onclick="setTonePreset('teacher', this)">Teacher 📚</button>
           <button class="tone-preset-chip" data-preset="strict" onclick="setTonePreset('strict', this)">Strict</button>
         </div>
-        <textarea class="settings-input settings-textarea" id="settings-ai-tone" placeholder="e.g. You are a friendly barangay assistant named Bayani. You always encourage students. Keep answers short and practical." oninput="detectActivePreset(this.value)"></textarea>
-        <span class="settings-hint">Pick a preset above or write your own system prompt — the hidden instruction that shapes how the AI thinks, speaks, and responds.</span>
+        <div class="persona-prompt-wrap">
+          <textarea class="settings-input settings-textarea" id="settings-ai-tone" placeholder="Write rough notes and click Expand, or write a full system prompt…" style="min-height:120px; padding-bottom:38px;" oninput="commitPersonaDraft(); detectActivePreset(this.value)"></textarea>
+          <button type="button" class="persona-expand-btn" id="persona-expand-btn" onclick="expandPersonaPrompt()">✦ Expand</button>
+        </div>
+        <span class="settings-hint">Pick a preset, jot rough notes and hit Expand, or write your own — the hidden instruction that shapes how the AI thinks, speaks, and responds.</span>
+        <button type="button" class="persona-delete-btn" id="persona-delete-btn" onclick="deletePersona()" style="display:none;">Delete this persona</button>
       </div>
 
     </div>
@@ -2815,6 +3500,60 @@
         <textarea class="settings-input settings-textarea" id="settings-training-notes" placeholder="e.g. Always cite the uploaded barangay handbook when answering policy questions. Prefer examples from the uploaded curriculum."></textarea>
         <span class="settings-hint">Free-form instructions about how the AI should use your uploaded files.</span>
       </div>
+    </div>
+
+    <!-- Model Pane -->
+    <div class="settings-body" data-settings-pane="model" style="display:none;">
+
+      <!-- Prefix -->
+      <div class="settings-field">
+        <label class="settings-label" for="settings-prompt-prefix">Prefix</label>
+        <textarea class="settings-input settings-textarea" id="settings-prompt-prefix" placeholder="Added before every message you send…" style="min-height:60px;"></textarea>
+        <span class="settings-hint">Silently prepended to each message before it reaches the model — handy for standing instructions like “Answer in bullet points.”</span>
+      </div>
+
+      <hr class="settings-divider">
+
+      <!-- Suffix -->
+      <div class="settings-field">
+        <label class="settings-label" for="settings-prompt-suffix">Suffix</label>
+        <textarea class="settings-input settings-textarea" id="settings-prompt-suffix" placeholder="Added after every message you send…" style="min-height:60px;"></textarea>
+        <span class="settings-hint">Silently appended to each message before it reaches the model — e.g. “Keep it under 100 words.”</span>
+      </div>
+
+      <hr class="settings-divider">
+
+      <!-- Temperature -->
+      <div class="settings-field">
+        <div class="slider-head">
+          <label class="settings-label" for="settings-temperature">Temperature</label>
+          <span class="slider-value" id="settings-temperature-value">0.3</span>
+        </div>
+        <input class="settings-slider" id="settings-temperature" type="range" min="0" max="2" step="0.1" value="0.3" oninput="updateTemperatureLabel(this.value)">
+        <div class="slider-scale">
+          <span>Precise / Code</span>
+          <span>Balanced</span>
+          <span>Creative</span>
+        </div>
+        <span class="settings-hint">Lower = focused and deterministic (good for code). Higher = more varied and creative.</span>
+      </div>
+
+      <hr class="settings-divider">
+
+      <!-- Max Tokens -->
+      <div class="settings-field">
+        <div class="slider-head">
+          <label class="settings-label" for="settings-max-tokens">Max Tokens</label>
+          <span class="slider-value" id="settings-max-tokens-value">1024</span>
+        </div>
+        <input class="settings-slider" id="settings-max-tokens" type="range" min="128" max="4224" step="128" value="1024" oninput="updateMaxTokensLabel(this.value)">
+        <div class="slider-scale">
+          <span>Short</span>
+          <span>No limit</span>
+        </div>
+        <span class="settings-hint">Caps how long each reply can be. Slide to the far right for no limit (model default).</span>
+      </div>
+
     </div>
 
     <div class="settings-footer">
