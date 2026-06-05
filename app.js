@@ -1106,6 +1106,143 @@ function handleBackdropClick(e) {
   if (e.target === document.getElementById('modal-backdrop')) closeModal();
 }
 
+// ── CAMP GUIDEBOOK (floating + dockable book panel) ───────────────────
+let _gpPage = 0;
+let _gpInit = false;
+
+function openGuide() {
+  const p = document.getElementById('guide-panel');
+  if (!p) return;
+  p.hidden = false;
+  if (!_gpInit) { gpGoto(0); _gpInit = true; }
+}
+function closeGuide() {
+  const p = document.getElementById('guide-panel');
+  if (!p) return;
+  p.hidden = true;
+  // leave dock state as-is so reopening keeps the user's last layout choice
+}
+// Onboarding pop-up → guidebook
+function openGuideFromOnboarding() {
+  closeModal();
+  openGuide();
+}
+
+// Paginated navigation
+function _gpCount() { return document.querySelectorAll('#gp-pages .gp-page').length; }
+function gpGoto(i) {
+  const total = _gpCount();
+  if (!total) return;
+  _gpPage = Math.max(0, Math.min(i, total - 1));
+  document.querySelectorAll('#gp-pages .gp-page').forEach((el, idx) =>
+    el.classList.toggle('active', idx === _gpPage));
+  document.querySelectorAll('#gp-tabs .gp-tab').forEach((el, idx) =>
+    el.classList.toggle('active', idx === _gpPage));
+  const prog = document.getElementById('gp-progress');
+  if (prog) prog.textContent = `Page ${_gpPage + 1} of ${total}`;
+  const prev = document.getElementById('gp-prev');
+  const next = document.getElementById('gp-next');
+  if (prev) prev.disabled = _gpPage === 0;
+  if (next) { next.disabled = _gpPage === total - 1; next.textContent = _gpPage === total - 1 ? 'Done ✓' : 'Next ›'; }
+  const pages = document.getElementById('gp-pages');
+  if (pages) pages.scrollTop = 0;
+  const activeTab = document.querySelectorAll('#gp-tabs .gp-tab')[_gpPage];
+  if (activeTab) activeTab.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+}
+function gpNext() {
+  if (_gpPage >= _gpCount() - 1) { closeGuide(); return; }
+  gpGoto(_gpPage + 1);
+}
+function gpPrev() { gpGoto(_gpPage - 1); }
+
+// Pin / dock toggle — float ↔ right-side panel (VS Code style)
+function toggleGuideDock() {
+  const p = document.getElementById('guide-panel');
+  if (!p) return;
+  const docked = p.classList.toggle('docked');
+  p.style.left = p.style.top = p.style.right = '';   // clear any drag coords
+  const btn = document.getElementById('gp-dock-btn');
+  if (btn) {
+    btn.classList.toggle('active', docked);
+    btn.title = docked ? 'Unpin (float)' : 'Pin to the side (dock)';
+  }
+}
+
+// Drag the splitter to resize the docked panel (adjustable 2-panel layout)
+let _gpResize = false;
+function gpResizeStart(e) {
+  const p = document.getElementById('guide-panel');
+  if (!p || !p.classList.contains('docked')) return;
+  _gpResize = true;
+  document.body.classList.add('gp-resizing');
+  window.addEventListener('pointermove', gpResizeMove);
+  window.addEventListener('pointerup', gpResizeEnd);
+  e.preventDefault();
+}
+function gpResizeMove(e) {
+  if (!_gpResize) return;
+  const p = document.getElementById('guide-panel');
+  let w = window.innerWidth - e.clientX;          // panel hugs the right edge
+  const max = Math.round(window.innerWidth * 0.8);
+  w = Math.max(240, Math.min(w, max));
+  p.style.setProperty('--guide-w', w + 'px');
+}
+function gpResizeEnd() {
+  _gpResize = false;
+  document.body.classList.remove('gp-resizing');
+  window.removeEventListener('pointermove', gpResizeMove);
+  window.removeEventListener('pointerup', gpResizeEnd);
+}
+
+// Drag the floating panel by its header (pointer events; disabled when docked)
+let _gpDrag = null;
+function gpDragStart(e) {
+  const p = document.getElementById('guide-panel');
+  if (!p || p.classList.contains('docked')) return;
+  if (e.target.closest('.gp-btn')) return;          // don't drag when hitting a button
+  const r = p.getBoundingClientRect();
+  _gpDrag = { dx: e.clientX - r.left, dy: e.clientY - r.top, w: r.width, h: r.height };
+  p.style.left = r.left + 'px';
+  p.style.top = r.top + 'px';
+  p.style.right = 'auto';
+  window.addEventListener('pointermove', gpDragMove);
+  window.addEventListener('pointerup', gpDragEnd);
+  e.preventDefault();
+}
+function gpDragMove(e) {
+  if (!_gpDrag) return;
+  const p = document.getElementById('guide-panel');
+  let x = e.clientX - _gpDrag.dx;
+  let y = e.clientY - _gpDrag.dy;
+  x = Math.max(4, Math.min(x, window.innerWidth - _gpDrag.w - 4));
+  y = Math.max(4, Math.min(y, window.innerHeight - 44));
+  p.style.left = x + 'px';
+  p.style.top = y + 'px';
+}
+function gpDragEnd() {
+  _gpDrag = null;
+  window.removeEventListener('pointermove', gpDragMove);
+  window.removeEventListener('pointerup', gpDragEnd);
+}
+// Wire up the drag handle + resize splitter (works whether or not the DOM is ready)
+function _gpWireDrag() {
+  const head = document.getElementById('gp-head');
+  if (head && !head.dataset.dragWired) {
+    head.addEventListener('pointerdown', gpDragStart);
+    head.dataset.dragWired = '1';
+  }
+  const rez = document.getElementById('gp-resizer');
+  if (rez && !rez.dataset.wired) {
+    rez.addEventListener('pointerdown', gpResizeStart);
+    rez.dataset.wired = '1';
+  }
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _gpWireDrag);
+} else {
+  _gpWireDrag();
+}
+
 // ── MODEL SELECTOR ────────────────────────────────────────────────────
 // host:port shown in the picker for the default local endpoint
 const MODEL_ENDPOINT = (() => {
@@ -1601,8 +1738,19 @@ setInterval(checkConnectivity, 15000);
 
 // ── UI HELPERS ────────────────────────────────────────────────────────
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('overlay').classList.toggle('visible');
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('overlay');
+  if (window.matchMedia('(max-width: 640px)').matches) {
+    // Mobile: slide-in drawer with backdrop
+    sb.classList.remove('collapsed');
+    sb.classList.toggle('open');
+    ov.classList.toggle('visible');
+  } else {
+    // Desktop: collapse to zero width (no backdrop)
+    sb.classList.remove('open');
+    ov.classList.remove('visible');
+    sb.classList.toggle('collapsed');
+  }
 }
 
 document.getElementById('overlay').addEventListener('click', () => {

@@ -71,9 +71,33 @@
     flex-direction: column;
     flex-shrink: 0;
     border-right: 1px solid rgba(255,255,255,0.06);
-    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), width 0.25s ease;
     z-index: 100;
   }
+  /* Desktop collapse: shrink to a ChatGPT-style icon rail (icons stay) */
+  .sidebar.collapsed {
+    width: 64px;
+    min-width: 64px;
+    overflow: hidden;
+  }
+  .sidebar.collapsed .brand-text,
+  .sidebar.collapsed .sidebar-section,
+  .sidebar.collapsed .history-list,
+  .sidebar.collapsed .nc-label,
+  .sidebar.collapsed .sidebar-wifi-top > div:last-child,
+  .sidebar.collapsed .sidebar-wifi-status,
+  .sidebar.collapsed .sidebar-wifi-label,
+  .sidebar.collapsed .sidebar-wifi-ssid { display: none; }
+  .sidebar.collapsed .sidebar-brand { justify-content: center; padding-left: 0; padding-right: 0; }
+  .sidebar.collapsed .new-chat-btn {
+    justify-content: center;
+    gap: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .sidebar.collapsed .sidebar-footer { padding: 10px 0; }
+  .sidebar.collapsed .sidebar-wifi { margin: 0 auto; padding: 7px; width: 40px; }
+  .sidebar.collapsed .sidebar-wifi-top { justify-content: center; margin-bottom: 0; gap: 0; }
 
   .sidebar-brand {
     padding: 18px 16px 14px;
@@ -265,7 +289,7 @@
     border: none;
     background: none;
     cursor: pointer;
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 8px;
@@ -2330,6 +2354,353 @@
   }
   .modal-footer-btn:hover { background: var(--dc-blue-dark); }
 
+  /* ── ONBOARDING (wider, 2-column to cut scroll) ───────────────── */
+  .onboarding-card { max-width: 760px; }
+  .onboarding-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 30px;
+  }
+  .ob-col { min-width: 0; }
+  .ob-col > .modal-section-title:first-child { margin-top: 0; }
+  @media (max-width: 700px) {
+    .onboarding-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── CAMP GUIDE — floating + dockable book panel ──────────────── */
+  .guide-panel {
+    position: fixed;
+    top: 74px;
+    right: 18px;
+    z-index: 600;
+    width: 384px;
+    max-width: calc(100vw - 24px);
+    height: 580px;
+    max-height: calc(100dvh - 92px);
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.30);
+    overflow: hidden;
+    animation: slide-up 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .guide-panel[hidden] { display: none; }
+
+  /* Docked: drop into the body flex flow as a right-side panel (VS Code style) */
+  .guide-panel.docked {
+    position: relative;
+    top: auto; right: auto; left: auto !important;
+    width: var(--guide-w, 384px);
+    min-width: 240px;
+    max-width: 80vw;
+    height: auto;
+    max-height: none;
+    border-radius: 0;
+    border-width: 0 0 0 1px;
+    box-shadow: none;
+    flex-shrink: 0;
+    animation: none;
+    transition: width 0.2s ease;
+  }
+  .gp-resizing .guide-panel.docked { transition: none; }   /* no lag while dragging */
+
+  /* Resize splitter — draggable divider on the panel's left edge (docked only) */
+  .gp-resizer { display: none; }
+  .guide-panel.docked .gp-resizer {
+    display: block;
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 7px;
+    cursor: col-resize;
+    z-index: 3;
+  }
+  .guide-panel.docked .gp-resizer::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: transparent;
+    transition: background 0.15s;
+  }
+  .guide-panel.docked .gp-resizer:hover::after,
+  .gp-resizing .guide-panel.docked .gp-resizer::after { background: var(--dc-blue); }
+  [data-theme="dark"] .guide-panel.docked .gp-resizer:hover::after,
+  [data-theme="dark"] .gp-resizing .guide-panel.docked .gp-resizer::after { background: var(--dc-accent); }
+  .gp-resizing { cursor: col-resize; user-select: none; }
+
+  .gp-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 10px 10px 14px;
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+    cursor: move;
+    user-select: none;
+    touch-action: none;
+  }
+  .guide-panel.docked .gp-head { cursor: default; }
+  .gp-grip { display: flex; color: var(--text-muted); }
+  .guide-panel.docked .gp-grip { display: none; }
+  .gp-head-icon { font-size: 15px; line-height: 1; }
+  .gp-title { font-size: 13px; font-weight: 800; color: var(--text-primary); white-space: nowrap; }
+  .gp-head-spacer { flex: 1; }
+  .gp-btn {
+    width: 27px; height: 27px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .gp-btn:hover { color: var(--text-primary); background: var(--border-light); border-color: var(--border); }
+  .gp-btn.active { color: var(--dc-blue); border-color: var(--dc-blue); background: var(--dc-blue-light); }
+  [data-theme="dark"] .gp-btn.active { color: var(--dc-accent); }
+
+  .gp-tabs {
+    display: flex; gap: 5px;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border-light);
+    overflow-x: auto;
+    flex-shrink: 0;
+    scrollbar-width: none;
+  }
+  .gp-tabs::-webkit-scrollbar { display: none; }
+  .gp-tab {
+    flex-shrink: 0;
+    font-family: var(--font-main);
+    font-size: 11px; font-weight: 700;
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: 999px;
+    padding: 5px 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .gp-tab:hover { color: var(--text-primary); border-color: var(--border); }
+  .gp-tab.active { background: var(--dc-blue); color: #fff; border-color: var(--dc-blue); }
+
+  .gp-pages { flex: 1; overflow-y: auto; padding: 16px 16px 8px; }
+  .gp-pages::-webkit-scrollbar { width: 4px; }
+  .gp-pages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .gp-page { display: none; animation: fade-in 0.2s ease; }
+  .gp-page.active { display: block; }
+  .gp-page-h {
+    display: flex; align-items: center; gap: 9px;
+    font-size: 15.5px; font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-bottom: 5px;
+  }
+  .gp-chip {
+    flex-shrink: 0;
+    font-size: 10px; font-weight: 800; letter-spacing: 0.3px;
+    color: var(--dc-blue);
+    background: var(--dc-blue-light);
+    border: 1px solid rgba(0,87,184,0.2);
+    border-radius: 6px;
+    padding: 3px 7px;
+  }
+  [data-theme="dark"] .gp-chip { color: var(--dc-accent); background: rgba(0,87,184,0.15); }
+  .gp-chip.pre { color: var(--text-muted); background: var(--bg-secondary); border-color: var(--border-light); }
+  .gp-page-sub { font-size: 12px; color: var(--text-muted); line-height: 1.55; margin-bottom: 14px; }
+  .gp-map-row {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 8px 0; border-bottom: 1px solid var(--border-light);
+    font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;
+  }
+  .gp-map-row:last-child { border-bottom: none; }
+  .gp-map-row b { color: var(--dc-blue); font-weight: 800; flex-shrink: 0; width: 48px; }
+  [data-theme="dark"] .gp-map-row b { color: var(--dc-accent); }
+
+  .gp-foot {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .gp-nav {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-main);
+    font-size: 12.5px; font-weight: 700;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 8px 12px;
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .gp-nav:hover:not(:disabled) { border-color: var(--dc-blue); color: var(--dc-blue); }
+  .gp-nav:disabled { opacity: 0.4; cursor: not-allowed; }
+  .gp-nav.primary { background: var(--dc-blue); color: #fff; border-color: var(--dc-blue); }
+  .gp-nav.primary:hover:not(:disabled) { background: var(--dc-blue-dark); color: #fff; }
+  .gp-progress { flex: 1; text-align: center; font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.2px; }
+
+  /* Guide panel — responsive */
+  @media (max-width: 900px) {
+    .guide-panel { width: 340px; }
+    .guide-panel.docked { max-width: 60vw; }
+  }
+  @media (max-width: 640px) {
+    /* Floating: near full-screen sheet */
+    .guide-panel {
+      top: 50px; right: 8px; left: 8px;
+      width: auto;
+      max-width: none;
+      height: auto;
+      bottom: 8px;
+      max-height: none;
+    }
+    /* Docked: become an overlay drawer so it never crushes the chat */
+    .guide-panel.docked {
+      position: fixed;
+      top: 0; right: 0; bottom: 0; left: auto !important;
+      width: min(var(--guide-w, 384px), 90vw) !important;
+      min-width: 0;
+      max-width: 90vw;
+      height: 100dvh;
+      z-index: 600;
+      border-left: 1px solid var(--border);
+      box-shadow: -10px 0 40px rgba(0,0,0,0.28);
+    }
+    .guide-panel.docked .gp-resizer { display: none; }   /* no drag-resize on phones */
+  }
+
+  .wip-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    background: #FEF9C3;
+    border: 1px solid #FDE68A;
+    border-radius: 10px;
+    padding: 11px 13px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    color: #854D0E;
+    line-height: 1.55;
+  }
+  .wip-banner svg { flex-shrink: 0; margin-top: 1px; }
+  .wip-banner strong { font-weight: 800; }
+  [data-theme="dark"] .wip-banner {
+    background: rgba(133,77,14,0.18);
+    border-color: rgba(133,77,14,0.4);
+    color: #FCD34D;
+  }
+  .wip-pill {
+    display: inline-block;
+    background: #854D0E;
+    color: #FEF9C3;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    border-radius: 5px;
+    padding: 1px 6px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  [data-theme="dark"] .wip-pill { background: #FCD34D; color: #422006; }
+
+  /* Phase header (Before camp / Hour 1 … 4) */
+  .guide-phase {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 22px 0 12px;
+  }
+  .guide-phase:first-of-type { margin-top: 4px; }
+  .guide-phase-badge {
+    flex-shrink: 0;
+    min-width: 52px;
+    text-align: center;
+    background: var(--dc-blue);
+    color: white;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    border-radius: 7px;
+    padding: 5px 8px;
+    line-height: 1.1;
+  }
+  .guide-phase-badge.pre { background: var(--text-muted); }
+  .guide-phase-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.25;
+  }
+  .guide-phase-title small {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+
+  /* Numbered step */
+  .guide-step {
+    display: flex;
+    gap: 11px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .guide-step:last-child { border-bottom: none; }
+  .guide-step-num {
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--dc-blue-light);
+    border: 1px solid rgba(0,87,184,0.2);
+    color: var(--dc-blue);
+    font-size: 11px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+  [data-theme="dark"] .guide-step-num { color: var(--dc-accent); background: rgba(0,87,184,0.15); }
+  .guide-step-body { flex: 1; min-width: 0; }
+  .guide-step-body b {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 3px;
+  }
+  .guide-step-body p {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .guide-step-body p + p { margin-top: 5px; }
+  .guide-step-body em { font-style: italic; color: var(--text-muted); }
+
+  /* Inline command / code chip */
+  .guide-cmd {
+    display: block;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    border-radius: 7px;
+    padding: 7px 10px;
+    margin-top: 6px;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 11.5px;
+    color: var(--dc-blue);
+    overflow-x: auto;
+    white-space: pre;
+  }
+  [data-theme="dark"] .guide-cmd { color: var(--dc-accent); }
+  .guide-step-body a { color: var(--dc-blue); font-weight: 600; text-decoration: none; }
+  .guide-step-body a:hover { text-decoration: underline; }
+  [data-theme="dark"] .guide-step-body a { color: var(--dc-accent); }
+
   [data-theme="dark"] .error-bubble { background: rgba(153,27,27,0.15); border-color: rgba(153,27,27,0.3); color: #FCA5A5; }
 
   /* LOGO TOOLTIP — Alibaba Cloud attribution */
@@ -2906,9 +3277,9 @@
     </div>
   </div>
 
-  <button class="new-chat-btn" onclick="newChat()">
+  <button class="new-chat-btn" onclick="newChat()" title="New Conversation">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-    New Conversation
+    <span class="nc-label">New Conversation</span>
   </button>
 
   <div class="sidebar-section">Recent</div>
@@ -2964,6 +3335,9 @@
         <span class="lang-divider">·</span>
         <span class="lang-fil">HIL · ILO</span>
       </div>
+      <button class="icon-btn" onclick="openGuide()" title="Camp Guide — full step-by-step guidebook">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      </button>
       <button class="icon-btn" onclick="openSettings()" title="Personalize AI">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
@@ -3064,9 +3438,166 @@
 
 </main>
 
+<!-- CAMP GUIDEBOOK — floating + dockable book panel -->
+<aside class="guide-panel" id="guide-panel" hidden aria-label="Camp Guidebook">
+  <div class="gp-resizer" id="gp-resizer" title="Drag to resize"></div>
+  <div class="gp-head" id="gp-head">
+    <span class="gp-grip" title="Drag to move">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
+    </span>
+    <span class="gp-head-icon">📖</span>
+    <span class="gp-title">Camp Guidebook</span>
+    <span class="wip-pill">V1 · WIP</span>
+    <span class="gp-head-spacer"></span>
+    <button class="gp-btn" id="gp-dock-btn" onclick="toggleGuideDock()" title="Pin to the side (dock)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+    </button>
+    <button class="gp-btn" onclick="closeGuide()" title="Close guidebook">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="gp-tabs" id="gp-tabs">
+    <button class="gp-tab" onclick="gpGoto(0)">Overview</button>
+    <button class="gp-tab" onclick="gpGoto(1)">Pre-install</button>
+    <button class="gp-tab" onclick="gpGoto(2)">Fork</button>
+    <button class="gp-tab" onclick="gpGoto(3)">Run</button>
+    <button class="gp-tab" onclick="gpGoto(4)">Customize</button>
+    <button class="gp-tab" onclick="gpGoto(5)">Deploy</button>
+  </div>
+
+  <div class="gp-pages" id="gp-pages">
+
+    <!-- PAGE 0 — Overview -->
+    <section class="gp-page">
+      <div class="gp-page-h">Build your own AI</div>
+      <div class="gp-page-sub">The whole camp, one chapter at a time. 🇵🇭</div>
+      <div class="wip-banner">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span><strong>V1 draft — work in progress.</strong> Some steps may still change and it isn't final on Vercel yet. Follow your facilitator if anything looks off.</span>
+      </div>
+      <div class="modal-section-title">Your 4-hour map</div>
+      <div class="gp-map-row"><b>Hour 1</b><span>Understand the idea &amp; <strong>fork</strong> the code.</span></div>
+      <div class="gp-map-row"><b>Hour 2</b><span><strong>Run</strong> the AI on this computer.</span></div>
+      <div class="gp-map-row"><b>Hour 3</b><span><strong>Customize</strong> it in Settings — make it yours.</span></div>
+      <div class="gp-map-row"><b>Hour 4</b><span><strong>Deploy</strong> it live &amp; open your first Pull Request.</span></div>
+      <div class="modal-highlight" style="margin-top:16px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-5a7 7 0 0 0-14 0z"/><line x1="9" y1="22" x2="15" y2="22"/></svg>
+        <span><strong>Tip:</strong> Hit the <strong>pin</strong> button (top-right of this panel) to dock the guidebook beside the chat — read along while you build. You can also drag it anywhere.</span>
+      </div>
+    </section>
+
+    <!-- PAGE 1 — Pre-install -->
+    <section class="gp-page">
+      <div class="gp-page-h"><span class="gp-chip pre">Before</span> Pre-install</div>
+      <div class="gp-page-sub">Set these up before the 4 hours start — it saves time.</div>
+      <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body">
+        <b>Install Ollama</b><p>The free app that runs the AI on your computer.</p>
+        <p><a href="https://ollama.com/download" target="_blank" rel="noopener">ollama.com/download →</a></p></div></div>
+      <div class="guide-step"><div class="guide-step-num">2</div><div class="guide-step-body">
+        <b>Download the model</b><p>Run this once in your terminal (~2GB).</p>
+        <code class="guide-cmd">ollama pull qwen2.5:3b</code></div></div>
+      <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
+        <b>Install VS Code</b><p>To open and edit the project files. Free.</p>
+        <p><a href="https://code.visualstudio.com" target="_blank" rel="noopener">code.visualstudio.com →</a></p></div></div>
+      <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body">
+        <b>Install Git</b><p>Uploads your code to GitHub later.</p>
+        <p><a href="https://git-scm.com/downloads" target="_blank" rel="noopener">git-scm.com/downloads →</a></p></div></div>
+      <div class="guide-step"><div class="guide-step-num">5</div><div class="guide-step-body">
+        <b>Free GitHub account</b><p>Where your code lives online.</p>
+        <p><a href="https://github.com/signup" target="_blank" rel="noopener">github.com/signup →</a></p></div></div>
+      <div class="guide-step"><div class="guide-step-num">6</div><div class="guide-step-body">
+        <b>Free Vercel account</b><p>Puts your AI online. Sign in <em>with GitHub</em> so they connect.</p>
+        <p><a href="https://vercel.com/signup" target="_blank" rel="noopener">vercel.com/signup →</a></p></div></div>
+      <div class="guide-step"><div class="guide-step-num">7</div><div class="guide-step-body">
+        <b>Use Chrome or Edge</b><p>Recommended browser for this app.</p></div></div>
+    </section>
+
+    <!-- PAGE 2 — Hour 1 Fork -->
+    <section class="gp-page">
+      <div class="gp-page-h"><span class="gp-chip">Hour 1</span> Understand &amp; fork</div>
+      <div class="gp-page-sub">Learn the idea, then get your own copy of the code.</div>
+      <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body">
+        <b>Read the welcome intro</b><p>The first pop-up explains what you're building. The glossary inside defines every word you'll hear today.</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">2</div><div class="guide-step-body">
+        <b>Fork the project on GitHub</b><p>"Fork" = make your own copy. Click <strong>Fork</strong> on the repo so you have a version you can change freely.</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
+        <b>Get the code on your computer</b><p>Download the ZIP, or clone it with Git, then open the folder in VS Code.</p>
+        <code class="guide-cmd">git clone https://github.com/&lt;you&gt;/barangay-ai.git</code></div></div>
+    </section>
+
+    <!-- PAGE 3 — Hour 2 Run -->
+    <section class="gp-page">
+      <div class="gp-page-h"><span class="gp-chip">Hour 2</span> Run it locally</div>
+      <div class="gp-page-sub">Talk to your AI on your own machine — no internet needed.</div>
+      <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body">
+        <b>Start Ollama</b><p>Open the Ollama app (it may already be running in the background).</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">2</div><div class="guide-step-body">
+        <b>Test it in the terminal</b><p>Type a message, see it reply. Type <em>/bye</em> to exit.</p>
+        <code class="guide-cmd">ollama run qwen2.5:3b</code></div></div>
+      <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
+        <b>Open the app</b><p>Open <strong>index.html</strong> in your browser. Check the top-right chip says <strong>Ollama</strong> with a green dot — that means connected.</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body">
+        <b>Send your first message</b><p>Pick the model, type "Kumusta!" and watch it reply word-by-word. 🎉</p></div></div>
+    </section>
+
+    <!-- PAGE 4 — Hour 3 Customize -->
+    <section class="gp-page">
+      <div class="gp-page-h"><span class="gp-chip">Hour 3</span> Customize</div>
+      <div class="gp-page-sub">Make it yours in Settings — do this <strong>before</strong> you publish.</div>
+      <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body">
+        <b>Open Settings</b><p>Click the ⚙️ gear (top-right). Everything updates the live preview as you type — no code.</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">2</div><div class="guide-step-body">
+        <b>Name your AI</b><p><em>Bayani, Isko, Barangay AI…</em> It shows in the header, welcome screen &amp; avatars.</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
+        <b>Shape its personality</b><p>Write how it behaves — friendly tutor, barangay helper, coding buddy. This is its "system prompt".</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body">
+        <b>Pick the reply language</b><p>English, Filipino, Bisaya, Hiligaynon, Ilokano… It replies in your language no matter what you type.</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">5</div><div class="guide-step-body">
+        <b>Brand color &amp; greeting</b><p>Set a color and a welcome message + suggestion chips. Make it feel like <em>your</em> product.</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">6</div><div class="guide-step-body">
+        <b>Save</b><p>Hit <strong>Save</strong> — the whole app updates instantly. This is exactly what your visitors will see.</p></div></div>
+    </section>
+
+    <!-- PAGE 5 — Hour 4 Deploy -->
+    <section class="gp-page">
+      <div class="gp-page-h"><span class="gp-chip">Hour 4</span> Deploy to Vercel</div>
+      <div class="gp-page-sub">Put your AI on the internet with a live URL.</div>
+      <div class="modal-highlight" style="margin-bottom:12px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span><strong>Finish customizing first</strong> — that's the version the world will see.</span>
+      </div>
+      <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body">
+        <b>Save changes with Git</b>
+        <code class="guide-cmd">git add .
+git commit -m "Make the AI mine"</code></div></div>
+      <div class="guide-step"><div class="guide-step-num">2</div><div class="guide-step-body">
+        <b>Push to GitHub</b><p>Upload your code so Vercel can read it.</p>
+        <code class="guide-cmd">git push</code></div></div>
+      <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
+        <b>Import into Vercel</b><p>On Vercel: <strong>Add New → Project</strong>, pick your repo, click <strong>Deploy</strong>. No config needed.</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body">
+        <b>Get your live URL 🚀</b><p>In ~1 minute you get a public link like <em>your-ai.vercel.app</em>. Share it!</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">5</div><div class="guide-step-body">
+        <b>Connect a hosted model</b><p>Local Ollama only runs on <em>your</em> PC. In <strong>Settings → Model</strong> (or <strong>Add Models</strong>), add a cloud endpoint + key so the live AI can reply.</p>
+        <p><em>This part is still WIP in V1 — your facilitator will guide you.</em></p></div></div>
+      <div class="guide-step"><div class="guide-step-num">6</div><div class="guide-step-body">
+        <b>Open your first Pull Request</b><p>On GitHub, open a PR from your fork. Your first open-source contribution — on record forever. 🎓</p></div></div>
+      <p class="gp-page-sub" style="text-align:center;margin:14px 0 0">Stuck? Raise your hand — no dumb questions here. 💙</p>
+    </section>
+
+  </div>
+
+  <div class="gp-foot">
+    <button class="gp-nav" id="gp-prev" onclick="gpPrev()">‹ Back</button>
+    <span class="gp-progress" id="gp-progress">Page 1 of 6</span>
+    <button class="gp-nav primary" id="gp-next" onclick="gpNext()">Next ›</button>
+  </div>
+</aside>
+
 <!-- WELCOME MODAL -->
 <div class="modal-backdrop" id="modal-backdrop" onclick="handleBackdropClick(event)">
-  <div class="modal-card" id="modal-card">
+  <div class="modal-card onboarding-card" id="modal-card">
     <div class="modal-header">
       <div class="logo-wrapper">
         <div class="modal-logo">DC</div>
@@ -3089,6 +3620,8 @@
     </div>
 
     <div class="modal-body">
+     <div class="onboarding-grid">
+      <div class="ob-col">
 
       <p class="modal-text" style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:6px">Today you're going to build your own AI.</p>
       <p class="modal-text">Not use someone else's. Not pay for a subscription. Build one — name it, shape its personality, and deploy it live. In 4 hours.</p>
@@ -3114,25 +3647,13 @@
         </div>
       </div>
 
-      <div class="modal-section-title">What you'll do today</div>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
-        <div class="modal-hour-row">
-          <span style="width:54px;flex-shrink:0;font-size:11px;font-weight:700;color:var(--dc-blue);padding-top:1px">Hour 1</span>
-          <span>Learn the concepts. Fork the repo on GitHub.</span>
-        </div>
-        <div class="modal-hour-row">
-          <span style="width:54px;flex-shrink:0;font-size:11px;font-weight:700;color:var(--dc-blue);padding-top:1px">Hour 2</span>
-          <span>Run Qwen on this machine. Talk to it from the terminal.</span>
-        </div>
-        <div class="modal-hour-row">
-          <span style="width:54px;flex-shrink:0;font-size:11px;font-weight:700;color:var(--dc-blue);padding-top:1px">Hour 3</span>
-          <span>Name it. Give it a personality. Make it yours.</span>
-        </div>
-        <div class="modal-hour-row">
-          <span style="width:54px;flex-shrink:0;font-size:11px;font-weight:700;color:var(--dc-blue);padding-top:1px">Hour 4</span>
-          <span>Deploy it. Share the live URL. Open your first Pull Request.</span>
-        </div>
+      <div class="modal-highlight" style="margin-top:18px;background:none;border:1px dashed var(--border);color:var(--text-secondary)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--dc-blue)"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span>The full <strong>4-hour, step-by-step plan</strong> lives in the <strong>Camp Guidebook</strong> — open it below, or anytime from the 📖 button in the header.</span>
       </div>
+
+      </div><!-- /ob-col left -->
+      <div class="ob-col">
 
       <div class="modal-section-title">Camp day guide</div>
       <div style="background:var(--dc-blue-light);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px">
@@ -3167,7 +3688,7 @@
       <details style="margin-bottom:4px">
         <summary style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:6px;padding:4px 0">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
-          Glossary — words you'll hear today
+          Glossary — tap to expand the words you'll hear today
         </summary>
         <div style="margin-top:10px;display:flex;flex-direction:column;gap:0;border:1px solid var(--border-light);border-radius:10px;overflow:hidden">
 
@@ -3314,6 +3835,8 @@
         </div>
       </details>
 
+      </div><!-- /ob-col right -->
+     </div><!-- /onboarding-grid -->
     </div>
 
     <div style="padding:0 22px 20px">
@@ -3358,8 +3881,9 @@
         </a>
       </div>
     </div>
-    <div style="position:sticky;bottom:0;background:var(--bg-panel);padding:14px 22px 20px;border-top:1px solid var(--border-light)">
-      <button class="modal-footer-btn" onclick="closeModal()">Got it — Start Chatting</button>
+    <div style="position:sticky;bottom:0;background:var(--bg-panel);padding:14px 22px 20px;border-top:1px solid var(--border-light);display:flex;gap:10px;align-items:center">
+      <button onclick="closeModal()" style="flex-shrink:0;background:none;border:1px solid var(--border);border-radius:10px;padding:11px 18px;color:var(--text-secondary);font-family:var(--font-main);font-size:13px;font-weight:700;cursor:pointer">Skip</button>
+      <button class="modal-footer-btn" style="margin-top:0;flex:1" onclick="openGuideFromOnboarding()">Open the Camp Guidebook →</button>
     </div>
   </div>
 </div>
