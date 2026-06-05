@@ -154,6 +154,8 @@ function renderSessionMessages(session) {
       const bodyText = wasCancelled ? stripCancelMark(msg.content) : msg.content;
       row.innerHTML = `<div class="avatar ai">${avatarLabel}</div><div class="bubble ai">${formatContent(bodyText)}</div>`;
       if (wasCancelled) row.querySelector('.bubble').appendChild(cancelledNoteEl());
+      const srcEl = buildSourcesEl(msg.sources);
+      if (srcEl) row.querySelector('.bubble').appendChild(srcEl);
       chatArea.appendChild(row);
       const t = document.createElement('div');
       t.className = 'message-time';
@@ -217,6 +219,10 @@ function applySettings(s) {
   if (_lang === 'tagalog') _lang = 'filipino';
   window._REPLY_LANG_ACTIVE = _lang;
   window._GREETING_ACTIVE = s.welcome_greeting || null;
+  // Web search (Tavily) — a key is required for it to actually run
+  window._TAVILY_KEY = s.tavily_api_key || '';
+  window._WEB_SEARCH_ENABLED = (s.web_search_enabled === true);
+  syncWebSearchUI();
   const initials = name.slice(0, 2).toUpperCase();
   document.querySelectorAll('.avatar.ai').forEach(a => a.textContent = initials);
   const wi = document.querySelector('.welcome-icon');
@@ -337,6 +343,12 @@ function openSettings() {
     el.classList.toggle('active', el.dataset.lang === langChoice);
   });
 
+  // Web search (Tavily) controls live on the Model tab
+  const wsToggle = document.getElementById('settings-web-search');
+  if (wsToggle) wsToggle.classList.toggle('on', s.web_search_enabled === true);
+  const wsKey = document.getElementById('settings-tavily-key');
+  if (wsKey) wsKey.value = s.tavily_api_key || '';
+
   // Training tab
   window._TRAINING_FILES_DRAFT = Array.isArray(s.training_files) ? s.training_files.slice() : [];
   const notesInput = document.getElementById('settings-training-notes');
@@ -403,6 +415,10 @@ function resetSettingsForm() {
   if (tp) { tp.value = 0.3; updateTemperatureLabel(0.3); }
   const mt = document.getElementById('settings-max-tokens');
   if (mt) { mt.value = 1024; updateMaxTokensLabel(1024); }
+  const wsToggle = document.getElementById('settings-web-search');
+  if (wsToggle) wsToggle.classList.remove('on');
+  const wsKey = document.getElementById('settings-tavily-key');
+  if (wsKey) wsKey.value = '';
   window._TRAINING_FILES_DRAFT = [];
   renderTrainingFilesList();
   window._PERSONAS_DRAFT = [];
@@ -441,6 +457,8 @@ function applyAndSaveSettings() {
     })(),
     personas:         (window._PERSONAS_DRAFT || []),
     active_persona:   (window._ACTIVE_PERSONA_DRAFT || ''),
+    web_search_enabled: !!document.getElementById('settings-web-search')?.classList.contains('on'),
+    tavily_api_key:   (document.getElementById('settings-tavily-key')?.value.trim() || ''),
   };
   saveSettings(s);
   applySettings(s);
@@ -1649,6 +1667,33 @@ function cancelledNoteEl() {
   return n;
 }
 
+// Builds the "Web sources" card shown under answers that used web search.
+// Reused live (after streaming) and on session reload, so links persist.
+function buildSourcesEl(sources) {
+  if (!Array.isArray(sources) || !sources.length) return null;
+  const wrap = document.createElement('div');
+  wrap.className = 'web-sources';
+  const head = document.createElement('div');
+  head.className = 'web-sources-head';
+  head.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/></svg><span>Web sources</span>';
+  wrap.appendChild(head);
+  sources.forEach((s, i) => {
+    if (!s || !s.url) return;
+    let host = '';
+    try { host = new URL(s.url).hostname.replace(/^www\./, ''); } catch (e) { host = ''; }
+    const a = document.createElement('a');
+    a.className = 'web-source-link';
+    a.href = s.url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.innerHTML = `<span class="web-source-num">${i + 1}</span>`
+      + `<span class="web-source-title">${escHtml(s.title || host || s.url)}</span>`
+      + (host ? `<span class="web-source-host">${escHtml(host)}</span>` : '');
+    wrap.appendChild(a);
+  });
+  return wrap;
+}
+
 // Cancelled assistant messages carry this marker in their stored content. It lets
 // us (a) re-render the note after reload and (b) exclude the whole turn from the
 // model's context — without needing a DB schema change.
@@ -1892,6 +1937,11 @@ function appendTypingIndicator() {
   const labelEl = row.querySelector('#thinking-label');
   window._thinkingInterval = setInterval(() => {
     dotCount = (dotCount + 1) % 4;
+    // While web search runs, pin the label instead of cycling the usual phrases.
+    if (window._thinkingLabelOverride) {
+      labelEl.textContent = window._thinkingLabelOverride + '.'.repeat(dotCount || 1);
+      return;
+    }
     if (dotCount === 0) phraseIdx = (phraseIdx + 1) % _thinkingPhrases.length;
     labelEl.textContent = _thinkingPhrases[phraseIdx] + '.'.repeat(dotCount || 1);
   }, 450);
@@ -1914,6 +1964,7 @@ function appendTypingIndicator() {
 function removeTypingIndicator() {
   clearInterval(window._thinkingInterval);
   clearInterval(window._thinkTimerInterval);
+  window._thinkingLabelOverride = null;
   window._setEduCard = null;
   window._thinkTimerInterval = null;
   const el = document.getElementById('typing-row');
@@ -2252,6 +2303,81 @@ function ensureModelSelected() {
 }
 
 // ── SEND MESSAGE ──────────────────────────────────────────────────────
+// ── WEB SEARCH (Tavily) ───────────────────────────────────────────────
+// Reflect the current on/off state onto the globe button next to Send.
+function syncWebSearchUI() {
+  const on = !!window._WEB_SEARCH_ENABLED;
+  const btn = document.getElementById('web-search-btn');
+  if (!btn) return;
+  btn.classList.toggle('active', on);
+  btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  btn.title = on ? 'Web search is ON — click to disable' : 'Web search is OFF — click to enable';
+}
+
+// Quick per-conversation toggle (the globe button). Persists immediately so it survives reload.
+function toggleWebSearchQuick() {
+  const next = !window._WEB_SEARCH_ENABLED;
+  if (next && !(window._TAVILY_KEY || '').trim()) {
+    showToast('Add your Tavily API key in Settings → Model to use web search.');
+    openSettings();
+    switchSettingsTab('model');
+    return;
+  }
+  window._WEB_SEARCH_ENABLED = next;
+  const s = loadSettings();
+  s.web_search_enabled = next;
+  saveSettings(s);
+  syncWebSearchUI();
+  showToast(next ? '🌐 Web search enabled' : 'Web search disabled');
+}
+
+// Settings-modal toggle (draft only — committed on Save).
+function toggleWebSearchSetting(el) {
+  el.classList.toggle('on');
+}
+
+// Query Tavily and return its JSON ({ answer, results } on success, { error } on failure).
+async function performWebSearch(query) {
+  const key = (window._TAVILY_KEY || '').trim();
+  if (!key) return { error: 'no-key' };
+  try {
+    const resp = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: key,
+        query,
+        max_results: 3,
+        search_depth: 'basic',
+        include_answer: true
+      })
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return await resp.json();
+  } catch (e) {
+    console.error('[web search] failed:', e);
+    return { error: e.message || 'request-failed' };
+  }
+}
+
+// Turn a Tavily response into a grounding block injected just before the user's
+// question. Wording is deliberately forceful so even small models trust the
+// results over their (possibly stale) memory. Returns '' if nothing usable.
+function buildWebSearchBlock(sr) {
+  if (!sr || !Array.isArray(sr.results) || !sr.results.length) return '';
+  const results = sr.results.slice(0, 3);
+  let block = 'IMPORTANT: Answer using ONLY the web search results below. They were fetched just now and are current and authoritative. '
+    + 'They OVERRIDE your own prior knowledge — if a result contradicts what you remember, the result is correct and your memory is outdated. '
+    + 'Do NOT answer from memory. Cite sources inline like [1]. If the results do not contain the answer, say so plainly instead of guessing.\n\n'
+    + '=== WEB SEARCH RESULTS ===\n';
+  if (sr.answer) block += `Summary: ${sr.answer}\n\n`;
+  results.forEach((r, i) => {
+    block += `[${i + 1}] ${r.title || 'Untitled'} (${r.url || ''})\n${(r.content || '').trim()}\n\n`;
+  });
+  block += '=== END WEB SEARCH RESULTS ===';
+  return block;
+}
+
 async function sendMessage() {
   if (isStreaming) return;
   const input = document.getElementById('message-input');
@@ -2311,6 +2437,28 @@ async function sendMessage() {
     if (window._setEduCard) window._setEduCard('📂', `${fileCount} knowledge file${fileCount !== 1 ? 's' : ''}${noteLabel} loaded — the model will use this as context when forming its answer.`);
   }
   updateThinkingStep('context', 'done', 'Context ready');
+
+  // ── Web search augmentation (Tavily) ─────────────────────────────────
+  let _webSources = [];   // populated when a search returns results → rendered under the answer
+  let _webContext = '';   // grounding block injected just before the user's question
+  if (window._WEB_SEARCH_ENABLED && (window._TAVILY_KEY || '').trim()) {
+    window._thinkingLabelOverride = 'Searching the web';   // pin the rotating loading label
+    updateThinkingStep('websearch', 'active', 'Searching the web…');
+    if (window._setEduCard) window._setEduCard('🌐', 'Web search is on — querying Tavily for fresh information, then feeding the top results to the model as context.');
+    const sr = await performWebSearch(text);
+    window._thinkingLabelOverride = null;   // back to the normal phrases for generation
+    const webBlock = buildWebSearchBlock(sr);
+    if (webBlock) {
+      _webContext = webBlock;
+      _webSources = sr.results.slice(0, 3).map(r => ({ title: r.title, url: r.url }));
+      updateThinkingStep('websearch', 'done', `Web search · ${_webSources.length} source${_webSources.length !== 1 ? 's' : ''}`);
+    } else if (sr && sr.error) {
+      updateThinkingStep('websearch', 'error', sr.error === 'no-key' ? 'Web search skipped — no API key' : 'Web search failed — answering without it');
+    } else {
+      updateThinkingStep('websearch', 'done', 'Web search · no results');
+    }
+  }
+
   if (_modelWarm) {
     updateThinkingStep('model', 'active', `Sending to ${window.ACTIVE_MODEL}...`);
     if (window._setEduCard) window._setEduCard('⚡', `Qwen is already loaded in memory. Sending your prompt and streaming tokens back to the browser now...`);
@@ -2323,13 +2471,14 @@ async function sendMessage() {
   const _prefix = window._PROMPT_PREFIX_ACTIVE || '';
   const _suffix = window._PROMPT_SUFFIX_ACTIVE || '';
   let _outgoing = messages;
-  if (_prefix || _suffix) {
+  if (_prefix || _suffix || _webContext) {
     _outgoing = messages.slice();
     const lastUser = _outgoing.length - 1;
     if (lastUser >= 0 && _outgoing[lastUser].role === 'user') {
+      // Web context goes first (strongest grounding), then prefix, then the question.
       _outgoing[lastUser] = {
         ..._outgoing[lastUser],
-        content: `${_prefix ? _prefix + '\n\n' : ''}${_outgoing[lastUser].content}${_suffix ? '\n\n' + _suffix : ''}`
+        content: `${_webContext ? _webContext + '\n\n' : ''}${_prefix ? _prefix + '\n\n' : ''}${_outgoing[lastUser].content}${_suffix ? '\n\n' + _suffix : ''}`
       };
     }
   }
@@ -2456,6 +2605,12 @@ async function sendMessage() {
     // Show the cancellation note (after any partial answer the model managed to stream).
     if (cancelled) bubble.appendChild(cancelledNoteEl());
 
+    // Attach the web-search source links under the answer (when this turn used search).
+    if (!cancelled && fullText && _webSources.length) {
+      const srcEl = buildSourcesEl(_webSources);
+      if (srcEl) bubble.appendChild(srcEl);
+    }
+
     const aiTime = getTime();
     const timeDiv = document.createElement('div');
     timeDiv.className = 'message-time';
@@ -2471,7 +2626,7 @@ async function sendMessage() {
       if (session) session.displayMessages.push({ role: 'assistant', content: savedContent + CANCEL_MARK, time: aiTime, stats, cancelled: true });
     } else if (savedContent) {
       messages.push({ role: 'assistant', content: savedContent });
-      if (session) session.displayMessages.push({ role: 'assistant', content: savedContent, time: aiTime, stats });
+      if (session) session.displayMessages.push({ role: 'assistant', content: savedContent, time: aiTime, stats, sources: _webSources.length ? _webSources : undefined });
     } else if (fullText) {
       // model only generated thinking — pop the user message so history stays consistent
       messages.pop();

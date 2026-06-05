@@ -1315,6 +1315,86 @@
   .model-select-btn:hover svg { opacity: 1; }
   .model-select-btn.open svg { transform: rotate(180deg); }
 
+  /* Web search toggle (globe) — sits next to the model picker / send button */
+  .web-search-btn {
+    width: 36px; height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .web-search-btn:hover {
+    border-color: var(--dc-blue);
+    color: var(--dc-blue);
+  }
+  .web-search-btn.active {
+    background: var(--dc-blue);
+    border-color: var(--dc-blue);
+    color: #fff;
+  }
+  .web-search-btn.active:hover { background: var(--dc-blue-dark); }
+
+  /* Web sources card — shown under answers that used web search */
+  .web-sources {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .web-sources-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+  }
+  .web-source-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-size: 12.5px;
+    transition: background 0.12s, color 0.12s;
+  }
+  .web-source-link:hover { background: var(--dc-blue-light); color: var(--dc-blue); }
+  [data-theme="dark"] .web-source-link:hover { background: var(--dc-accent-light); color: var(--dc-accent); }
+  .web-source-num {
+    flex-shrink: 0;
+    width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 5px;
+    background: var(--dc-blue);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .web-source-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .web-source-host {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+
   /* MODEL DROPDOWN PANEL (search-style picker) */
   .model-dropdown {
     position: absolute;
@@ -2951,6 +3031,9 @@
         oninput="autoResize(this)"
       ></textarea>
       <div class="input-actions">
+        <button class="web-search-btn" id="web-search-btn" onclick="toggleWebSearchQuick()" aria-pressed="false" title="Web search is OFF — click to enable">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/></svg>
+        </button>
         <button class="model-select-btn" id="model-select-btn" onclick="toggleModelDropdown()" title="Select model">
           <svg class="model-dd-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M9 15h6"/></svg>
           <span id="model-select-label">Select model</span>
@@ -3566,6 +3649,19 @@
 
     <!-- Model Pane -->
     <div class="settings-body" data-settings-pane="model" style="display:none;">
+
+      <!-- Web Search -->
+      <div class="settings-field">
+        <div class="slider-head" style="align-items:center;">
+          <label class="settings-label">Web Search</label>
+          <button type="button" class="ep-toggle" id="settings-web-search" onclick="toggleWebSearchSetting(this)" aria-label="Toggle web search"></button>
+        </div>
+        <span class="settings-hint">When on, the AI searches the web for your question and uses the top results as context for its answer. You can also flip this with the 🌐 button beside Send.</span>
+        <input class="settings-input" id="settings-tavily-key" type="password" placeholder="Tavily API key (tvly-…)" autocomplete="off" style="margin-top:10px;">
+        <span class="settings-hint">Required for web search. Get a free key at <a href="https://app.tavily.com" target="_blank" rel="noopener" style="color:var(--dc-blue)">tavily.com</a> — the free tier covers ~1,000 searches/month. Stored locally on this device only.</span>
+      </div>
+
+      <hr class="settings-divider">
 
       <!-- Prefix -->
       <div class="settings-field">
