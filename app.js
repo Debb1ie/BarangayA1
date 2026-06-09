@@ -2636,10 +2636,10 @@ async function sendMessage() {
 
   if (_modelWarm) {
     updateThinkingStep('model', 'active', `Sending to ${window.ACTIVE_MODEL}...`);
-    if (window._setEduCard) window._setEduCard('⚡', `Qwen is already loaded in memory. Sending your prompt and streaming tokens back to the browser now...`);
+    if (window._setEduCard) window._setEduCard('⚡', `${window.ACTIVE_MODEL} is already loaded in memory. Sending your prompt and streaming tokens back to the browser now...`);
   } else {
     updateThinkingStep('model', 'active', `Loading model from disk · ${window.ACTIVE_MODEL}...`);
-    if (window._setEduCard) window._setEduCard('📦', `First request — loading Qwen 2.5 3B (~2 GB) from disk into RAM. This takes 5–15 seconds once. After this, all replies will be much faster.`);
+    if (window._setEduCard) window._setEduCard('📦', `First request — loading ${window.ACTIVE_MODEL} from disk into RAM. This takes a few seconds the first time. After this, all replies will be much faster.`);
   }
 
   // Apply prefix / suffix to the message sent to the model (history stays clean)
