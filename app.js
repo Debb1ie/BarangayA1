@@ -1098,9 +1098,33 @@ function showToast(msg) {
 // ── MODAL ─────────────────────────────────────────────────────────────
 function openModal() {
   document.getElementById('modal-backdrop').style.display = 'flex';
+  // Pre-fill the onboarding name field with whatever's already saved
+  const nameInput = document.getElementById('onboarding-ai-name');
+  if (nameInput) {
+    const s = loadSettings() || {};
+    nameInput.value = (s.ai_name && s.ai_name !== AI_NAME) ? s.ai_name : '';
+  }
 }
 function closeModal() {
   document.getElementById('modal-backdrop').style.display = 'none';
+}
+
+// Name the AI from the onboarding pop-up. Saves to the SAME store Settings uses,
+// so the name sticks and the Settings → Name field reflects it.
+function saveOnboardingName() {
+  const input = document.getElementById('onboarding-ai-name');
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) { input.focus(); return; }
+  const s = loadSettings() || {};
+  s.ai_name = name;
+  saveSettings(s);
+  applySettings(s);
+  // Keep the Settings panel draft + field in sync for this session
+  window._BASE_NAME_DRAFT = name;
+  const settingsInput = document.getElementById('settings-ai-name');
+  if (settingsInput && !getActivePersonaDraft()) settingsInput.value = name;
+  showToast(`Your AI is now "${name}"! ✨`);
 }
 function handleBackdropClick(e) {
   if (e.target === document.getElementById('modal-backdrop')) closeModal();
@@ -1124,6 +1148,9 @@ function closeGuide() {
 }
 // Onboarding pop-up → guidebook
 function openGuideFromOnboarding() {
+  // Keep whatever name they typed, even if they didn't hit "Name it"
+  const input = document.getElementById('onboarding-ai-name');
+  if (input && input.value.trim()) saveOnboardingName();
   closeModal();
   openGuide();
 }

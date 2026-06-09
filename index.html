@@ -3459,11 +3459,13 @@
 
   <div class="gp-tabs" id="gp-tabs">
     <button class="gp-tab" onclick="gpGoto(0)">Overview</button>
-    <button class="gp-tab" onclick="gpGoto(1)">Pre-install</button>
-    <button class="gp-tab" onclick="gpGoto(2)">Fork</button>
-    <button class="gp-tab" onclick="gpGoto(3)">Run</button>
-    <button class="gp-tab" onclick="gpGoto(4)">Customize</button>
-    <button class="gp-tab" onclick="gpGoto(5)">Deploy</button>
+    <button class="gp-tab" onclick="gpGoto(1)">Models 101</button>
+    <button class="gp-tab" onclick="gpGoto(2)">Pre-install</button>
+    <button class="gp-tab" onclick="gpGoto(3)">Fork</button>
+    <button class="gp-tab" onclick="gpGoto(4)">Run</button>
+    <button class="gp-tab" onclick="gpGoto(5)">Connect a Model</button>
+    <button class="gp-tab" onclick="gpGoto(6)">Customize</button>
+    <button class="gp-tab" onclick="gpGoto(7)">Deploy</button>
   </div>
 
   <div class="gp-pages" id="gp-pages">
@@ -3487,7 +3489,58 @@
       </div>
     </section>
 
-    <!-- PAGE 1 — Pre-install -->
+    <!-- PAGE 1 — Models 101 (decode the model name & choose one) -->
+    <section class="gp-page">
+      <div class="gp-page-h"><span class="gp-chip pre">First</span> Choose your model</div>
+      <div class="gp-page-sub">Before you download anything, learn to read a model name — then <strong>you</strong> pick the one that fits your computer. 🧩</div>
+
+      <div class="modal-highlight" style="margin-bottom:14px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span>Model names look scary, but each part tells you one thing. Here's an example — read it left to right:</span>
+      </div>
+      <code class="guide-cmd">qwen2.5 : 3b - instruct - q4_K_M</code>
+      <div class="gp-map-row"><b>qwen2.5</b><span><strong>Family &amp; version</strong> — who made it &amp; which release. <em>(This one's Qwen, by Alibaba — but it could be Llama, Gemma, Mistral, Phi…)</em></span></div>
+      <div class="gp-map-row"><b>3b</b><span><strong>Size</strong> — how many "brain cells" (parameters).</span></div>
+      <div class="gp-map-row"><b>instruct</b><span><strong>Flavor</strong> — trained to follow your instructions &amp; chat.</span></div>
+      <div class="gp-map-row"><b>q4_K_M</b><span><strong>Quantization</strong> — how compressed the file is.</span></div>
+      <p class="gp-page-sub" style="margin-top:6px">Almost every model — Qwen, Llama, Gemma, Mistral — follows this same pattern. Learn it once, read them all.</p>
+
+      <div class="modal-section-title" style="margin-top:20px">1 · Size — what is "2B / 3B / 7B"?</div>
+      <p class="modal-text"><strong>B = billions of parameters</strong> — the model's adjustable knobs. More knobs = more knowledge, but a bigger download and slower replies. Think engine size.</p>
+      <div class="guide-step"><div class="guide-step-num">S</div><div class="guide-step-body">
+        <b>1B–3B</b><p>Small &amp; fast. Runs on almost any laptop. Safest pick for camp. ✅</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">M</div><div class="guide-step-body">
+        <b>7B–8B</b><p>Smarter, needs a decent machine (~8GB+ RAM). The popular sweet spot.</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">L</div><div class="guide-step-body">
+        <b>13B–70B+</b><p>Very capable, but heavy — usually needs a strong GPU or a server.</p></div></div>
+      <p class="gp-page-sub" style="margin-top:4px">Rule of thumb: pick the <strong>biggest model that still feels fast</strong> on your computer.</p>
+
+      <div class="modal-section-title" style="margin-top:20px">2 · Flavor — "instruct" / "base" / "chat"</div>
+      <div class="guide-step"><div class="guide-step-num">★</div><div class="guide-step-body">
+        <b>instruct (or chat)</b><p>Trained to <em>follow instructions</em> and hold a conversation. This is what you want for a chatbot. <strong>Pick this one.</strong></p></div></div>
+      <div class="guide-step"><div class="guide-step-num">○</div><div class="guide-step-body">
+        <b>base</b><p>Raw text-completion only — it just continues your text, it doesn't "answer". For researchers/fine-tuning, not chat.</p></div></div>
+      <p class="gp-page-sub" style="margin-top:4px">Other tags you'll see: <strong>code</strong> (tuned for programming), <strong>vision / VL</strong> (can read images), <strong>R / reasoning</strong> (thinks step-by-step).</p>
+
+      <div class="modal-section-title" style="margin-top:20px">3 · Quantization — "Q2 / Q4 / Q8"</div>
+      <p class="modal-text">Quantization <strong>shrinks the model</strong> so it fits &amp; runs on normal computers. The number is roughly the bits per knob: <strong>lower = smaller &amp; faster, but a little less accurate.</strong> Like saving a photo as JPG — smaller file, slightly less detail.</p>
+      <div class="gp-map-row"><b>Q2 / Q3</b><span>Tiniest &amp; fastest, but noticeably "dumber". Only if you're tight on space.</span></div>
+      <div class="gp-map-row"><b>Q4</b><span><strong>The sweet spot 👍</strong> — small &amp; fast, still smart. The usual default.</span></div>
+      <div class="gp-map-row"><b>Q5 / Q6</b><span>A bit bigger, a bit sharper. Nice if you have the room.</span></div>
+      <div class="gp-map-row"><b>Q8</b><span>Almost identical to the full model. Largest of the quantized set.</span></div>
+      <p class="gp-page-sub" style="margin-top:6px">The extra letters (<strong>K_M</strong>, <strong>K_S</strong>) are just smarter compression recipes — <em>M</em> = medium, <em>S</em> = small. Don't overthink them.</p>
+      <p class="gp-page-sub" style="margin-top:2px">No Q tag at all? Ollama just picked a sensible default (usually Q4) for you.</p>
+
+      <div class="modal-section-title" style="margin-top:20px">Your turn — pick one</div>
+      <p class="modal-text">Browse what's available at <a href="https://ollama.com/library" target="_blank" rel="noopener">ollama.com/library →</a>, then choose using the pattern above. A safe formula for most laptops:</p>
+      <code class="guide-cmd">a 1B–3B · instruct · Q4 model</code>
+      <div class="modal-highlight" style="margin-top:14px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5.9 1.2 1 1.9h6c.1-.7.4-1.4 1-1.9A7 7 0 0 0 12 2z"/></svg>
+        <span><strong>Not sure?</strong> <code>qwen2.5:3b</code> is a great default for today — but <code>llama3.2:3b</code>, <code>gemma2:2b</code> or <code>phi3:mini</code> work too. Your camp, your call. 🎉</span>
+      </div>
+    </section>
+
+    <!-- PAGE 2 — Pre-install -->
     <section class="gp-page">
       <div class="gp-page-h"><span class="gp-chip pre">Before</span> Pre-install</div>
       <div class="gp-page-sub">Set these up before the 4 hours start — it saves time.</div>
@@ -3495,7 +3548,7 @@
         <b>Install Ollama</b><p>The free app that runs the AI on your computer.</p>
         <p><a href="https://ollama.com/download" target="_blank" rel="noopener">ollama.com/download →</a></p></div></div>
       <div class="guide-step"><div class="guide-step-num">2</div><div class="guide-step-body">
-        <b>Download the model</b><p>Run this once in your terminal (~2GB).</p>
+        <b>Download the model you picked</b><p>Use the model you chose in <strong>Models 101</strong>. Run this once in your terminal — swap in your model name (example shown, ~2GB).</p>
         <code class="guide-cmd">ollama pull qwen2.5:3b</code></div></div>
       <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
         <b>Install VS Code</b><p>To open and edit the project files. Free.</p>
@@ -3533,12 +3586,38 @@
       <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body">
         <b>Start Ollama</b><p>Open the Ollama app (it may already be running in the background).</p></div></div>
       <div class="guide-step"><div class="guide-step-num">2</div><div class="guide-step-body">
-        <b>Test it in the terminal</b><p>Type a message, see it reply. Type <em>/bye</em> to exit.</p>
+        <b>Test it in the terminal</b><p>Type a message, see it reply. Type <em>/bye</em> to exit. (Use your own model name in place of the example.)</p>
         <code class="guide-cmd">ollama run qwen2.5:3b</code></div></div>
       <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
         <b>Open the app</b><p>Open <strong>index.html</strong> in your browser. Check the top-right chip says <strong>Ollama</strong> with a green dot — that means connected.</p></div></div>
       <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body">
         <b>Send your first message</b><p>Pick the model, type "Kumusta!" and watch it reply word-by-word. 🎉</p></div></div>
+    </section>
+
+    <!-- PAGE — Connect a Model -->
+    <section class="gp-page">
+      <div class="gp-page-h">Connect a Model</div>
+      <div class="gp-page-sub">Add a cloud endpoint + model so your AI can reply — anywhere, even on your live site. Open the model picker at the bottom of the chat and click <strong>Add Models</strong> (or ⚙️ → Model). 🔌</div>
+
+      <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body">
+        <b>Understand the two cards</b><p>The dialog has a <strong>LOCAL</strong> card (for Ollama on your machine) and an <strong>API</strong> card (for a cloud provider). For a live site you want the <strong>API</strong> card.</p>
+        <p><em>Any OpenAI-compatible endpoint works — that's why one dialog fits them all.</em></p></div></div>
+
+      <div class="guide-step"><div class="guide-step-num">2</div><div class="guide-step-body">
+        <b>Pick a provider</b><p>Use the dropdown on the API card — <strong>DeepSeek</strong>, <strong>OpenAI</strong>, <strong>Together</strong>, <strong>Groq</strong>, or <strong>Custom</strong>. Choosing one auto-fills the endpoint URL for you. Pick <strong>Custom</strong> to paste your own.</p>
+        <code class="guide-cmd">https://api.deepseek.com/v1</code></div></div>
+
+      <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
+        <b>Paste your API key</b><p>Get a key from the provider's dashboard and paste it in the <strong>API key</strong> field. The key is stored only in <em>this browser</em> — it never gets committed to your repo. 🔒</p></div></div>
+
+      <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body">
+        <b>Test, then Add</b><p>Click <strong>Test</strong> to confirm the endpoint is reachable (it pings <em>/models</em>). Then click <strong>Add</strong> — the app auto-discovers every model the endpoint offers and lists them. If a provider hides its model list, it falls back to a sensible default (e.g. <em>deepseek-chat</em>, <em>gpt-4o-mini</em>).</p></div></div>
+
+      <div class="guide-step"><div class="guide-step-num">5</div><div class="guide-step-body">
+        <b>Select your model &amp; manage endpoints</b><p>Open the picker again and choose the new cloud model — the header chip updates to show it. Under <strong>Added Models</strong> you can enable/disable individual models or remove an endpoint. Your added endpoints are saved and survive reloads.</p></div></div>
+
+      <div class="guide-step"><div class="guide-step-num">6</div><div class="guide-step-body">
+        <b>Adding a custom LOCAL endpoint</b><p>Running Ollama (or any OpenAI-compatible server) on another port or machine? Use the LOCAL card and paste its URL — e.g. <code class="guide-cmd">http://localhost:11434/v1</code> — add an optional key for protected servers, then <strong>Add</strong>. Same Test → Add flow.</p></div></div>
     </section>
 
     <!-- PAGE 4 — Hour 3 Customize -->
@@ -3579,8 +3658,8 @@ git commit -m "Make the AI mine"</code></div></div>
       <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body">
         <b>Get your live URL 🚀</b><p>In ~1 minute you get a public link like <em>your-ai.vercel.app</em>. Share it!</p></div></div>
       <div class="guide-step"><div class="guide-step-num">5</div><div class="guide-step-body">
-        <b>Connect a hosted model</b><p>Local Ollama only runs on <em>your</em> PC. In <strong>Settings → Model</strong> (or <strong>Add Models</strong>), add a cloud endpoint + key so the live AI can reply.</p>
-        <p><em>This part is still WIP in V1 — your facilitator will guide you.</em></p></div></div>
+        <b>Connect a hosted model</b><p>Local Ollama only runs on <em>your</em> PC, so a Vercel visitor can't reach it. To make the live AI reply, add a <strong>cloud endpoint</strong> + key. See the <strong>Connect a Model</strong> tab above for the full walkthrough. 👆</p></div></div>
+
       <div class="guide-step"><div class="guide-step-num">6</div><div class="guide-step-body">
         <b>Open your first Pull Request</b><p>On GitHub, open a PR from your fork. Your first open-source contribution — on record forever. 🎓</p></div></div>
       <p class="gp-page-sub" style="text-align:center;margin:14px 0 0">Stuck? Raise your hand — no dumb questions here. 💙</p>
@@ -3629,6 +3708,18 @@ git commit -m "Make the AI mine"</code></div></div>
       <div class="modal-highlight" style="margin-top:4px">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <span>The AI runs entirely on <strong>this computer</strong>. No cloud. No API fees. No data leaving this room. It's yours.</span>
+      </div>
+
+      <!-- Name your AI — first thing, right here -->
+      <div class="modal-section-title" style="margin-top:18px">First — give it a name ✨</div>
+      <p class="modal-text" style="margin-bottom:8px">Every great AI starts with a name. Type yours below — you can always change it later in <strong>Settings ⚙️</strong>.</p>
+      <div style="display:flex;gap:8px;align-items:stretch">
+        <input id="onboarding-ai-name" type="text" maxlength="40" placeholder="e.g. Bayani, Isko, Barangay AI…"
+          onkeydown="if(event.key==='Enter')saveOnboardingName()"
+          style="flex:1;min-width:0;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text-primary);font-family:var(--font-main);font-size:14px;font-weight:600;outline:none">
+        <button onclick="saveOnboardingName()"
+          style="flex-shrink:0;white-space:nowrap;background:var(--dc-blue);color:white;border:none;border-radius:10px;padding:11px 20px;font-family:var(--font-main);font-size:13.5px;font-weight:700;letter-spacing:0.2px;cursor:pointer;transition:background 0.2s"
+          onmouseover="this.style.background='var(--dc-blue-dark)'" onmouseout="this.style.background='var(--dc-blue)'">Name it</button>
       </div>
 
       <div class="modal-section-title" style="margin-top:18px">Why this matters</div>
