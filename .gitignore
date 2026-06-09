@@ -1,0 +1,22 @@
+# Dependencies (none currently — no build step — but just in case)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment / secrets
+.env
+.env.*
+*.key
+
+# Editor / OS cruft
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs & temp
+*.log
+*.tmp
+tmp/
