@@ -222,7 +222,9 @@ function applySettings(s) {
   // Web search (Tavily) — a key is required for it to actually run
   window._TAVILY_KEY = s.tavily_api_key || '';
   window._WEB_SEARCH_ENABLED = (s.web_search_enabled === true);
+  window._THINKING_ENABLED = (s.thinking_enabled === true);
   syncWebSearchUI();
+  syncThinkingUI();
   const initials = name.slice(0, 2).toUpperCase();
   document.querySelectorAll('.avatar.ai').forEach(a => a.textContent = initials);
   const wi = document.querySelector('.welcome-icon');
@@ -458,6 +460,7 @@ function applyAndSaveSettings() {
     personas:         (window._PERSONAS_DRAFT || []),
     active_persona:   (window._ACTIVE_PERSONA_DRAFT || ''),
     web_search_enabled: !!document.getElementById('settings-web-search')?.classList.contains('on'),
+    thinking_enabled:   !!window._THINKING_ENABLED,
     tavily_api_key:   (document.getElementById('settings-tavily-key')?.value.trim() || ''),
   };
   saveSettings(s);
@@ -2511,6 +2514,40 @@ function toggleWebSearchSetting(el) {
   el.classList.toggle('on');
 }
 
+// ── THINKING TOGGLE ───────────────────────────────────────────────────
+function syncThinkingUI() {
+  const on = !!window._THINKING_ENABLED;
+  const btn = document.getElementById('thinking-btn');
+  if (!btn) return;
+  btn.classList.toggle('active', on);
+  btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  btn.title = on ? 'Deep thinking is ON — click to disable' : 'Deep thinking is OFF — click to enable';
+}
+
+function toggleThinkingQuick() {
+  const next = !window._THINKING_ENABLED;
+  window._THINKING_ENABLED = next;
+  const s = loadSettings();
+  s.thinking_enabled = next;
+  saveSettings(s);
+  syncThinkingUI();
+  showToast(next ? '🧠 Deep thinking enabled' : 'Thinking off — faster replies');
+}
+
+// Applies thinking on/off to the request payload for Qwen3-family models.
+// Both signals are harmless no-ops on models that don't support them.
+function applyThinkingSwitch(payload) {
+  const on = !!window._THINKING_ENABLED;
+  payload.chat_template_kwargs = { enable_thinking: on };
+  const msgs = payload.messages;
+  if (msgs && msgs.length) {
+    const last = msgs[msgs.length - 1];
+    if (last && last.role === 'user') {
+      last.content += on ? '\n\n/think' : '\n\n/no_think';
+    }
+  }
+}
+
 // Query Tavily and return its JSON ({ answer, results } on success, { error } on failure).
 async function performWebSearch(query) {
   const key = (window._TAVILY_KEY || '').trim();
@@ -2668,6 +2705,7 @@ async function sendMessage() {
   if (window._MAX_TOKENS_ACTIVE !== null) {
     payload.max_tokens = (typeof window._MAX_TOKENS_ACTIVE === 'number') ? window._MAX_TOKENS_ACTIVE : 1024;
   }
+  applyThinkingSwitch(payload);
 
   const startTime = Date.now();
 
