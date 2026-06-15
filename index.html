@@ -87,8 +87,7 @@
   .sidebar.collapsed .sidebar-wifi-top > div:last-child,
   .sidebar.collapsed .sidebar-wifi-status,
   .sidebar.collapsed .sidebar-wifi-label,
-  .sidebar.collapsed .sidebar-wifi-ssid,
-  .sidebar.collapsed .sidebar-pitch { display: none; }
+  .sidebar.collapsed .sidebar-wifi-ssid { display: none; }
   .sidebar.collapsed .sidebar-brand { justify-content: center; padding-left: 0; padding-right: 0; }
   .sidebar.collapsed .new-chat-btn {
     justify-content: center;
@@ -2399,18 +2398,8 @@
   }
   .modal-footer-btn:hover { background: var(--dc-blue-dark); }
 
-  /* ── ONBOARDING (wider, 2-column to cut scroll) ───────────────── */
-  .onboarding-card { max-width: 760px; }
-  .onboarding-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4px 30px;
-  }
-  .ob-col { min-width: 0; }
-  .ob-col > .modal-section-title:first-child { margin-top: 0; }
-  @media (max-width: 700px) {
-    .onboarding-grid { grid-template-columns: 1fr; }
-  }
+  /* ── ONBOARDING (single column — about + why up front, rest collapsed) ── */
+  .onboarding-card { max-width: 480px; }
 
   /* ── CAMP GUIDE — floating + dockable book panel ──────────────── */
   .guide-panel {
@@ -2843,39 +2832,6 @@
     display: inline-flex;
     opacity: 0.9;
   }
-
-  /* SIDEBAR PITCH SECTION */
-  .sidebar-pitch {
-    margin: 4px 10px 8px;
-    padding: 8px 10px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 8px;
-  }
-  .sidebar-pitch-label {
-    font-size: 9px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.25);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 6px;
-  }
-  .sidebar-pitch-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-  .sidebar-pitch-badge {
-    font-size: 9.5px;
-    font-weight: 700;
-    color: white;
-    border-radius: 4px;
-    padding: 2px 7px;
-    white-space: nowrap;
-    letter-spacing: 0.2px;
-  }
-  .sidebar-pitch-badge.alibaba { background: linear-gradient(135deg, #FF6A00, #FF9A00); }
-  .sidebar-pitch-badge.aws { background: #FF9900; }
 
   /* SETTINGS MODAL */
   .settings-modal {
@@ -3370,13 +3326,6 @@
         <span id="sidebar-wifi-text">Connected · Model online</span>
       </div>
     </div>
-    <div class="sidebar-pitch">
-      <div class="sidebar-pitch-label">Pitching to</div>
-      <div class="sidebar-pitch-badges">
-        <span class="sidebar-pitch-badge aws">AWS Bedrock</span>
-        <span class="sidebar-pitch-badge alibaba">Alibaba Cloud</span>
-      </div>
-    </div>
   </div>
 </aside>
 
@@ -3492,7 +3441,7 @@
     <div class="input-tip">
       AI Sa Barangay · Ollama + Qwen · Open Source
       <span class="input-tip-dot">·</span>
-      Pitching to
+      To be pitched to target partners
       <span class="tip-badge aws">AWS Bedrock</span>
       <span class="tip-badge alibaba">Alibaba Cloud</span>
     </div>
@@ -3767,8 +3716,6 @@ git commit -m "Make the AI mine"</code></div></div>
     </div>
 
     <div class="modal-body">
-     <div class="onboarding-grid">
-      <div class="ob-col">
 
       <p class="modal-text" style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:6px">Today you're going to build your own AI.</p>
       <p class="modal-text">Not use someone else's. Not pay for a subscription. Build one — name it, shape its personality, and deploy it live. In 4 hours.</p>
@@ -3808,14 +3755,16 @@ git commit -m "Make the AI mine"</code></div></div>
 
       <div class="modal-highlight" style="margin-top:18px;background:none;border:1px dashed var(--border);color:var(--text-secondary)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--dc-blue)"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-        <span>The full <strong>4-hour, step-by-step plan</strong> lives in the <strong>Camp Guidebook</strong> — open it below, or anytime from the 📖 button in the header.</span>
+        <span>The full <strong>4-hour, step-by-step plan</strong> lives in the <strong>Camp Guidebook</strong> — open it anytime from the 📖 button in the header.</span>
       </div>
 
-      </div><!-- /ob-col left -->
-      <div class="ob-col">
 
-      <div class="modal-section-title">Camp day guide</div>
-      <div style="background:var(--dc-blue-light);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px">
+      <details style="margin-top:18px;margin-bottom:8px">
+        <summary style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:6px;padding:4px 0">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
+          Camp day guide — how today works
+        </summary>
+      <div style="margin-top:10px;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:4px">
         <div style="display:grid;grid-template-columns:auto 1fr;font-size:12.5px">
           <div style="padding:9px 12px;border-bottom:1px solid var(--border-light);border-right:1px solid var(--border-light);font-weight:600;color:var(--dc-blue);white-space:nowrap">Ask questions</div>
           <div style="padding:9px 12px;border-bottom:1px solid var(--border-light);color:var(--text-secondary)">Raise your hand any time — there are no dumb questions here.</div>
@@ -3829,6 +3778,7 @@ git commit -m "Make the AI mine"</code></div></div>
           <div style="padding:9px 12px;color:var(--text-secondary)">You'll need one — it's free. Your PR at the end is your first open source contribution on record.</div>
         </div>
       </div>
+      </details>
 
       <details style="margin-bottom:8px">
         <summary style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:6px;padding:4px 0">
@@ -3994,13 +3944,14 @@ git commit -m "Make the AI mine"</code></div></div>
         </div>
       </details>
 
-      </div><!-- /ob-col right -->
-     </div><!-- /onboarding-grid -->
     </div>
 
     <div style="padding:0 22px 20px">
-      <div style="border-top:1px solid var(--border-light);padding-top:18px;margin-top:4px">
-        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">About DEVCON</div>
+      <details style="border-top:1px solid var(--border-light);padding-top:10px;margin-top:4px">
+        <summary style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:6px;padding:6px 0 12px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
+          About DEVCON
+        </summary>
         <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
           <div style="width:38px;height:38px;background:linear-gradient(135deg,var(--dc-blue),var(--dc-accent));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white;flex-shrink:0;letter-spacing:-0.5px">DC</div>
           <div>
@@ -4038,11 +3989,11 @@ git commit -m "Make the AI mine"</code></div></div>
           <span style="font-size:12px;font-weight:600;color:var(--text-primary)">19,000+ geeks · 300 student-built projects deployed to production every year</span>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-left:10px;color:var(--text-muted)"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </a>
-      </div>
+      </details>
     </div>
     <div style="position:sticky;bottom:0;background:var(--bg-panel);padding:14px 22px 20px;border-top:1px solid var(--border-light);display:flex;gap:10px;align-items:center">
       <button onclick="closeModal()" style="flex-shrink:0;background:none;border:1px solid var(--border);border-radius:10px;padding:11px 18px;color:var(--text-secondary);font-family:var(--font-main);font-size:13px;font-weight:700;cursor:pointer">Skip</button>
-      <button class="modal-footer-btn" style="margin-top:0;flex:1" onclick="openGuideFromOnboarding()">Open the Camp Guidebook →</button>
+      <button class="modal-footer-btn" style="margin-top:0;flex:1" onclick="finishOnboarding()">Let's get started →</button>
     </div>
   </div>
 </div>

@@ -1149,13 +1149,12 @@ function closeGuide() {
   p.hidden = true;
   // leave dock state as-is so reopening keeps the user's last layout choice
 }
-// Onboarding pop-up → guidebook
-function openGuideFromOnboarding() {
+
+function finishOnboarding() {
   // Keep whatever name they typed, even if they didn't hit "Name it"
   const input = document.getElementById('onboarding-ai-name');
   if (input && input.value.trim()) saveOnboardingName();
   closeModal();
-  openGuide();
 }
 
 // Paginated navigation
