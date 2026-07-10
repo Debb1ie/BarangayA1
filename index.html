@@ -1555,8 +1555,32 @@
     border-radius: 50%;
     flex-shrink: 0;
     margin-left: auto;
-    background: #22C55E;
+    background: #F59E0B;   /* default: checking / idle */
+    transition: background 0.2s;
   }
+  .model-dd-dot.online  { background: #22C55E; }
+  .model-dd-dot.idle    { background: #F59E0B; }
+  .model-dd-dot.offline { background: #EF4444; }
+  .model-dd-badge {
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .model-dd-badge.rec   { background: rgba(34,197,94,0.14);  color: #16A34A; }
+  .model-dd-badge.fast  { background: rgba(245,158,11,0.16); color: #B45309; }
+  .model-dd-badge.smart { background: rgba(139,92,246,0.14); color: #7C3AED; }
+  [data-theme="dark"] .model-dd-badge.rec   { color: #4ADE80; }
+  [data-theme="dark"] .model-dd-badge.fast  { color: #FBBF24; }
+  [data-theme="dark"] .model-dd-badge.smart { color: #A78BFA; }
+  .model-dd-dot.checking {
+    background: #F59E0B;
+    animation: dot-pulse 1s ease-in-out infinite;
+  }
+  @keyframes dot-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
   /* ADD MODELS — ENDPOINT CARDS */
   .endpoint-card {
@@ -2017,6 +2041,30 @@
     transition: background 0.15s;
   }
   .error-bubble-dismiss:hover { background: #FEE2E2; }
+  .error-bubble-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .error-bubble-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #DC2626;
+    border: 1px solid #DC2626;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    font-family: var(--font-main);
+    transition: background 0.15s, transform 0.05s;
+  }
+  .error-bubble-cta:hover { background: #B91C1C; }
+  .error-bubble-cta:active { transform: translateY(1px); }
+  .error-bubble-cta svg { flex-shrink: 0; }
   [data-theme="dark"] .error-bubble { background: rgba(153,27,27,0.15); border-color: rgba(153,27,27,0.3); }
   [data-theme="dark"] .error-bubble-icon { background: rgba(220,38,38,0.2); color: #FCA5A5; }
   [data-theme="dark"] .error-bubble-title { color: #FCA5A5; }
@@ -2400,6 +2448,146 @@
 
   /* ── ONBOARDING (single column — about + why up front, rest collapsed) ── */
   .onboarding-card { max-width: 480px; }
+
+  /* Step 2 — AI setup blocks */
+  .onboard-setup-block {
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+    background: var(--bg-secondary);
+  }
+  .onboard-setup-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+  }
+  .onboard-setup-num {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--dc-blue);
+    color: #fff;
+    font-size: 11.5px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .onboard-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    background: var(--dc-blue-light);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--dc-blue);
+    font-family: var(--font-main);
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .onboard-action-btn:hover {
+    background: var(--dc-blue);
+    border-color: var(--dc-blue);
+    color: #fff;
+  }
+  .onboard-action-btn > span { flex: 1; text-align: left; }
+  .onboard-action-arrow { opacity: 0.7; }
+
+  /* Step 2 — installation requirements (collapsible) */
+  .install-req { margin-bottom: 14px; }
+  .install-req summary {
+    cursor: pointer; list-style: none; user-select: none;
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12.5px; font-weight: 700; color: var(--dc-blue);
+    padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--bg-secondary);
+  }
+  .install-req summary::-webkit-details-marker { display: none; }
+  .install-req summary::after { content: '▾'; margin-left: auto; font-size: 11px; opacity: 0.7; }
+  .install-req[open] summary {
+    border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  }
+  .install-req[open] summary::after { content: '▴'; }
+  .install-req-body {
+    border: 1px solid var(--border); border-top: none;
+    border-radius: 0 0 10px 10px; padding: 10px 12px;
+    background: var(--bg-secondary);
+    display: flex; flex-direction: column; gap: 7px;
+  }
+  .install-req-row {
+    display: flex; gap: 10px; font-size: 12px; line-height: 1.5;
+    color: var(--text-secondary);
+  }
+  .install-req-row b { flex: 0 0 60px; color: var(--text-primary); }
+
+  /* Step 2 — model recommender */
+  .rec-select-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .rec-select-row label {
+    flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;
+    font-size: 11px; font-weight: 700; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .rec-select {
+    width: 100%; background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 10px; padding: 9px 10px; color: var(--text-primary);
+    font-family: var(--font-main); font-size: 12.5px; font-weight: 600;
+    outline: none; cursor: pointer;
+  }
+  .rec-group { margin-bottom: 12px; }
+  .rec-group-head {
+    display: flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);
+    margin: 10px 0 6px;
+  }
+  .rec-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .rec-row {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+    border: 1px solid var(--border-light); border-radius: 10px;
+    background: var(--bg-secondary); margin-bottom: 6px;
+  }
+  .rec-row.dim { opacity: 0.55; }
+  .rec-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .rec-name { font-size: 12.5px; font-weight: 700; color: var(--text-primary); font-family: var(--font-mono); }
+  .rec-name em { font-style: normal; font-weight: 600; font-size: 11px; color: var(--text-muted); margin-left: 6px; }
+  .rec-desc { font-size: 11.5px; color: var(--text-secondary); }
+  .rec-copy {
+    flex-shrink: 0; background: none; border: 1px solid var(--border); border-radius: 8px;
+    padding: 5px 10px; font-family: var(--font-main); font-size: 11px; font-weight: 700;
+    color: var(--dc-blue); cursor: pointer; transition: background 0.15s;
+  }
+  .rec-copy:hover { background: var(--dc-blue-light); }
+  .rec-cpu-note { font-size: 11.5px; color: var(--text-muted); margin: 2px 0 8px; }
+  /* (i) spec help popover */
+  .spec-help { display: inline-block; margin-left: auto; }
+  .spec-help summary {
+    list-style: none; cursor: pointer; width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid var(--dc-blue); color: var(--dc-blue); font-size: 11px; font-weight: 800;
+    font-style: italic; font-family: Georgia, serif;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .spec-help summary::-webkit-details-marker { display: none; }
+  .spec-help[open] summary { background: var(--dc-blue); color: #fff; }
+  .spec-help-body {
+    position: absolute; right: 10px; top: 38px; z-index: 10;
+    width: min(290px, calc(100% - 20px));
+    background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: var(--shadow-card); padding: 12px; font-size: 11.5px; line-height: 1.55;
+    color: var(--text-secondary); font-weight: 500; text-transform: none; letter-spacing: 0;
+  }
+  .spec-help-body code, .spec-help-body kbd {
+    font-family: var(--font-mono); font-size: 10.5px; background: var(--bg-secondary);
+    border: 1px solid var(--border-light); border-radius: 4px; padding: 1px 4px;
+  }
 
   /* ── CAMP GUIDE — floating + dockable book panel ──────────────── */
   .guide-panel {
@@ -3715,6 +3903,8 @@ git commit -m "Make the AI mine"</code></div></div>
       </button>
     </div>
 
+    <!-- ═══ STEP 1 — Intro (Let's get started) ═══ -->
+    <div id="onboard-step-1">
     <div class="modal-body">
 
       <p class="modal-text" style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:6px">Today you're going to build your own AI.</p>
@@ -3723,18 +3913,6 @@ git commit -m "Make the AI mine"</code></div></div>
       <div class="modal-highlight" style="margin-top:4px">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <span>The AI runs entirely on <strong>this computer</strong>. No cloud. No API fees. No data leaving this room. It's yours.</span>
-      </div>
-
-      <!-- Name your AI — first thing, right here -->
-      <div class="modal-section-title" style="margin-top:18px">First — give it a name ✨</div>
-      <p class="modal-text" style="margin-bottom:8px">Every great AI starts with a name. Type yours below — you can always change it later in <strong>Settings ⚙️</strong>.</p>
-      <div style="display:flex;gap:8px;align-items:stretch">
-        <input id="onboarding-ai-name" type="text" maxlength="40" placeholder="e.g. Bayani, Isko, Barangay AI…"
-          onkeydown="if(event.key==='Enter')saveOnboardingName()"
-          style="flex:1;min-width:0;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text-primary);font-family:var(--font-main);font-size:14px;font-weight:600;outline:none">
-        <button onclick="saveOnboardingName()"
-          style="flex-shrink:0;white-space:nowrap;background:var(--dc-blue);color:white;border:none;border-radius:10px;padding:11px 20px;font-family:var(--font-main);font-size:13.5px;font-weight:700;letter-spacing:0.2px;cursor:pointer;transition:background 0.2s"
-          onmouseover="this.style.background='var(--dc-blue-dark)'" onmouseout="this.style.background='var(--dc-blue)'">Name it</button>
       </div>
 
       <div class="modal-section-title" style="margin-top:18px">Why this matters</div>
@@ -3991,9 +4169,161 @@ git commit -m "Make the AI mine"</code></div></div>
         </a>
       </details>
     </div>
+    </div><!-- /#onboard-step-1 -->
+
+    <!-- ═══ STEP 2 — Pick a model ═══ -->
+    <div id="onboard-step-2" style="display:none">
+    <div class="modal-body">
+      <div class="modal-mabuhay" style="color:var(--dc-blue);font-size:12px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;margin-bottom:6px">Step 2 of 3 · Pick a model</div>
+      <p class="modal-text" style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:4px">Which AI brain fits your PC? 🧠</p>
+      <p class="modal-text" style="margin-bottom:16px">Models come in sizes — bigger means smarter but heavier. Here's what we suggest, plus a quick checker for your machine.</p>
+
+      <!-- Installation requirements (collapsible) -->
+      <details class="install-req">
+        <summary>📋 View installation requirements</summary>
+        <div class="install-req-body">
+          <div class="install-req-row"><b>OS</b><span>Windows 10/11, macOS 12+, or Linux</span></div>
+          <div class="install-req-row"><b>Ollama</b><span>Installed and running — <code>OLLAMA_ORIGINS=* ollama serve</code> (free at ollama.com)</span></div>
+          <div class="install-req-row"><b>RAM</b><span>4 GB minimum (1B models) · 8 GB comfortable (3B) · 16 GB+ for 7B and up</span></div>
+          <div class="install-req-row"><b>Disk</b><span>1–5 GB free per model — downloaded once, then it works offline</span></div>
+          <div class="install-req-row"><b>GPU</b><span>Optional. It speeds up replies, but CPU-only runs small models fine</span></div>
+          <div class="install-req-row"><b>Browser</b><span>Chrome or Edge recommended</span></div>
+        </div>
+      </details>
+
+      <!-- Our recommendation (curated) -->
+      <div style="font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);margin-bottom:6px">Our recommendation</div>
+      <div class="rec-group" style="margin-bottom:16px">
+        <div class="rec-row">
+          <div class="rec-info">
+            <span class="rec-name">⭐ qwen2.5:1.5b <em>1.5B · ~1 GB download</em></span>
+            <span class="rec-desc">Our top pick — light, fast, and runs on nearly any laptop.</span>
+          </div>
+          <button class="rec-copy" onclick="copyPullCmd('qwen2.5:1.5b')" title="Copy install command">Copy</button>
+        </div>
+        <div class="rec-row">
+          <div class="rec-info">
+            <span class="rec-name">llama3.2:1b <em>1B · ~1.3 GB download</em></span>
+            <span class="rec-desc">Meta's smallest — snappy even without a GPU.</span>
+          </div>
+          <button class="rec-copy" onclick="copyPullCmd('llama3.2:1b')" title="Copy install command">Copy</button>
+        </div>
+        <div class="rec-row">
+          <div class="rec-info">
+            <span class="rec-name">gemma3:1b <em>1B · ~0.8 GB download</em></span>
+            <span class="rec-desc">Google's lightweight model — tiny download, quick replies.</span>
+          </div>
+          <button class="rec-copy" onclick="copyPullCmd('gemma3:1b')" title="Copy install command">Copy</button>
+        </div>
+      </div>
+
+      <!-- Spec-based recommender -->
+      <div class="onboard-setup-block" style="position:relative">
+        <div class="onboard-setup-head">
+          Not sure what model to use?
+          <details class="spec-help">
+            <summary aria-label="How to find your PC specs" title="How do I find my specs?">i</summary>
+            <div class="spec-help-body">
+              <b>Windows:</b> Press <kbd>Ctrl+Shift+Esc</kbd> → Performance tab. "Memory" is your RAM; click "GPU" and look for <em>Dedicated GPU memory</em> (that's VRAM). Or press <kbd>Win+R</kbd>, type <code>dxdiag</code>, and check the Display tab.<br><br>
+              <b>Mac:</b>  menu → About This Mac. Apple Silicon (M1–M4) shares memory — pick "No dedicated GPU" and your RAM size.<br><br>
+              <b>Linux:</b> <code>free -h</code> for RAM; <code>nvidia-smi</code> or <code>lspci | grep VGA</code> for GPU.
+            </div>
+          </details>
+        </div>
+        <p class="modal-text" style="font-size:12.5px;margin-bottom:10px">Tell us your PC's specs and we'll sort every model by fit. Tap the <b>i</b> if you don't know them.</p>
+        <div class="rec-select-row">
+          <label>System RAM
+            <select id="rec-ram" class="rec-select" onchange="renderOnboardRecs()">
+              <option value="4">4 GB or less</option>
+              <option value="8" selected>8 GB</option>
+              <option value="16">16 GB</option>
+              <option value="32">32 GB</option>
+              <option value="64">64 GB</option>
+              <option value="128">128 GB or more</option>
+            </select>
+          </label>
+          <label>Graphics (GPU)
+            <select id="rec-gpu" class="rec-select" onchange="renderOnboardRecs()">
+              <option value="0" selected>No dedicated GPU / integrated</option>
+              <option value="4">4 GB VRAM (GTX 1650, RX 570)</option>
+              <option value="6">6 GB VRAM (RTX 2060, 3050)</option>
+              <option value="8">8 GB VRAM (RTX 3060 Ti, 4060)</option>
+              <option value="12">12 GB VRAM (RTX 3060 12GB, 4070)</option>
+              <option value="16">16 GB VRAM (RTX 4080, 4060 Ti 16GB)</option>
+              <option value="24">24 GB+ VRAM (RTX 3090, 4090)</option>
+            </select>
+          </label>
+        </div>
+        <div id="onboard-rec-results"></div>
+      </div>
+    </div>
+    </div><!-- /#onboard-step-2 -->
+
+    <!-- ═══ STEP 3 — Set up your AI ═══ -->
+    <div id="onboard-step-3" style="display:none">
+    <div class="modal-body">
+      <div class="modal-mabuhay" style="color:var(--dc-blue);font-size:12px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;margin-bottom:6px">Step 3 of 3 · Set up your AI</div>
+      <p class="modal-text" style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:4px">Let's get it ready 🛠️</p>
+      <p class="modal-text" style="margin-bottom:16px">Three quick things — name it, connect a model so it can reply, then make it yours. You can change any of these later.</p>
+
+      <!-- 1 · Name -->
+      <div class="onboard-setup-block">
+        <div class="onboard-setup-head"><span class="onboard-setup-num">1</span> Give it a name ✨</div>
+        <div style="display:flex;gap:8px;align-items:stretch">
+          <input id="onboarding-ai-name" type="text" maxlength="40" placeholder="e.g. Bayani, Isko, Barangay AI…"
+            onkeydown="if(event.key==='Enter')saveOnboardingName()"
+            style="flex:1;min-width:0;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text-primary);font-family:var(--font-main);font-size:14px;font-weight:600;outline:none">
+          <button onclick="saveOnboardingName()"
+            style="flex-shrink:0;white-space:nowrap;background:var(--dc-blue);color:white;border:none;border-radius:10px;padding:11px 20px;font-family:var(--font-main);font-size:13.5px;font-weight:700;letter-spacing:0.2px;cursor:pointer;transition:background 0.2s"
+            onmouseover="this.style.background='var(--dc-blue-dark)'" onmouseout="this.style.background='var(--dc-blue)'">Name it</button>
+        </div>
+      </div>
+
+      <!-- 2 · Connect a model -->
+      <div class="onboard-setup-block">
+        <div class="onboard-setup-head"><span class="onboard-setup-num">2</span> Connect a model</div>
+        <p class="modal-text" style="font-size:12.5px;margin-bottom:10px">This is what makes your AI actually reply — point it at a local Ollama model or a cloud API.</p>
+        <button class="onboard-action-btn" onclick="openAddModels()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="6" rx="1"/><rect x="2" y="13" width="20" height="6" rx="1"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="16" x2="6.01" y2="16"/></svg>
+          <span>Connect a model</span>
+          <svg class="onboard-action-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>
+        </button>
+      </div>
+
+      <!-- 3 · Personalize -->
+      <div class="onboard-setup-block">
+        <div class="onboard-setup-head"><span class="onboard-setup-num">3</span> Make it yours <span style="font-weight:500;color:var(--text-muted);text-transform:none;letter-spacing:0">(optional)</span></div>
+        <p class="modal-text" style="font-size:12.5px;margin-bottom:10px">Personality, reply language, brand color and greeting — tune it all in Settings.</p>
+        <button class="onboard-action-btn" onclick="openSettings()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Personalize your AI</span>
+          <svg class="onboard-action-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-highlight" style="margin-top:4px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H7l5-8v4h4l-5 8z"/></svg>
+        <span>In a hurry? Just connect a model and hit <strong>Enter chat</strong> — everything else can wait.</span>
+      </div>
+    </div>
+    </div><!-- /#onboard-step-3 -->
+
     <div style="position:sticky;bottom:0;background:var(--bg-panel);padding:14px 22px 20px;border-top:1px solid var(--border-light);display:flex;gap:10px;align-items:center">
-      <button onclick="closeModal()" style="flex-shrink:0;background:none;border:1px solid var(--border);border-radius:10px;padding:11px 18px;color:var(--text-secondary);font-family:var(--font-main);font-size:13px;font-weight:700;cursor:pointer">Skip</button>
-      <button class="modal-footer-btn" style="margin-top:0;flex:1" onclick="finishOnboarding()">Let's get started →</button>
+      <!-- Step 1 footer -->
+      <div id="onboard-footer-1" style="display:flex;gap:10px;align-items:center;width:100%">
+        <button onclick="closeModal()" style="flex-shrink:0;background:none;border:1px solid var(--border);border-radius:10px;padding:11px 18px;color:var(--text-secondary);font-family:var(--font-main);font-size:13px;font-weight:700;cursor:pointer">Skip</button>
+        <button class="modal-footer-btn" style="margin-top:0;flex:1" onclick="onboardNext()">Let's get started →</button>
+      </div>
+      <!-- Step 2 footer -->
+      <div id="onboard-footer-2" style="display:none;gap:10px;align-items:center;width:100%">
+        <button onclick="onboardBack()" style="flex-shrink:0;background:none;border:1px solid var(--border);border-radius:10px;padding:11px 18px;color:var(--text-secondary);font-family:var(--font-main);font-size:13px;font-weight:700;cursor:pointer">← Back</button>
+        <button class="modal-footer-btn" style="margin-top:0;flex:1" onclick="onboardNext()">Next: set up your AI →</button>
+      </div>
+      <!-- Step 3 footer -->
+      <div id="onboard-footer-3" style="display:none;gap:10px;align-items:center;width:100%">
+        <button onclick="onboardBack()" style="flex-shrink:0;background:none;border:1px solid var(--border);border-radius:10px;padding:11px 18px;color:var(--text-secondary);font-family:var(--font-main);font-size:13px;font-weight:700;cursor:pointer">← Back</button>
+        <button class="modal-footer-btn" style="margin-top:0;flex:1" onclick="finishOnboarding()">Enter chat →</button>
+      </div>
     </div>
   </div>
 </div>

@@ -1101,6 +1101,7 @@ function showToast(msg) {
 // ── MODAL ─────────────────────────────────────────────────────────────
 function openModal() {
   document.getElementById('modal-backdrop').style.display = 'flex';
+  onboardGoStep(1);   // always start on the intro step
   // Pre-fill the onboarding name field with whatever's already saved
   const nameInput = document.getElementById('onboarding-ai-name');
   if (nameInput) {
@@ -1108,6 +1109,28 @@ function openModal() {
     nameInput.value = (s.ai_name && s.ai_name !== AI_NAME) ? s.ai_name : '';
   }
 }
+
+// Three-step onboarding wizard: 1) intro, 2) pick a model, 3) AI setup (name your AI).
+const ONBOARD_STEP_COUNT = 3;
+let _onboardStep = 1;
+function onboardGoStep(step) {
+  _onboardStep = Math.max(1, Math.min(ONBOARD_STEP_COUNT, step));
+  for (let i = 1; i <= ONBOARD_STEP_COUNT; i++) {
+    const s = document.getElementById(`onboard-step-${i}`);
+    const f = document.getElementById(`onboard-footer-${i}`);
+    if (s) s.style.display = i === _onboardStep ? '' : 'none';
+    if (f) f.style.display = i === _onboardStep ? 'flex' : 'none';
+  }
+  if (_onboardStep === 2) renderOnboardRecs();
+  if (_onboardStep === 3) {
+    const input = document.getElementById('onboarding-ai-name');
+    if (input) input.focus();
+  }
+  const card = document.getElementById('modal-card');
+  if (card) card.scrollTop = 0;
+}
+function onboardNext() { onboardGoStep(_onboardStep + 1); }
+function onboardBack() { onboardGoStep(_onboardStep - 1); }
 function closeModal() {
   document.getElementById('modal-backdrop').style.display = 'none';
 }
@@ -1137,11 +1160,12 @@ function handleBackdropClick(e) {
 let _gpPage = 0;
 let _gpInit = false;
 
-function openGuide() {
+function openGuide(page) {
   const p = document.getElementById('guide-panel');
   if (!p) return;
   p.hidden = false;
-  if (!_gpInit) { gpGoto(0); _gpInit = true; }
+  if (typeof page === 'number') { gpGoto(page); _gpInit = true; }
+  else if (!_gpInit) { gpGoto(0); _gpInit = true; }
 }
 function closeGuide() {
   const p = document.getElementById('guide-panel');
@@ -1155,6 +1179,91 @@ function finishOnboarding() {
   const input = document.getElementById('onboarding-ai-name');
   if (input && input.value.trim()) saveOnboardingName();
   closeModal();
+}
+
+// ── ONBOARDING MODEL RECOMMENDER (step 2 · Pick a model) ─────────────
+// needGB ≈ Q4_K_M download size + ~1–1.5 GB for context/KV cache.
+const ONBOARD_MODEL_CATALOG = [
+  { tag: 'qwen2.5:0.5b', family: 'Qwen',  params: '0.5B', needGB: 1.5,  desc: 'Tiny and instant — runs on almost anything.' },
+  { tag: 'gemma3:1b',    family: 'Gemma', params: '1B',   needGB: 2.0,  desc: 'Google’s lightweight model, very quick.' },
+  { tag: 'qwen2.5:1.5b', family: 'Qwen',  params: '1.5B', needGB: 2.5,  desc: 'Fast and surprisingly capable for its size.' },
+  { tag: 'llama3.2:1b',  family: 'Llama', params: '1B',   needGB: 2.5,  desc: 'Meta’s smallest — snappy on modest laptops.' },
+  { tag: 'qwen2.5:3b',   family: 'Qwen',  params: '3B',   needGB: 3.5,  desc: 'The camp default — great balance of speed and smarts.' },
+  { tag: 'llama3.2:3b',  family: 'Llama', params: '3B',   needGB: 3.5,  desc: 'Solid small model, good at following instructions.' },
+  { tag: 'gemma3:4b',    family: 'Gemma', params: '4B',   needGB: 4.5,  desc: 'Strong quality for the size; handles images too.' },
+  { tag: 'qwen2.5:7b',   family: 'Qwen',  params: '7B',   needGB: 6.0,  desc: 'Noticeably smarter answers; needs a beefier machine.' },
+  { tag: 'llama3.1:8b',  family: 'Llama', params: '8B',   needGB: 6.5,  desc: 'A community favorite — strong general-purpose replies.' },
+  { tag: 'gemma3:12b',   family: 'Gemma', params: '12B',  needGB: 9.5,  desc: 'Big and capable — for machines with lots of memory.' },
+  { tag: 'qwen2.5:14b',  family: 'Qwen',  params: '14B',  needGB: 10.5, desc: 'Heavyweight — excellent answers if your PC can hold it.' },
+  { tag: 'gemma3:27b',   family: 'Gemma', params: '27B',  needGB: 19,   desc: 'Google’s big model — workstation-grade quality.' },
+  { tag: 'qwen2.5:32b',  family: 'Qwen',  params: '32B',  needGB: 22,   desc: 'Serious horsepower — near cloud-level answers, locally.' },
+  { tag: 'llama3.3:70b', family: 'Llama', params: '70B',  needGB: 45,   desc: 'Meta’s flagship — needs a monster rig, rewards it.' },
+  { tag: 'qwen2.5:72b',  family: 'Qwen',  params: '72B',  needGB: 49,   desc: 'The biggest Qwen — top-tier quality for extreme setups.' },
+];
+
+function recommendModels(ramGB, vramGB) {
+  // Dedicated GPU: budget = VRAM (Ollama offloads there). CPU-only: the OS
+  // and browser eat RAM, so ~60% of system RAM is a safe inference budget.
+  // With a small GPU + lots of RAM, hybrid offload means RAM still helps —
+  // take the larger of the two.
+  const budget = Math.max(vramGB || 0, ramGB * 0.6);
+  const best = [], runnable = [], notRecommended = [];
+  for (const m of ONBOARD_MODEL_CATALOG) {
+    if (m.needGB <= budget * 0.75) best.push(m);        // fits comfortably
+    else if (m.needGB <= budget) runnable.push(m);      // fits, but tight
+    else notRecommended.push(m);                        // exceeds budget
+  }
+  best.sort((a, b) => b.needGB - a.needGB);             // biggest comfortable first
+  runnable.sort((a, b) => a.needGB - b.needGB);
+  notRecommended.sort((a, b) => a.needGB - b.needGB);
+  return { best, runnable, notRecommended, cpuOnly: !vramGB };
+}
+
+function _recRowHtml(m, starred, dim) {
+  const star = starred ? '⭐ ' : '';
+  const copyBtn = dim ? '' :
+    `<button class="rec-copy" onclick="copyPullCmd('${escapeHtml(m.tag)}')" title="Copy install command">Copy</button>`;
+  return `<div class="rec-row${dim ? ' dim' : ''}">
+    <div class="rec-info">
+      <span class="rec-name">${star}${escapeHtml(m.tag)} <em>${escapeHtml(m.params)} · needs ~${m.needGB} GB</em></span>
+      <span class="rec-desc">${escapeHtml(m.desc)}</span>
+    </div>${copyBtn}
+  </div>`;
+}
+
+function renderOnboardRecs() {
+  const out = document.getElementById('onboard-rec-results');
+  const ramSel = document.getElementById('rec-ram');
+  const gpuSel = document.getElementById('rec-gpu');
+  if (!out || !ramSel || !gpuSel) return;
+  const { best, runnable, notRecommended, cpuOnly } =
+    recommendModels(parseFloat(ramSel.value) || 8, parseFloat(gpuSel.value) || 0);
+  let html = '';
+  if (cpuOnly) html += `<div class="rec-cpu-note">No dedicated GPU — models run on your CPU. Expect slower replies.</div>`;
+  const group = (label, color, list, dim) => {
+    if (!list.length) return '';
+    return `<div class="rec-group">
+      <div class="rec-group-head"><span class="rec-dot" style="background:${color}"></span>${label}</div>
+      ${list.map((m, i) => _recRowHtml(m, !dim && color === '#22C55E' && i === 0, dim)).join('')}
+    </div>`;
+  };
+  html += group('Best for your PC', '#22C55E', best, false);
+  html += group('Will run, but slower', '#F59E0B', runnable, false);
+  html += group('Not recommended', '#EF4444', notRecommended, true);
+  if (!best.length && !runnable.length) {
+    html = `<div class="rec-cpu-note">This machine is very limited — try the smallest model anyway, or use a cloud API in the next step.</div>` + html;
+  }
+  out.innerHTML = html;
+}
+
+function copyPullCmd(tag) {
+  const cmd = `ollama pull ${tag}`;
+  const done = () => showToast(`Copied: ${cmd}`);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(cmd).then(done).catch(() => fallbackCopy(cmd, done));
+  } else {
+    fallbackCopy(cmd, done);
+  }
 }
 
 // Paginated navigation
@@ -1281,7 +1390,8 @@ const MODEL_ENDPOINT = (() => {
 // so models added via the "Add Models" dialog (local or cloud) work too.
 // Nothing is seeded — real local models are discovered live from the endpoint
 // on startup (see initModelRegistry), and user-added endpoints are restored
-// from the DB. No model is auto-selected; the user chooses one.
+// from the DB. A spec-fit default is auto-selected once discovery finishes
+// (see initModelRegistry); the user can switch models at any time.
 let MODEL_LIST = [];
 let _modelSeq = 0;
 
@@ -1306,6 +1416,109 @@ function persistRemovedEndpoints() {
 
 const modelIcon = '<svg class="model-dd-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M9 15h6"/></svg>';
 
+// ── PER-ENDPOINT LIVE STATUS ──────────────────────────────────────────
+// Each model dot reflects the reachability of ITS endpoint, not a single
+// global flag: green = online, red = offline, orange = checking / loading.
+const ENDPOINT_STATUS = new Map();   // base -> 'online' | 'offline' | 'checking'
+
+// Dot state for a model row:
+//   green  = endpoint online AND this is the model in use (active)
+//   orange = endpoint reachable but idle (not selected) OR still checking
+//   red    = endpoint offline
+function modelDotClass(m) {
+  const s = ENDPOINT_STATUS.get(m.base);
+  if (s === 'offline') return 'offline';
+  const inUse = window.ACTIVE_MODEL === m.model && (window.ACTIVE_BASE || API_BASE) === m.base;
+  if (s === 'online') return inUse ? 'online' : 'idle';
+  return 'checking';
+}
+function modelDotLabel(m) {
+  const s = ENDPOINT_STATUS.get(m.base);
+  if (s === 'offline') return 'Offline';
+  const inUse = window.ACTIVE_MODEL === m.model && (window.ACTIVE_BASE || API_BASE) === m.base;
+  if (s === 'online') return inUse ? 'Online · in use' : 'Idle · not in use';
+  return 'Checking…';
+}
+
+// ── MODEL PICKER BADGES + SPEC-BASED DEFAULT ─────────────────────────
+// Parse the parameter count (in billions) out of a model tag, e.g.
+// "qwen2.5:3b" → 3, "llama3.1:8b-instruct-q4" → 8. null when unknown.
+function modelParamsB(tag) {
+  const m = /(\d+(?:\.\d+)?)\s*b\b/i.exec(tag || '');
+  return m ? parseFloat(m[1]) : null;
+}
+
+// Rough memory need for a Q4 model: ~0.75 GB per B of params + 1 GB overhead
+// (same heuristic family as the onboarding recommender's needGB column).
+function modelNeedGB(tag) {
+  const p = modelParamsB(tag);
+  return p == null ? null : p * 0.75 + 1;
+}
+
+// The largest model that fits this machine's memory budget.
+// navigator.deviceMemory is capped at 8 by Chrome, which is fine — it keeps
+// the default conservative. Falls back to the smallest model when nothing fits.
+function pickDefaultModelForSpecs(rows) {
+  const pool = (rows || MODEL_LIST).filter(m => m.enabled !== false);
+  if (!pool.length) return null;
+  const sized = pool.filter(m => modelParamsB(m.model) != null)
+    .sort((a, b) => modelParamsB(a.model) - modelParamsB(b.model));
+  if (!sized.length) return pool[0];
+  const budget = (navigator.deviceMemory || 8) * 0.6;
+  const fits = sized.filter(m => modelNeedGB(m.model) <= budget);
+  return fits.length ? fits[fits.length - 1] : sized[0];
+}
+
+// Badges for the model picker: ⭐ Recommended (best spec fit), ⚡ Fastest
+// (smallest), 🧠 Smartest (biggest). One badge per model — Recommended wins.
+function computeModelBadges(rows) {
+  const badges = new Map();   // id -> {label, cls}
+  const sized = rows.filter(m => modelParamsB(m.model) != null);
+  if (!sized.length) return badges;
+  const bySize = [...sized].sort((a, b) => modelParamsB(a.model) - modelParamsB(b.model));
+  const fastest = bySize[0];
+  const smartest = bySize[bySize.length - 1];
+  const recommended = pickDefaultModelForSpecs(sized) || fastest;
+  badges.set(recommended.id, { label: '⭐ Recommended', cls: 'rec' });
+  if (!badges.has(fastest.id)) badges.set(fastest.id, { label: '⚡ Fastest', cls: 'fast' });
+  if (smartest.id !== fastest.id && !badges.has(smartest.id)) {
+    badges.set(smartest.id, { label: '🧠 Smartest', cls: 'smart' });
+  }
+  return badges;
+}
+
+// Probe one endpoint's /models and record whether it's reachable.
+async function probeEndpoint(base, key) {
+  if (!base) return;
+  if (!ENDPOINT_STATUS.has(base)) ENDPOINT_STATUS.set(base, 'checking');
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 6000);
+    const res = await fetch(`${base}/models`, {
+      headers: key ? { 'Authorization': `Bearer ${key}` } : {},
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    ENDPOINT_STATUS.set(base, res.ok ? 'online' : 'offline');
+  } catch {
+    ENDPOINT_STATUS.set(base, 'offline');
+  }
+  // Repaint the dots if the picker is currently open.
+  const dd = document.getElementById('model-dropdown');
+  if (dd && dd.classList.contains('open')) {
+    renderModelList(document.getElementById('model-dd-search')?.value || '');
+  }
+}
+
+// Probe every unique endpoint referenced by the model list.
+function refreshEndpointStatuses() {
+  const seen = new Map();   // base -> a representative key
+  for (const m of MODEL_LIST) {
+    if (m.base && !seen.has(m.base)) seen.set(m.base, m.key);
+  }
+  seen.forEach((key, base) => probeEndpoint(base, key));
+}
+
 function renderModelList(filter) {
   const list = document.getElementById('model-dd-list');
   if (!list) return;
@@ -1318,22 +1531,29 @@ function renderModelList(filter) {
     list.innerHTML = `<div class="model-dd-empty">${hasAny ? 'No models enabled — turn some on in “Add Models”' : 'No models found'}</div>`;
     return;
   }
-  list.innerHTML = rows.map(m => `
+  // Badges are computed over ALL enabled models (not the filtered rows) so
+  // "Recommended" doesn't jump around while the user types in the search box.
+  const badges = computeModelBadges(MODEL_LIST.filter(m => m.enabled !== false));
+  list.innerHTML = rows.map(m => {
+    const b = badges.get(m.id);
+    return `
     <button class="model-dropdown-opt${window.ACTIVE_MODEL === m.model ? ' active' : ''}" onclick="selectModelFromDropdown('${m.id}')">
       ${modelIcon}
       <span class="model-dd-meta">
         <span class="model-dd-name">${escHtml(m.model)}</span>
         <span class="model-dd-endpoint">${escHtml(m.endpoint)}</span>
       </span>
-      <span class="model-dd-dot"></span>
-    </button>`).join('');
+      ${b ? `<span class="model-dd-badge ${b.cls}">${b.label}</span>` : ''}
+      <span class="model-dd-dot ${modelDotClass(m)}" title="${modelDotLabel(m)}"></span>
+    </button>`;
+  }).join('');
 }
 
 function filterModels(value) {
   renderModelList(value);
 }
 
-function selectModel(id) {
+function selectModel(id, opts = {}) {
   const m = MODEL_LIST.find(x => x.id === id);
   if (!m) return;
   window.ACTIVE_MODEL = m.model;
@@ -1351,7 +1571,7 @@ function selectModel(id) {
   const subtitle = document.getElementById('header-subtitle');
   if (subtitle) subtitle.textContent = `AI Sa Barangay · ${m.kind === 'local' ? 'Ollama + ' : ''}${m.model} · ${m.kind === 'local' ? 'Local · Open Source' : m.endpoint}`;
 
-  showToast(`Switched to ${m.model}`);
+  if (!opts.silent) showToast(`Switched to ${m.model}`);
 }
 
 // Clear the active model (e.g. after it was disabled or its endpoint deleted).
@@ -1511,6 +1731,7 @@ function toggleModelDropdown() {
   if (btn) btn.classList.toggle('open', !isOpen);
   if (!isOpen) {
     renderModelList('');
+    refreshEndpointStatuses();   // re-probe so the dots reflect live status
     const search = document.getElementById('model-dd-search');
     if (search) { search.value = ''; setTimeout(() => search.focus(), 0); }
   }
@@ -1658,17 +1879,21 @@ async function initModelRegistry() {
   }
   renderModelList(document.getElementById('model-dd-search')?.value || '');
   renderAddedEndpoints();
+  refreshEndpointStatuses();   // seed the live status dots
 
-  // No model is auto-selected — reflect that in the header until the user picks one.
+  // Default model — auto-select the best fit for this machine's specs so
+  // chat works out of the box. The user can still switch any time.
   if (!window.ACTIVE_MODEL) {
-    const subtitle = document.getElementById('header-subtitle');
-    if (subtitle) {
-      subtitle.textContent = MODEL_LIST.some(m => m.model)
-        ? 'AI Sa Barangay · No model selected — choose one below'
-        : 'AI Sa Barangay · No model installed — pull one with Ollama';
+    const pick = pickDefaultModelForSpecs();
+    if (pick) {
+      selectModel(pick.id, { silent: true });
+      showToast(`Auto-selected ${pick.model} for your PC — change it any time below`);
+    } else {
+      const subtitle = document.getElementById('header-subtitle');
+      if (subtitle) subtitle.textContent = 'AI Sa Barangay · No model installed — pull one with Ollama';
+      const labelEl = document.getElementById('model-select-label');
+      if (labelEl) labelEl.textContent = 'Select model';
     }
-    const labelEl = document.getElementById('model-select-label');
-    if (labelEl) labelEl.textContent = 'Select model';
   }
 }
 
@@ -1763,7 +1988,7 @@ function setConnected(ok) {
 }
 
 checkConnectivity();
-setInterval(checkConnectivity, 15000);
+setInterval(() => { checkConnectivity(); refreshEndpointStatuses(); }, 15000);
 
 // ── UI HELPERS ────────────────────────────────────────────────────────
 function toggleSidebar() {
@@ -2438,13 +2663,20 @@ function renderErrorBubble(errorData) {
     </div>
     <div class="error-bubble-steps">
       <div class="error-bubble-steps-title">What to do next</div>
-      ${errorData.steps.map((s, i) => `
+      ${(errorData.steps || []).map((s, i) => `
       <div class="error-step">
         <div class="error-step-num">${i + 1}</div>
         <span>${escHtml(s.text)}${s.code ? ` <code>${escHtml(s.code)}</code>` : ''}</span>
       </div>`).join('')}
     </div>
-    <button class="error-bubble-dismiss" onclick="document.getElementById('${errId}').remove()">Dismiss</button>`;
+    <div class="error-bubble-actions">
+      ${errorData.cta ? `
+      <button class="error-bubble-cta" onclick="document.getElementById('${errId}').remove(); openGuide(${Number.isInteger(errorData.guidePage) ? errorData.guidePage : 0});">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        ${escHtml(errorData.ctaLabel || 'Set up the AI')}
+      </button>` : ''}
+      <button class="error-bubble-dismiss" onclick="document.getElementById('${errId}').remove()">Dismiss</button>
+    </div>`;
   chatArea.appendChild(err);
   scrollToBottom();
 }
@@ -2459,6 +2691,8 @@ const NO_MODEL_ERROR = {
     { text: 'Check what is installed any time with:', code: 'ollama list' },
     { text: 'Refresh this page — the model will appear in the picker at the bottom of the chat, then select it' },
   ],
+  cta: true,
+  guidePage: 2,   // Pre-install — install Ollama + pull a starter model
 };
 const SELECT_MODEL_ERROR = {
   title: "Choose a model before you start chatting",
@@ -2468,6 +2702,9 @@ const SELECT_MODEL_ERROR = {
     { text: 'Pick a model from the list — smaller models reply faster, larger ones tend to be more capable' },
     { text: 'Send your message again once a model is highlighted' },
   ],
+  cta: true,
+  guidePage: 1,   // Models 101 — how to read model names and pick a fit
+  ctaLabel: 'How to choose a model',
 };
 
 // Returns true if a model is selected. Otherwise shows the right educational
@@ -2918,7 +3155,10 @@ async function sendMessage() {
               { text: 'Restart it with this command:', code: 'OLLAMA_ORIGINS=* ollama serve' },
               { text: 'Wait a few seconds, then try sending your message again' },
               { text: "If that doesn't work, ask your facilitator" }
-            ]
+            ],
+            cta: true,
+            guidePage: 4,   // Run it locally — start Ollama + connect
+            ctaLabel: 'Open the setup guide',
           };
         }
       } else if (msg.includes('401')) {
@@ -2928,7 +3168,10 @@ async function sendMessage() {
           steps: [
             { text: 'Open a terminal and run:', code: 'OLLAMA_ORIGINS=* ollama serve' },
             { text: 'Refresh this page and try again' }
-          ]
+          ],
+          cta: true,
+          guidePage: 4,   // Run it locally — start Ollama + connect
+          ctaLabel: 'Open the setup guide',
         };
       } else if (msg.includes('404')) {
         errorData = {
@@ -2938,7 +3181,10 @@ async function sendMessage() {
             { text: 'Open a terminal and run:', code: 'ollama list' },
             { text: 'If qwen2.5:3b is missing, pull it:', code: 'ollama pull qwen2.5:3b' },
             { text: 'Try again once the model finishes loading' }
-          ]
+          ],
+          cta: true,
+          guidePage: 2,   // Pre-install — install Ollama + pull a model
+          ctaLabel: 'How to install a model',
         };
       } else if (msg.includes('500') || msg.includes('502') || msg.includes('503')) {
         errorData = {
@@ -2948,7 +3194,10 @@ async function sendMessage() {
             { text: 'Wait 10–15 seconds and try again' },
             { text: 'Try the lighter model:', code: 'ollama run qwen3.5:0.8b' },
             { text: 'Restart Ollama:', code: 'OLLAMA_ORIGINS=* ollama serve' }
-          ]
+          ],
+          cta: true,
+          guidePage: 1,   // Models 101 — pick a lighter model that fits
+          ctaLabel: 'Find a lighter model',
         };
       } else if (msg.includes('ERR_CONNECTION_REFUSED') || msg.includes('ECONNREFUSED')) {
         errorData = {
@@ -2957,7 +3206,10 @@ async function sendMessage() {
           steps: [
             { text: 'Open a terminal and run:', code: 'OLLAMA_ORIGINS=* ollama serve' },
             { text: 'Leave that terminal open, then try again' }
-          ]
+          ],
+          cta: true,
+          guidePage: 4,   // Run it locally — start Ollama + connect
+          ctaLabel: 'Open the setup guide',
         };
       } else {
         errorData = {
@@ -2968,7 +3220,10 @@ async function sendMessage() {
             { text: 'Check the model is installed:', code: 'ollama list' },
             { text: 'Try the API directly in your browser:', code: 'localhost:11434/v1/models' },
             { text: 'If nothing works, raise your hand — your facilitator can help' }
-          ]
+          ],
+          cta: true,
+          guidePage: 4,   // Run it locally — start Ollama + connect
+          ctaLabel: 'Open the setup guide',
         };
       }
 
