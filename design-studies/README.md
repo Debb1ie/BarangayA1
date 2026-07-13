@@ -20,8 +20,8 @@ in a browser to compare all three.
   into a visible panel with per-source checkboxes and an "Add source" action
 - **Chat history** on the left, with active state and message counts
 - **Grounded answers** with inline `[1]`-style citations pointing back at sources
-- **Local-first identity** — Ollama + qwen2.5:3b model badge, WiFi/SSID status,
-  "100% offline" messaging
+- **Local-first identity** — Ollama + qwen2.5:3b model badge, connection status
+  (localhost endpoint, matching the app's "Local · Open Source" card), "100% offline" messaging
 - **Composer tools** — source count chip, web search toggle, EN·FIL language, thinking toggle
 - **Taglish** content and DEVCON blue (`#0057B8` → `#00A8E8`) branding
 - Message actions (copy / retry / stats), follow-up suggestion chips, code blocks
