@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study 1 · Tri-Panel — Barangay AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --accent: #0057B8;
+    --accent-soft: #EBF2FC;
+    --accent-ink: #0B4A96;
+    --bg: #F3F5F9;
+    --panel: #FFFFFF;
+    --ink: #1B2430;
+    --ink-2: #5A6B80;
+    --ink-3: #93A2B5;
+    --line: #E6EAF1;
+    --green: #14804A;
+    --green-soft: #E7F6EE;
+    --radius: 16px;
+    --font: 'Inter', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-size: 14px;
+  }
+
+  /* ── TOP BAR ─────────────────────────────── */
+  .topbar {
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 20px;
+    flex-shrink: 0;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 14.5px; letter-spacing: -0.2px;
+  }
+  .logo-mark {
+    width: 30px; height: 30px; border-radius: 9px;
+    background: linear-gradient(135deg, #0057B8, #00A8E8);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .logo small { display:block; font-size: 10px; font-weight: 500; color: var(--ink-3); letter-spacing: 0.4px; margin-top: 1px; }
+  .notebook-title {
+    flex: 1;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 600; color: var(--ink-2);
+    min-width: 0;
+  }
+  .notebook-title span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .notebook-title svg { flex-shrink: 0; color: var(--ink-3); }
+  .top-status {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--green-soft); color: var(--green);
+    font-size: 11.5px; font-weight: 600;
+    padding: 5px 12px; border-radius: 100px;
+  }
+  .top-status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+  .top-btn {
+    width: 34px; height: 34px; border-radius: 10px;
+    border: none; background: transparent; color: var(--ink-2);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .top-btn:hover { background: #E9EDF4; }
+  .avatar-sm {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+
+  /* ── WORKSPACE: 3 panels ─────────────────── */
+  .workspace {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 300px 1fr 320px;
+    gap: 12px;
+    padding: 0 12px 12px;
+    min-height: 0;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .panel-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 16px 12px;
+    font-size: 13px; font-weight: 700; letter-spacing: -0.1px;
+    flex-shrink: 0;
+  }
+  .panel-head .spacer { flex: 1; }
+  .mini-btn {
+    width: 26px; height: 26px; border-radius: 8px;
+    border: none; background: transparent; color: var(--ink-3);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .mini-btn:hover { background: #EFF2F7; color: var(--ink); }
+
+  /* ── LEFT: SOURCES + CHATS ───────────────── */
+  .left { display: flex; flex-direction: column; }
+
+  .add-source-btn {
+    margin: 0 14px 12px;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 9px;
+    border: 1px dashed #C6D2E2;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--accent);
+    font-family: var(--font);
+    font-size: 12.5px; font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .add-source-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+
+  .select-all-row {
+    display: flex; align-items: center; gap: 9px;
+    padding: 6px 18px 8px;
+    font-size: 11.5px; color: var(--ink-3); font-weight: 500;
+  }
+  .select-all-row label { flex: 1; cursor: pointer; }
+
+  .source-list { overflow-y: auto; padding: 0 8px; }
+  .source-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .source-item:hover { background: #F4F7FB; }
+  .source-icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0;
+  }
+  .si-pdf  { background: #FDECEC; }
+  .si-md   { background: #EBF2FC; }
+  .si-csv  { background: #E7F6EE; }
+  .si-txt  { background: #F3F0FA; }
+  .source-name { flex: 1; min-width: 0; }
+  .source-name b { display: block; font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .source-name i { font-style: normal; font-size: 10.5px; color: var(--ink-3); }
+  input[type="checkbox"] {
+    width: 15px; height: 15px; accent-color: var(--accent);
+    cursor: pointer; flex-shrink: 0;
+  }
+
+  .left-divider {
+    margin: 12px 16px 0;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 700; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .left-divider .spacer { flex: 1; }
+  .chat-list { flex: 1; overflow-y: auto; padding: 8px; min-height: 90px; }
+  .chat-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 7px 10px;
+    border-radius: 9px;
+    font-size: 12.5px; color: var(--ink-2);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .chat-item span { overflow: hidden; text-overflow: ellipsis; }
+  .chat-item svg { flex-shrink: 0; color: var(--ink-3); }
+  .chat-item:hover { background: #F4F7FB; }
+  .chat-item.active { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+  .chat-item.active svg { color: var(--accent); }
+
+  .source-count-foot {
+    padding: 10px 16px;
+    border-top: 1px solid var(--line);
+    font-size: 11.5px; color: var(--ink-3);
+    display: flex; align-items: center; gap: 6px;
+    flex-shrink: 0;
+  }
+
+  /* ── CENTER: CHAT ────────────────────────── */
+  .center { position: relative; }
+  .chat-scroll {
+    flex: 1; overflow-y: auto;
+    padding: 8px 28px 140px;
+  }
+  .chat-scroll::-webkit-scrollbar { width: 5px; }
+  .chat-scroll::-webkit-scrollbar-thumb { background: #D8DFE9; border-radius: 3px; }
+  .chat-inner { max-width: 720px; margin: 0 auto; }
+
+  .overview-card {
+    background: linear-gradient(160deg, #F7FAFF, #EEF4FC);
+    border: 1px solid #DFE9F6;
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 26px;
+  }
+  .overview-card h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 6px; }
+  .overview-card p { font-size: 13px; line-height: 1.65; color: var(--ink-2); }
+  .overview-meta { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .meta-chip {
+    font-size: 11px; font-weight: 600; color: var(--accent-ink);
+    background: #fff; border: 1px solid #DFE9F6;
+    padding: 3px 10px; border-radius: 100px;
+  }
+
+  .msg-user {
+    display: flex; justify-content: flex-end; margin: 18px 0;
+  }
+  .msg-user .bubble {
+    background: var(--accent); color: #fff;
+    padding: 10px 16px; border-radius: 18px 18px 4px 18px;
+    max-width: 80%; font-size: 13.5px; line-height: 1.6; font-weight: 500;
+  }
+  .msg-ai { margin: 18px 0 6px; }
+  .msg-ai-head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11.5px; font-weight: 600; color: var(--ink-3);
+    margin-bottom: 8px;
+  }
+  .msg-ai-head .ai-dot {
+    width: 20px; height: 20px; border-radius: 6px;
+    background: linear-gradient(135deg, #0057B8, #00A8E8);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 8.5px; font-weight: 700;
+  }
+  .msg-ai-body {
+    font-size: 13.5px; line-height: 1.75; color: var(--ink);
+  }
+  .msg-ai-body p { margin: 0 0 10px; }
+  .msg-ai-body ul { margin: 4px 0 10px 20px; }
+  .msg-ai-body li { margin: 4px 0; }
+  .cite {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 17px; height: 17px; padding: 0 4px;
+    background: var(--accent-soft); color: var(--accent-ink);
+    border-radius: 5px; font-size: 10px; font-weight: 700;
+    vertical-align: 2px; margin: 0 2px; cursor: pointer;
+  }
+  .cite:hover { background: var(--accent); color: #fff; }
+  .msg-actions {
+    display: flex; gap: 4px; margin-top: 10px;
+  }
+  .msg-action {
+    display: flex; align-items: center; gap: 5px;
+    border: none; background: transparent; color: var(--ink-3);
+    font-family: var(--font); font-size: 11px; font-weight: 600;
+    padding: 5px 9px; border-radius: 8px; cursor: pointer;
+  }
+  .msg-action:hover { background: #F0F3F8; color: var(--ink-2); }
+
+  .followups { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .followup {
+    border: 1px solid var(--line); background: #fff;
+    color: var(--ink-2); font-family: var(--font);
+    font-size: 12px; font-weight: 500;
+    padding: 8px 14px; border-radius: 100px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .followup:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+  /* composer */
+  .composer-wrap {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 24px 28px 18px;
+    background: linear-gradient(to top, #fff 55%, transparent);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .composer {
+    width: 100%; max-width: 720px;
+    background: #fff;
+    border: 1.5px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 6px 24px rgba(27,36,48,0.07);
+    padding: 6px 6px 6px 16px;
+    display: flex; align-items: center; gap: 10px;
+    transition: border-color 0.15s;
+  }
+  .composer:focus-within { border-color: var(--accent); }
+  .composer input {
+    flex: 1; border: none; outline: none;
+    font-family: var(--font); font-size: 13.5px; color: var(--ink);
+    background: transparent; padding: 10px 0;
+  }
+  .composer input::placeholder { color: var(--ink-3); }
+  .composer-src-chip {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600; color: var(--accent-ink);
+    background: var(--accent-soft); border-radius: 100px;
+    padding: 5px 11px; white-space: nowrap; cursor: pointer;
+  }
+  .send-btn {
+    width: 38px; height: 38px; border-radius: 12px;
+    border: none; background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .send-btn:hover { background: var(--accent-ink); }
+  .composer-foot { font-size: 10.5px; color: var(--ink-3); }
+  .composer-foot b { font-weight: 600; color: var(--ink-2); }
+
+  /* ── RIGHT: STUDIO ───────────────────────── */
+  .studio-scroll { flex: 1; overflow-y: auto; padding: 0 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .studio-card {
+    border: 1px solid var(--line); border-radius: 13px;
+    padding: 13px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .studio-card:hover { border-color: #C9D6E8; background: #FAFBFD; }
+  .studio-card-top { display: flex; align-items: center; gap: 9px; }
+  .studio-icon {
+    width: 32px; height: 32px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+    flex-shrink: 0;
+  }
+  .studio-card b { font-size: 12.5px; font-weight: 700; display: block; }
+  .studio-card i { font-style: normal; font-size: 11px; color: var(--ink-3); display: block; margin-top: 1px; }
+
+  .sys-card {
+    border: 1px solid var(--line); border-radius: 13px; padding: 13px 14px;
+  }
+  .sys-card h4 {
+    font-size: 10.5px; font-weight: 700; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px;
+  }
+  .sys-row {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; padding: 5px 0; color: var(--ink-2);
+  }
+  .sys-row b { font-weight: 600; color: var(--ink); font-size: 12px; }
+  .sys-row .mono { font-family: var(--mono); font-size: 11px; }
+  .sys-ok { color: var(--green); display: flex; align-items: center; gap: 5px; font-weight: 600; }
+  .sys-ok .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+
+  .note-card {
+    border: 1px solid var(--line); border-radius: 13px; padding: 12px 14px;
+    background: #FFFDF5; border-color: #F0E9D2;
+  }
+  .note-card b { font-size: 12px; font-weight: 700; display: block; margin-bottom: 3px; }
+  .note-card p { font-size: 11.5px; color: var(--ink-2); line-height: 1.55; }
+
+  @media (max-width: 1100px) { .workspace { grid-template-columns: 280px 1fr; } .right { display: none; } }
+  @media (max-width: 760px)  { .workspace { grid-template-columns: 1fr; } .left { display: none; } }
+</style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-mark">BA</div>
+      <div>
+        Barangay AI
+        <small>DEVCON.PH · AI SA BARANGAY</small>
+      </div>
+    </div>
+    <div class="notebook-title">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      <span>Week 1 — Intro to AI &amp; Local Models</span>
+    </div>
+    <div class="top-status"><span class="dot"></span> Ollama · qwen2.5:3b</div>
+    <button class="top-btn" title="Theme">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+    <button class="top-btn" title="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+    </button>
+    <div class="avatar-sm">JD</div>
+  </div>
+
+  <div class="workspace">
+
+    <!-- LEFT PANEL: SOURCES + CHATS -->
+    <div class="panel left">
+      <div class="panel-head">
+        Sources
+        <div class="spacer"></div>
+        <button class="mini-btn" title="Collapse">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+      </div>
+
+      <button class="add-source-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Add source
+      </button>
+
+      <div class="select-all-row">
+        <label for="all">Select all sources</label>
+        <input type="checkbox" id="all" checked>
+      </div>
+
+      <div class="source-list">
+        <div class="source-item">
+          <div class="source-icon si-pdf">📕</div>
+          <div class="source-name"><b>Camp Guidebook — Week 1.pdf</b><i>PDF · 1.2 MB</i></div>
+          <input type="checkbox" checked>
+        </div>
+        <div class="source-item">
+          <div class="source-icon si-md">📘</div>
+          <div class="source-name"><b>Python Basics Curriculum.md</b><i>Markdown · 84 KB</i></div>
+          <input type="checkbox" checked>
+        </div>
+        <div class="source-item">
+          <div class="source-icon si-csv">📗</div>
+          <div class="source-name"><b>Barangay Youth Profile 2025.csv</b><i>CSV · 210 KB</i></div>
+          <input type="checkbox" checked>
+        </div>
+        <div class="source-item">
+          <div class="source-icon si-txt">📄</div>
+          <div class="source-name"><b>Ollama Setup Notes.txt</b><i>Text · 12 KB</i></div>
+          <input type="checkbox" checked>
+        </div>
+        <div class="source-item">
+          <div class="source-icon si-md">📙</div>
+          <div class="source-name"><b>AI Glossary (Filipino).md</b><i>Markdown · 40 KB</i></div>
+          <input type="checkbox" checked>
+        </div>
+      </div>
+
+      <div class="left-divider">
+        Recent chats
+        <div class="spacer"></div>
+        <button class="mini-btn" title="New chat">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+      <div class="chat-list">
+        <div class="chat-item active">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Laman ng Week 1 guidebook</span>
+        </div>
+        <div class="chat-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Paano mag-install ng Ollama?</span>
+        </div>
+        <div class="chat-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Explain list comprehension</span>
+        </div>
+        <div class="chat-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Ano ang parameters ng AI model?</span>
+        </div>
+      </div>
+
+      <div class="source-count-foot">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        5 of 5 sources selected
+      </div>
+    </div>
+
+    <!-- CENTER PANEL: CHAT -->
+    <div class="panel center">
+      <div class="panel-head">
+        Chat
+        <div class="spacer"></div>
+        <button class="mini-btn" title="Clear chat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+        </button>
+      </div>
+
+      <div class="chat-scroll">
+        <div class="chat-inner">
+
+          <div class="overview-card">
+            <h2>Week 1 — Intro to AI &amp; Local Models</h2>
+            <p>This workspace has 5 sources covering the AI Code Camp Week 1 guidebook, the Python basics curriculum, and setup notes for running Qwen 2.5 locally through Ollama. Ask anything — answers are grounded in your uploaded sources and cited inline.</p>
+            <div class="overview-meta">
+              <span class="meta-chip">5 sources</span>
+              <span class="meta-chip">Taglish supported</span>
+              <span class="meta-chip">Runs 100% offline</span>
+            </div>
+          </div>
+
+          <div class="msg-user">
+            <div class="bubble">Ano ang laman ng Week 1 ng Camp Guidebook? Summarize mo in Taglish.</div>
+          </div>
+
+          <div class="msg-ai">
+            <div class="msg-ai-head"><div class="ai-dot">AI</div> Barangay AI · qwen2.5:3b · 4.2s</div>
+            <div class="msg-ai-body">
+              <p>Sure! Ito ang buod ng <strong>Week 1</strong> based sa Camp Guidebook <span class="cite">1</span>:</p>
+              <ul>
+                <li><strong>Day 1 — Ano ang AI?</strong> Intro sa machine learning, ano ang model, at paano "natututo" ang AI mula sa data <span class="cite">1</span></li>
+                <li><strong>Day 2 — Local vs Cloud AI.</strong> Bakit tayo gumagamit ng Ollama sa lab: walang internet na kailangan, libre, at private ang data <span class="cite">1</span> <span class="cite">4</span></li>
+                <li><strong>Day 3 — Unang Python program.</strong> Print statements, variables, at basic input/output — nakalista rin ito sa curriculum <span class="cite">2</span></li>
+              </ul>
+              <p>May hands-on activity sa dulo: i-set up ang sariling chatbot gamit ang Qwen 2.5 3B sa lab PC. Nasa setup notes ang step-by-step <span class="cite">4</span>.</p>
+            </div>
+            <div class="msg-actions">
+              <button class="msg-action">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
+              <button class="msg-action">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
+                Stats
+              </button>
+              <button class="msg-action">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                Retry
+              </button>
+            </div>
+            <div class="followups">
+              <button class="followup">Ano ang activity sa Day 3?</button>
+              <button class="followup">Paano i-install ang Ollama?</button>
+              <button class="followup">Gawan mo ako ng quiz about Week 1</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="composer-wrap">
+        <div class="composer">
+          <div class="composer-src-chip">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            5 sources
+          </div>
+          <input type="text" placeholder="Magtanong tungkol sa iyong sources…">
+          <button class="send-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          </button>
+        </div>
+        <div class="composer-foot">Barangay AI runs locally — answers are grounded in your sources · <b>PISO-WIFI-LAB · connected</b></div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: STUDIO -->
+    <div class="panel right">
+      <div class="panel-head">Studio</div>
+      <div class="studio-scroll">
+
+        <div class="studio-card">
+          <div class="studio-card-top">
+            <div class="studio-icon" style="background:#EBF2FC">📖</div>
+            <div>
+              <b>Camp Guidebook</b>
+              <i>Open the Week 1 reading panel</i>
+            </div>
+          </div>
+        </div>
+
+        <div class="studio-card">
+          <div class="studio-card-top">
+            <div class="studio-icon" style="background:#F3F0FA">🔤</div>
+            <div>
+              <b>AI Glossary</b>
+              <i>Parameters, inference, tokens…</i>
+            </div>
+          </div>
+        </div>
+
+        <div class="studio-card">
+          <div class="studio-card-top">
+            <div class="studio-icon" style="background:#E7F6EE">🧪</div>
+            <div>
+              <b>Quiz Me</b>
+              <i>Generate practice questions from sources</i>
+            </div>
+          </div>
+        </div>
+
+        <div class="sys-card">
+          <h4>System</h4>
+          <div class="sys-row"><span>Status</span><span class="sys-ok"><span class="dot"></span>Connected</span></div>
+          <div class="sys-row"><span>Network</span><b class="mono">PISO-WIFI-LAB</b></div>
+          <div class="sys-row"><span>Model</span><b class="mono">qwen2.5:3b</b></div>
+          <div class="sys-row"><span>Runtime</span><b>Ollama · local</b></div>
+          <div class="sys-row"><span>Context used</span><b>8.4%</b></div>
+        </div>
+
+        <div class="note-card">
+          <b>💡 Tip ng araw</b>
+          <p>Lahat ng sagot ay galing sa local model — walang data na lumalabas ng lab. Subukan mong tanggalin ang WiFi, gagana pa rin!</p>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

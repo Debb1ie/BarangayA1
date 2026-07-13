@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Barangay AI — Design Studies (NotebookLM series)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #F3F5F9;
+    color: #1B2430;
+    min-height: 100vh;
+    padding: 60px 24px;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  .kicker {
+    font-size: 11px; font-weight: 700; letter-spacing: 1.4px;
+    text-transform: uppercase; color: #0057B8; margin-bottom: 10px;
+  }
+  h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.8px; }
+  .lede { margin-top: 10px; font-size: 14px; color: #5A6B80; line-height: 1.7; max-width: 620px; }
+  .grid { margin-top: 36px; display: grid; gap: 14px; }
+  .card {
+    display: flex; align-items: center; gap: 20px;
+    background: #fff; border: 1px solid #E6EAF1; border-radius: 18px;
+    padding: 22px 24px;
+    text-decoration: none; color: inherit;
+    transition: all 0.18s;
+  }
+  .card:hover { border-color: #0057B8; transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,87,184,0.1); }
+  .num {
+    width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: 800; color: #fff;
+  }
+  .n1 { background: linear-gradient(135deg, #0057B8, #00A8E8); }
+  .n2 { background: linear-gradient(135deg, #0B1526, #2A3B55); }
+  .n3 { background: linear-gradient(135deg, #101724, #4E9EFF); }
+  .card b { font-size: 15.5px; font-weight: 700; display: block; letter-spacing: -0.2px; }
+  .card p { font-size: 12.5px; color: #5A6B80; margin-top: 4px; line-height: 1.6; }
+  .tags { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag {
+    font-size: 10px; font-weight: 700; color: #0A4A99;
+    background: #EBF2FC; border-radius: 100px; padding: 3px 9px;
+  }
+  .arrow { margin-left: auto; color: #93A2B5; flex-shrink: 0; }
+  .card:hover .arrow { color: #0057B8; }
+  .foot { margin-top: 34px; font-size: 11.5px; color: #93A2B5; line-height: 1.7; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="kicker">Barangay AI · Design Studies · Round 2</div>
+    <h1>NotebookLM-inspired layouts</h1>
+    <p class="lede">Three studies that promote custom sources and chat history to first-class citizens on the left — the core differentiator vs Gemini — while keeping every existing feature: local Ollama models, WiFi status, Taglish, web search, guidebook, and stats. Same system, cleaner skin.</p>
+
+    <div class="grid">
+      <a class="card" href="study-1-tripanel.html">
+        <div class="num n1">1</div>
+        <div>
+          <b>Tri-Panel — closest to NotebookLM</b>
+          <p>Sources + recent chats on the left, grounded chat with an overview card in the center, and a Studio panel (Guidebook, Glossary, Quiz Me, System status) on the right. Floating panels on a soft canvas.</p>
+          <div class="tags"><span class="tag">3 panels</span><span class="tag">Light</span><span class="tag">Overview card</span><span class="tag">Inline citations</span></div>
+        </div>
+        <svg class="arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+      </a>
+
+      <a class="card" href="study-2-rail.html">
+        <div class="num n2">2</div>
+        <div>
+          <b>Icon Rail + Contextual Panel — the cleanest</b>
+          <p>A slim dark rail switches one left panel between Chats and Sources. AI answers render flat and document-style (no bubbles) with cited-source chips underneath. Composer carries the source count, web search, and language toggles.</p>
+          <div class="tags"><span class="tag">Rail + panel</span><span class="tag">Flat answers</span><span class="tag">Cited chips</span><span class="tag">Segmented tabs</span></div>
+        </div>
+        <svg class="arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+      </a>
+
+      <a class="card" href="study-3-dark.html">
+        <div class="num n3">3</div>
+        <div>
+          <b>Dark Focus — welcome state</b>
+          <p>One unified sidebar with search, collapsible History and Sources groups, and network status. The center shows the redesigned new-chat state: hero composer with source pills, tool chips (sources / web / thinking), and suggestion cards.</p>
+          <div class="tags"><span class="tag">Dark</span><span class="tag">Collapsible groups</span><span class="tag">Hero composer</span><span class="tag">⌘K search</span></div>
+        </div>
+        <svg class="arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+      </a>
+    </div>
+
+    <p class="foot">Static mockups only — no app logic was changed. Branch: <b>design/notebooklm-studies</b>. Open each file directly in a browser, or serve this folder. All three keep the DEVCON blue identity and the "sources ground the answers" concept from NotebookLM.</p>
+  </div>
+</body>
+</html>
