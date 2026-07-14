@@ -30,6 +30,7 @@ let currentSessionId = null;
 let isStreaming = false;
 let isDark = false;
 let isConnected = false;
+let _KB_DISABLED = new Set(); // names of sources excluded from the model's context
 let _modelWarm = false;      // true after first successful model response in this session
 
 // ── SESSION MANAGEMENT ────────────────────────────────────────────────
@@ -213,7 +214,8 @@ function applySettings(s) {
   window._TEMPERATURE_ACTIVE   = (typeof s.temperature === 'number') ? s.temperature : 0.3;
   // max_tokens: null means "No limit"
   window._MAX_TOKENS_ACTIVE    = (s.max_tokens === null || typeof s.max_tokens === 'number') ? s.max_tokens : 1024;
-  window._TRAINING_FILES_ACTIVE = Array.isArray(s.training_files) ? s.training_files : [];
+  window._TRAINING_FILES_MASTER = Array.isArray(s.training_files) ? s.training_files : [];
+  window._TRAINING_FILES_ACTIVE = window._TRAINING_FILES_MASTER.filter(f => !_KB_DISABLED.has(f.name));
   window._TRAINING_NOTES_ACTIVE = s.training_notes || '';
   let _lang = s.reply_language || 'english';
   if (_lang === 'tagalog') _lang = 'filipino';
@@ -232,6 +234,7 @@ function applySettings(s) {
   const bl = document.querySelector('.brand-logo');
   if (bl) bl.textContent = initials;
   if (document.getElementById('welcome-screen')) resetWelcomeScreen();
+  renderSourcesPanel();
 }
 
 function shadeColor(hex, pct) {
@@ -1089,6 +1092,156 @@ function formatBytes(n) {
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function escapeAttr(s) { return escapeHtml(s); }
 
+// ── SOURCES PANEL (sidebar) — same store as Settings → Training ───────
+// window._TRAINING_FILES_MASTER holds every saved source; _KB_DISABLED is
+// the set of names excluded from the model's context. applySettings()
+// recomputes window._TRAINING_FILES_ACTIVE (what sendMessage() actually
+// reads) as master minus disabled every time either one changes.
+
+function loadKBDisabled() {
+  let raw = null;
+  try { if (window.BarangayDB) raw = window.BarangayDB.dbGetItem('kb_disabled_sources', null); } catch (e) {}
+  _KB_DISABLED = new Set(Array.isArray(raw) ? raw : []);
+}
+function saveKBDisabled() {
+  try { if (window.BarangayDB) window.BarangayDB.dbSetItem('kb_disabled_sources', [..._KB_DISABLED]); } catch (e) {}
+}
+function persistKBMaster() {
+  if (!window.BarangayDB) return;
+  const s = window.BarangayDB.dbLoadSettings() || {};
+  s.training_files = window._TRAINING_FILES_MASTER || [];
+  window.BarangayDB.dbSaveSettings(s);
+}
+function kbEmoji(name) {
+  const ext = (String(name).split('.').pop() || '').toLowerCase();
+  if (ext === 'pdf') return '📕';
+  if (ext === 'md' || ext === 'markdown') return '📘';
+  if (ext === 'csv') return '📗';
+  if (ext === 'doc' || ext === 'docx') return '📙';
+  if (ext === 'json' || ext === 'log') return '📒';
+  return '📄';
+}
+
+function sidebarTab(tab) {
+  const sb = document.getElementById('sidebar');
+  if (!sb) return;
+  sb.dataset.tab = tab;
+  sb.classList.remove('collapsed'); // picking a tab implies wanting to see it
+  document.querySelectorAll('.rail-btn[data-railtab]').forEach(b => b.classList.toggle('active', b.dataset.railtab === tab));
+  document.querySelectorAll('.seg-tabs button').forEach(b => b.classList.toggle('on', b.dataset.segtab === tab));
+}
+
+function addSourceClick() {
+  document.getElementById('kb-file-input')?.click();
+}
+
+// Reuses app's own extraction pipeline (PDF/DOCX/text + quota checks) by
+// pointing its draft array at a copy of the current master list.
+async function handleSourceFiles(fileList) {
+  if (!fileList || !fileList.length) return;
+  const priorDraft = window._TRAINING_FILES_DRAFT;
+  window._TRAINING_FILES_DRAFT = (window._TRAINING_FILES_MASTER || []).slice();
+  try {
+    await handleTrainingFiles(fileList);
+    window._TRAINING_FILES_MASTER = (window._TRAINING_FILES_DRAFT || []).slice();
+  } finally {
+    window._TRAINING_FILES_DRAFT = priorDraft;
+  }
+  window._TRAINING_FILES_ACTIVE = window._TRAINING_FILES_MASTER.filter(f => !_KB_DISABLED.has(f.name));
+  persistKBMaster();
+  renderSourcesPanel();
+}
+
+function toggleSource(name, on) {
+  if (on) _KB_DISABLED.delete(name); else _KB_DISABLED.add(name);
+  window._TRAINING_FILES_ACTIVE = (window._TRAINING_FILES_MASTER || []).filter(f => !_KB_DISABLED.has(f.name));
+  saveKBDisabled();
+  renderSourcesPanel();
+}
+
+function removeSource(name) {
+  window._TRAINING_FILES_MASTER = (window._TRAINING_FILES_MASTER || []).filter(f => f.name !== name);
+  _KB_DISABLED.delete(name);
+  window._TRAINING_FILES_ACTIVE = window._TRAINING_FILES_MASTER.filter(f => !_KB_DISABLED.has(f.name));
+  saveKBDisabled();
+  persistKBMaster();
+  renderSourcesPanel();
+  showToast('Source removed');
+}
+
+function focusSources() {
+  sidebarTab('sources');
+  const el = document.getElementById('kb-panel');
+  if (el) {
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 900);
+  }
+}
+
+function renderSourcesPanel() {
+  const list = document.getElementById('kb-list');
+  if (!list) return;
+  const master = window._TRAINING_FILES_MASTER || [];
+  list.innerHTML = '';
+
+  if (!master.length) {
+    const empty = document.createElement('div');
+    empty.className = 'kb-empty';
+    empty.textContent = 'No sources yet. Add files to ground answers in your own content.';
+    list.appendChild(empty);
+  }
+
+  master.forEach(f => {
+    const off = _KB_DISABLED.has(f.name);
+    const row = document.createElement('div');
+    row.className = 'kb-item' + (off ? ' off' : '');
+
+    const icon = document.createElement('span');
+    icon.className = 'kb-ico';
+    icon.textContent = kbEmoji(f.name);
+
+    const meta = document.createElement('span');
+    meta.className = 'kb-meta';
+    const nm = document.createElement('b');
+    nm.textContent = f.name;
+    nm.title = f.name;
+    const sz = document.createElement('i');
+    sz.textContent = formatBytes(f.size || 0);
+    meta.appendChild(nm);
+    meta.appendChild(sz);
+
+    const del = document.createElement('button');
+    del.className = 'kb-del';
+    del.title = 'Remove source';
+    del.textContent = '✕';
+    del.addEventListener('click', ev => { ev.stopPropagation(); removeSource(f.name); });
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !off;
+    cb.title = off ? 'Excluded from the model’s context' : 'Included in the model’s context';
+    cb.addEventListener('click', ev => ev.stopPropagation());
+    cb.addEventListener('change', () => toggleSource(f.name, cb.checked));
+
+    row.appendChild(icon);
+    row.appendChild(meta);
+    row.appendChild(del);
+    row.appendChild(cb);
+    row.addEventListener('click', () => { cb.checked = !cb.checked; toggleSource(f.name, cb.checked); });
+    list.appendChild(row);
+  });
+
+  const activeN = master.filter(f => !_KB_DISABLED.has(f.name)).length;
+  const total = document.getElementById('kb-total');
+  if (total) total.textContent = master.length ? `${activeN}/${master.length}` : '';
+  const segSrc = document.querySelector('.seg-tabs [data-segtab="sources"]');
+  if (segSrc) segSrc.textContent = master.length ? `Sources · ${master.length}` : 'Sources';
+  const chipLabel = document.getElementById('kb-chip-label');
+  if (chipLabel) chipLabel.textContent = activeN === 1 ? '1 source' : `${activeN} sources`;
+  const chip = document.getElementById('kb-chip');
+  if (chip) chip.style.display = master.length ? '' : 'none';
+}
+
 function showToast(msg) {
   const t = document.createElement('div');
   t.className = 'settings-toast';
@@ -1569,7 +1722,7 @@ function selectModel(id, opts = {}) {
 
   // Update subtitle
   const subtitle = document.getElementById('header-subtitle');
-  if (subtitle) subtitle.textContent = `AI Sa Barangay · ${m.kind === 'local' ? 'Ollama + ' : ''}${m.model} · ${m.kind === 'local' ? 'Local · Open Source' : m.endpoint}`;
+  if (subtitle) subtitle.textContent = `${m.model} · ${m.kind === 'local' ? 'Local' : m.endpoint}`;
 
   if (!opts.silent) showToast(`Switched to ${m.model}`);
 }
@@ -1582,8 +1735,8 @@ function deselectModel() {
   const subtitle = document.getElementById('header-subtitle');
   if (subtitle) {
     subtitle.textContent = MODEL_LIST.some(m => m.enabled !== false)
-      ? 'AI Sa Barangay · No model selected — choose one below'
-      : 'AI Sa Barangay · No model available';
+      ? 'No model selected — choose one below'
+      : 'No model available';
   }
 }
 
@@ -1890,7 +2043,7 @@ async function initModelRegistry() {
       showToast(`Auto-selected ${pick.model} for your PC — change it any time below`);
     } else {
       const subtitle = document.getElementById('header-subtitle');
-      if (subtitle) subtitle.textContent = 'AI Sa Barangay · No model installed — pull one with Ollama';
+      if (subtitle) subtitle.textContent = 'No model installed — pull one with Ollama';
       const labelEl = document.getElementById('model-select-label');
       if (labelEl) labelEl.textContent = 'Select model';
     }
@@ -1981,6 +2134,9 @@ function setConnected(ok) {
   status.className = 'sidebar-wifi-status ' + (ok ? 'ok' : 'err');
   statusText.textContent = ok ? 'Connected · Model online' : 'Ollama not detected';
 
+  const railDot = document.getElementById('rail-dot');
+  if (railDot) railDot.className = 'rail-dot ' + (ok ? 'ok' : 'err');
+
   document.getElementById('send-btn').disabled = false;
   document.getElementById('message-input').placeholder = ok
     ? 'Ask anything — local, private, free…'
@@ -2015,10 +2171,15 @@ document.getElementById('overlay').addEventListener('click', () => {
 function toggleTheme() {
   isDark = !isDark;
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : '');
-  const icon = document.getElementById('theme-icon');
-  icon.innerHTML = isDark
+  try { localStorage.setItem('barangayai_theme', isDark ? 'dark' : 'light'); } catch (e) {}
+  syncThemeIcon();
+}
+
+function syncThemeIcon() {
+  const html = isDark
     ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
     : '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
+  document.querySelectorAll('#theme-icon, #rail-theme-icon').forEach(icon => icon.innerHTML = html);
 }
 
 function autoResize(el) {
@@ -3257,7 +3418,7 @@ function resetWelcomeScreen() {
       <div class="welcome-title">${_activeName}</div>
       <div class="welcome-greeting">${greeting}</div>
     </div>
-    <div class="welcome-brief">Built by Filipino developers · Runs on Ollama + Qwen locally · Open source, no cloud, no fees</div>
+    <div class="welcome-brief">Built by Filipino developers · 100% local, no cloud</div>
     <div class="suggestion-chips" id="suggestion-grid-welcome">
       <button class="suggestion-chip" onclick="suggest('What is DEVCON Barangay AI Code Camps? What will I learn and build today?')">
         <span class="suggestion-chip-icon">🏕️</span> About Barangay AI
@@ -3315,7 +3476,14 @@ function newChat() {
 
 // ── INIT ──────────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
+  // The inline head script already resolved data-theme before first paint;
+  // sync the in-memory flag + icons to match (default is dark).
+  isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  syncThemeIcon();
+  sidebarTab('chats');
+
   if (window.BarangayDB) await window.BarangayDB.initDB();
+  loadKBDisabled();
   initModelRegistry();   // restore saved endpoints + discover live local models
   document.documentElement.style.setProperty('--dc-blue', BRAND_COLOR);
   document.documentElement.style.setProperty('--dc-accent', ACCENT_COLOR);
@@ -3327,6 +3495,7 @@ window.addEventListener('load', async () => {
 
   const saved = loadSettings();
   if (Object.keys(saved).length) applySettings(saved);
+  else renderSourcesPanel();
 
   if (SUGGESTIONS) {
     const grid = document.querySelector('.suggestion-chips');
