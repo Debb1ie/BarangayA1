@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DEVCON.PH — Barangay AI</title>
+<script>
+  // Resolve theme before first paint — defaults to dark, honors a saved choice.
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem('barangayai_theme'); } catch (e) {}
+    if (saved !== 'light') document.documentElement.setAttribute('data-theme', 'dark');
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -74,19 +82,20 @@
     transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), width 0.25s ease;
     z-index: 100;
   }
-  /* Desktop collapse: shrink to a ChatGPT-style icon rail (icons stay) */
+  /* Desktop collapse: the icon-rail is the persistent nav, so the sidebar
+     panel collapses away entirely instead of becoming a second icon rail */
   .sidebar.collapsed {
-    width: 64px;
-    min-width: 64px;
+    width: 0;
+    min-width: 0;
+    border-right: none;
     overflow: hidden;
   }
   .sidebar.collapsed .brand-text,
+  .sidebar.collapsed .sidebar-collapse-btn,
   .sidebar.collapsed .sidebar-section,
   .sidebar.collapsed .history-list,
   .sidebar.collapsed .nc-label,
-  .sidebar.collapsed .sidebar-wifi-top > div:last-child,
   .sidebar.collapsed .sidebar-wifi-status,
-  .sidebar.collapsed .sidebar-wifi-label,
   .sidebar.collapsed .sidebar-wifi-ssid { display: none; }
   .sidebar.collapsed .sidebar-brand { justify-content: center; padding-left: 0; padding-right: 0; }
   .sidebar.collapsed .new-chat-btn {
@@ -329,23 +338,18 @@
   .lang-toggle-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
     background: var(--bg-primary);
     border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 5px 9px;
-    font-size: 11px;
-    font-weight: 600;
+    border-radius: 50%;
     color: var(--text-muted);
-    cursor: not-allowed;
-    white-space: nowrap;
     user-select: none;
     flex-shrink: 0;
     transition: border-color 0.15s;
   }
   .lang-toggle-btn:hover { border-color: var(--dc-blue); }
-  .lang-divider { opacity: 0.4; }
-  .lang-fil { color: var(--text-secondary); }
   @media (max-width: 640px) { .lang-toggle-btn { display: none; } }
 
   .icon-btn {
@@ -490,13 +494,6 @@
     border-radius: 7px;
     background: rgba(255,255,255,0.07);
     flex-shrink: 0;
-  }
-  .sidebar-wifi-label {
-    font-size: 10px;
-    color: rgba(255,255,255,0.35);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
   }
   .sidebar-wifi-ssid {
     font-size: 12px;
@@ -3457,14 +3454,335 @@
     color: var(--dc-blue);
   }
   [data-theme="dark"] .tone-preset-chip.active { background: rgba(0,87,184,0.18); }
+
+  /* ── ICON RAIL ────────────────────────────────────────────────────── */
+  .icon-rail {
+    width: 58px;
+    background: var(--bg-sidebar);
+    border-right: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 14px 0 12px;
+    gap: 6px;
+    flex-shrink: 0;
+    z-index: 110;
+  }
+  .rail-toggle-btn { margin-bottom: 8px; }
+  .rail-btn {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    border: none; background: transparent;
+    color: rgba(255,255,255,0.42);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .rail-btn:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.07); }
+  .rail-btn.active { color: #fff; background: rgba(255,255,255,0.12); }
+  .rail-btn.active::before {
+    content: '';
+    position: absolute; left: -9px; top: 10px; bottom: 10px;
+    width: 3px; border-radius: 3px;
+    background: var(--dc-accent);
+  }
+  .rail-spacer { flex: 1; }
+  .rail-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin: 4px 0 8px;
+    flex-shrink: 0;
+  }
+  .rail-dot.ok { background: #22C55E; box-shadow: 0 0 0 4px rgba(34,197,94,0.15); }
+  .rail-dot.err { background: #EF4444; box-shadow: 0 0 0 4px rgba(239,68,68,0.15); }
+  @media (max-width: 640px) { .icon-rail { display: none; } }
+
+  /* Rail replaces these header buttons on desktop */
+  @media (min-width: 641px) {
+    .hamburger,
+    .icon-btn[title^="Camp Guide"],
+    .icon-btn[title="Personalize AI"],
+    .icon-btn[title="Toggle theme"] { display: none; }
+  }
+
+  /* ── SIDEBAR COLLAPSE TOGGLE (desktop only — mobile uses the drawer) ── */
+  .sidebar-collapse-btn {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .sidebar-collapse-btn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85); }
+  @media (max-width: 640px) { .sidebar-collapse-btn { display: none; } }
+
+  /* ── SEGMENTED TABS (Chats / Sources) ────────────────────────────── */
+  .seg-tabs {
+    display: flex;
+    gap: 4px;
+    margin: 4px 12px 6px;
+    background: var(--border-light);
+    border-radius: 11px;
+    padding: 3px;
+    flex-shrink: 0;
+  }
+  .seg-tabs button {
+    flex: 1;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    font-family: var(--font-main);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 7px 0;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .seg-tabs button.on {
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    box-shadow: 0 1px 4px rgba(22,32,46,0.1);
+  }
+  #sidebar[data-tab="sources"] .sidebar-section,
+  #sidebar[data-tab="sources"] .history-list { display: none; }
+  #sidebar[data-tab="chats"] #kb-panel { display: none; }
+  .sidebar.collapsed .seg-tabs,
+  .sidebar.collapsed #kb-panel { display: none; }
+
+  /* ── SOURCES PANEL ────────────────────────────────────────────────── */
+  #kb-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    padding: 4px 8px 8px;
+    border-radius: 12px;
+    transition: box-shadow 0.3s;
+  }
+  #kb-panel.flash { box-shadow: 0 0 0 2px var(--dc-blue); }
+  .kb-head {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 8px 6px;
+    flex-shrink: 0;
+  }
+  .kb-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .kb-total {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: var(--border-light);
+    border-radius: 10px;
+    padding: 1px 7px;
+  }
+  .kb-add {
+    margin-left: auto;
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--dc-blue);
+    font-family: var(--font-main);
+    font-size: 10.5px;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 3px 9px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .kb-add:hover { background: var(--dc-blue-light); border-color: var(--dc-blue); }
+  [data-theme="dark"] .kb-add { color: #7EB8FF; }
+  [data-theme="dark"] .kb-add:hover { background: rgba(0,87,184,0.18); }
+  .kb-list {
+    overflow-y: auto;
+    flex: 1;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .kb-list::-webkit-scrollbar { width: 3px; }
+  .kb-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .kb-empty {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.55;
+    padding: 8px 10px 10px;
+  }
+  .kb-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 6px 8px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.12s;
+    user-select: none;
+  }
+  .kb-item:hover { background: var(--bg-primary); }
+  [data-theme="dark"] .kb-item:hover { background: rgba(255,255,255,0.04); }
+  .kb-item.off { opacity: 0.45; }
+  .kb-ico {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    background: var(--border-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .kb-meta { flex: 1; min-width: 0; }
+  .kb-meta b {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .kb-meta i {
+    font-style: normal;
+    font-size: 9.5px;
+    color: var(--text-muted);
+  }
+  .kb-del {
+    display: none;
+    border: none; background: none;
+    color: var(--text-muted);
+    font-size: 11px;
+    padding: 2px 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .kb-item:hover .kb-del { display: block; }
+  .kb-del:hover { color: #DC2626; background: rgba(220,38,38,0.1); }
+  .kb-item input[type="checkbox"] {
+    width: 14px; height: 14px;
+    accent-color: var(--dc-blue);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* ── COMPOSER SOURCES CHIP ────────────────────────────────────────── */
+  .kb-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    background: var(--dc-blue-light);
+    color: var(--dc-blue);
+    font-family: var(--font-main);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .kb-chip:hover { border-color: var(--dc-blue); }
+  [data-theme="dark"] .kb-chip { background: rgba(0,87,184,0.2); color: #7EB8FF; }
+
+  /* ── FLAT, DOCUMENT-STYLE ANSWERS (Study 2) ──────────────────────── */
+  .bubble.ai {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 2px 0 0;
+  }
+  .bubble.user {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+    font-weight: 500;
+    border-radius: 20px 20px 4px 20px;
+  }
+  [data-theme="dark"] .bubble.user { background: rgba(255,255,255,0.05); }
+
+  /* Centered document column + composer — .message-row/.message-time/
+     .msg-meta-wrap/.error-bubble are appended directly as #chat-area
+     children (no wrapping group element), so each is centered individually */
+  .message-row,
+  .message-time,
+  .error-bubble {
+    max-width: 720px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  /* Keep its 42px indent (aligns under the bubble text, not the avatar) —
+     use padding instead of margin-left so centering math still works */
+  .msg-meta-wrap {
+    max-width: 720px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 42px;
+  }
+  /* Popover positions from the wrapper's own edge, before the padding —
+     shift it to match the now-padded meta text it hangs off of */
+  .msg-meta-wrap .msg-stats-popover { left: 42px; }
+  .input-box {
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 20px;
+    box-shadow: 0 10px 34px rgba(22,32,46,0.08);
+  }
+  [data-theme="dark"] .input-box { box-shadow: 0 10px 34px rgba(0,0,0,0.45); }
+  .input-tip, .legal-disclaimer-inner { max-width: 720px; margin-left: auto; margin-right: auto; }
 </style>
 </head>
 <body>
 
 <div class="sidebar-overlay" id="overlay"></div>
 
+<!-- ICON RAIL -->
+<nav class="icon-rail" id="icon-rail">
+  <button class="rail-btn rail-toggle-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+  </button>
+  <button class="rail-btn" onclick="newChat()" title="New Conversation">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+  <button class="rail-btn active" data-railtab="chats" onclick="sidebarTab('chats')" title="Chats">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+  </button>
+  <button class="rail-btn" data-railtab="sources" onclick="sidebarTab('sources')" title="Sources">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+  </button>
+  <button class="rail-btn" onclick="openGuide()" title="Camp Guidebook">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+  </button>
+  <div class="rail-spacer"></div>
+  <div class="rail-dot ok" id="rail-dot" title="Model connection"></div>
+  <button class="rail-btn" onclick="toggleTheme()" title="Toggle theme">
+    <svg id="rail-theme-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
+  <button class="rail-btn" onclick="openSettings()" title="Settings">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+  </button>
+</nav>
+
 <!-- SIDEBAR -->
-<aside class="sidebar" id="sidebar">
+<aside class="sidebar" id="sidebar" data-tab="chats">
   <div class="sidebar-brand">
     <div class="logo-wrapper">
       <div class="brand-logo">DC</div>
@@ -3478,14 +3796,22 @@
     </div>
     <div class="brand-text">
       <div class="brand-name">DEVCON BARANGAY AI</div>
-      <div class="brand-sub">AI Sa Barangay · Powered by Ollama + Qwen</div>
+      <div class="brand-sub">AI Sa Barangay</div>
     </div>
+    <button class="sidebar-collapse-btn" onclick="toggleSidebar()" title="Collapse sidebar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
   </div>
 
   <button class="new-chat-btn" onclick="newChat()" title="New Conversation">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
     <span class="nc-label">New Conversation</span>
   </button>
+
+  <div class="seg-tabs">
+    <button class="on" data-segtab="chats" onclick="sidebarTab('chats')">Chats</button>
+    <button data-segtab="sources" onclick="sidebarTab('sources')">Sources</button>
+  </div>
 
   <div class="sidebar-section">Recent</div>
 
@@ -3496,6 +3822,19 @@
     </div>
   </div>
 
+  <!-- SOURCES PANEL — same store as Settings → Training -->
+  <div class="kb-panel" id="kb-panel">
+    <div class="kb-head">
+      <span class="kb-title">Sources</span>
+      <span class="kb-total" id="kb-total"></span>
+      <button class="kb-add" onclick="addSourceClick()" title="Add source files — grounds answers in your own content">+ Add</button>
+    </div>
+    <div class="kb-list" id="kb-list"></div>
+  </div>
+  <input type="file" id="kb-file-input" multiple style="display:none"
+    accept=".txt,.md,.markdown,.json,.csv,.log,.pdf,.doc,.docx,text/plain,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    onchange="handleSourceFiles(this.files); this.value='';">
+
   <div class="sidebar-footer">
     <div class="sidebar-wifi" id="sidebar-wifi">
       <div class="sidebar-wifi-top">
@@ -3504,10 +3843,7 @@
             <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>
           </svg>
         </div>
-        <div>
-          <div class="sidebar-wifi-label">Local AI · Ollama + Qwen</div>
-          <div class="sidebar-wifi-ssid">Local · Open Source</div>
-        </div>
+        <div class="sidebar-wifi-ssid">Ollama · Qwen</div>
       </div>
       <div class="sidebar-wifi-status ok" id="sidebar-wifi-status">
         <div class="swifi-dot"></div>
@@ -3526,7 +3862,7 @@
 
     <div class="header-title">
       <h1 id="chat-title">DEVCON BARANGAY AI CODE CAMPS</h1>
-      <p id="header-subtitle">AI Sa Barangay · Ollama + Qwen 2.5 3B · Local · Open Source</p>
+      <p id="header-subtitle">Qwen 2.5 3B · Local</p>
     </div>
 
     <div class="header-actions">
@@ -3534,11 +3870,8 @@
         <div class="status-dot" id="header-status-dot"></div>
         <span id="header-status-text">Ollama</span>
       </div>
-      <div class="lang-toggle-btn" title="Reply language — change in Settings" onclick="openSettings()" style="cursor:pointer">
+      <div class="lang-toggle-btn" title="Reply language: English, Filipino, Bisaya, Hiligaynon, Ilocano — change in Settings" onclick="openSettings()" style="cursor:pointer">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        EN · FIL · BSY
-        <span class="lang-divider">·</span>
-        <span class="lang-fil">HIL · ILO</span>
       </div>
       <button class="icon-btn" onclick="openGuide()" title="Camp Guide — full step-by-step guidebook">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
@@ -3563,7 +3896,7 @@
         <div class="welcome-title">DEVCON BARANGAY AI</div>
         <div class="welcome-greeting" id="welcome-greeting">Good to see you! 👋</div>
       </div>
-      <div class="welcome-brief">Built by Filipino developers · Runs on Ollama + Qwen locally · Open source, no cloud, no fees</div>
+      <div class="welcome-brief">Built by Filipino developers · 100% local, no cloud</div>
       <div class="suggestion-chips" id="suggestion-grid">
         <button class="suggestion-chip" onclick="suggest('What is DEVCON Barangay AI Code Camps? What will I learn and build today?')">
           <span class="suggestion-chip-icon">🏕️</span> About Barangay AI
@@ -3610,6 +3943,10 @@
         oninput="autoResize(this)"
       ></textarea>
       <div class="input-actions">
+        <button class="kb-chip" id="kb-chip" onclick="focusSources()" title="Sources grounding your answers — click to manage" style="display:none">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          <span id="kb-chip-label">0 sources</span>
+        </button>
         <button class="thinking-btn" id="thinking-btn" onclick="toggleThinkingQuick()" aria-pressed="false" title="Deep thinking is OFF — click to enable">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5c0 1.5.5 2.5 1 3.5.5 1 1 2 1 3.5h6c0-1.5.5-2.5 1-3.5.5-1 1-2 1-3.5a5 5 0 0 0-5-5z"/><path d="M9 21h6"/><path d="M10 18h4"/></svg>
         </button>
@@ -3896,7 +4233,7 @@ git commit -m "Make the AI mine"</code></div></div>
       <div class="modal-header-text">
         <div class="modal-mabuhay">Mabuhay! 🇵🇭</div>
         <h2>DEVCON BARANGAY AI</h2>
-        <p>AI Sa Barangay · Ollama + Qwen · Local · Open Source</p>
+        <p>AI Sa Barangay</p>
       </div>
       <button class="modal-close" onclick="closeModal()" aria-label="Close">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -3907,33 +4244,17 @@ git commit -m "Make the AI mine"</code></div></div>
     <div id="onboard-step-1">
     <div class="modal-body">
 
-      <p class="modal-text" style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:6px">Today you're going to build your own AI.</p>
-      <p class="modal-text">Not use someone else's. Not pay for a subscription. Build one — name it, shape its personality, and deploy it live. In 4 hours.</p>
+      <p class="modal-text" style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:6px">Let's build your own AI. 🚀</p>
+      <p class="modal-text">Name it, shape it, and put it live — free, open source, about 4 hours.</p>
 
-      <div class="modal-highlight" style="margin-top:4px">
+      <div class="modal-highlight" style="margin-top:10px">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span>The AI runs entirely on <strong>this computer</strong>. No cloud. No API fees. No data leaving this room. It's yours.</span>
+        <span>Runs entirely on <strong>this computer</strong> — no cloud, no fees, nothing leaves the room.</span>
       </div>
 
-      <div class="modal-section-title" style="margin-top:18px">Why this matters</div>
-      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
-        <div class="modal-why-row">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;color:var(--dc-blue)"><polyline points="20,6 9,17 4,12"/></svg>
-          <span>Most Filipinos <em>use</em> AI tools built elsewhere. Today you join the group that <strong>builds</strong> them.</span>
-        </div>
-        <div class="modal-why-row">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;color:var(--dc-blue)"><polyline points="20,6 9,17 4,12"/></svg>
-          <span>Everything here — the model, the code, the tools — is <strong>free and open source</strong>. No license. No per-token fees. Works on this school computer.</span>
-        </div>
-        <div class="modal-why-row">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;color:var(--dc-blue)"><polyline points="20,6 9,17 4,12"/></svg>
-          <span>By the end, you'll have a <strong>live URL</strong> and a <strong>GitHub contribution</strong> — things you can show to anyone.</span>
-        </div>
-      </div>
-
-      <div class="modal-highlight" style="margin-top:18px;background:none;border:1px dashed var(--border);color:var(--text-secondary)">
+      <div class="modal-highlight" style="margin-top:10px;background:none;border:1px dashed var(--border);color:var(--text-secondary)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--dc-blue)"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-        <span>The full <strong>4-hour, step-by-step plan</strong> lives in the <strong>Camp Guidebook</strong> — open it anytime from the 📖 button in the header.</span>
+        <span>Want the full walkthrough? Open the <strong>Camp Guidebook</strong> anytime from the 📖 button.</span>
       </div>
 
 
