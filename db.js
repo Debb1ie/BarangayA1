@@ -78,6 +78,8 @@ function _createSchema() {
     content  TEXT    NOT NULL,
     added_at TEXT    NOT NULL
   )`);
+  // Migration for DBs created before the `chunks` column existed
+  try { _db.run(`ALTER TABLE training_files ADD COLUMN chunks TEXT`); } catch (e) { /* already exists */ }
 }
 
 // ── Migration from localStorage (runs once on first launch) ───────────
@@ -116,8 +118,8 @@ function _migrateFromLocalStorage() {
       const trainingFiles = Array.isArray(s.training_files) ? s.training_files : [];
       for (const f of trainingFiles) {
         _db.run(
-          'INSERT INTO training_files (name, size, content, added_at) VALUES (?,?,?,?)',
-          [f.name, f.size || 0, f.content || '', f.addedAt || new Date().toISOString()]
+          'INSERT INTO training_files (name, size, content, added_at, chunks) VALUES (?,?,?,?,?)',
+          [f.name, f.size || 0, f.content || '', f.addedAt || new Date().toISOString(), '[]']
         );
       }
       const rest = Object.assign({}, s);
@@ -213,8 +215,8 @@ function dbSaveSettings(s) {
   _db.run('DELETE FROM training_files');
   for (const f of trainingFiles) {
     _db.run(
-      'INSERT INTO training_files (name, size, content, added_at) VALUES (?,?,?,?)',
-      [f.name, f.size || 0, f.content || '', f.addedAt || new Date().toISOString()]
+      'INSERT INTO training_files (name, size, content, added_at, chunks) VALUES (?,?,?,?,?)',
+      [f.name, f.size || 0, f.content || '', f.addedAt || new Date().toISOString(), JSON.stringify(f.chunks || [])]
     );
   }
 
@@ -230,9 +232,13 @@ function dbLoadSettings() {
   const settRes = _db.exec("SELECT value FROM settings WHERE key = 'app_settings'");
   const s       = settRes.length ? JSON.parse(settRes[0].values[0][0]) : {};
 
-  const filesRes    = _db.exec('SELECT name, size, content, added_at FROM training_files ORDER BY id ASC');
+  const filesRes    = _db.exec('SELECT name, size, content, added_at, chunks FROM training_files ORDER BY id ASC');
   s.training_files  = filesRes.length
-    ? filesRes[0].values.map(([name, size, content, addedAt]) => ({ name, size, content, addedAt }))
+    ? filesRes[0].values.map(([name, size, content, addedAt, chunks]) => {
+        let parsedChunks = [];
+        if (chunks) { try { parsedChunks = JSON.parse(chunks); } catch (e) { /* ignore */ } }
+        return { name, size, content, addedAt, chunks: parsedChunks };
+      })
     : [];
 
   return s;

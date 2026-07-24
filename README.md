@@ -1,6 +1,6 @@
 # Barangay AI
 
-A polished, fully client-side AI chat app by **DEVCON.PH** — built to run on top of a **local** large language model so anyone can have a private, offline-capable AI assistant. No accounts, no cloud, no server. Just three files and your browser.
+A polished, fully client-side AI chat app by **DEVCON.PH** — built to run on top of a **local** large language model so anyone can have a private, offline-capable AI assistant. No accounts, no cloud, no server. Just a handful of files and your browser.
 
 Built for DEVCON camps and barangay-level digital literacy: open one HTML file, point it at a local model, and start chatting — in English, Filipino, Taglish, or your own regional language.
 
@@ -33,7 +33,7 @@ Make sure Ollama is running — it serves an OpenAI-compatible API at `http://12
 
 ### 2. Open the app
 
-Because the app loads `db.js` and `app.js` as separate files, open it through a local web server rather than `file://` (browsers block module/script loading from `file://`):
+Because the app loads `db.js`, `rag.js`, and `app.js` as separate files, open it through a local web server rather than `file://` (browsers block module/script loading from `file://`):
 
 ```bash
 # from the project folder — pick whichever you have
@@ -86,6 +86,7 @@ barangayAI/
 ├── index.html   # all UI + CSS (single page)
 ├── app.js       # all app logic — chat, sessions, settings, languages, web search
 ├── db.js        # SQLite persistence layer (sql.js + IndexedDB)
+├── rag.js       # local knowledge retrieval — chunking + TF-IDF similarity, no embedding model
 └── README.md
 ```
 
