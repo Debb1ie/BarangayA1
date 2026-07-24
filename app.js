@@ -77,6 +77,8 @@ function loadSession(id) {
   if (window.innerWidth <= 640) {
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('overlay').classList.remove('visible');
+  } else if (session.displayMessages.length) {
+    document.getElementById('sidebar').classList.add('collapsed');
   }
 }
 
@@ -1016,6 +1018,10 @@ async function extractDocxText(file) {
   return text;
 }
 
+// RAG chunking/retrieval lives in rag.js (window.BarangayRAG) — see
+// handleTrainingFiles() below for chunking at upload time and sendMessage()
+// for retrieval at query time.
+
 function handleTrainingDrop(e) {
   e.preventDefault();
   e.currentTarget.classList.remove('drag');
@@ -1040,7 +1046,8 @@ async function handleTrainingFiles(fileList) {
       else if (TRAINING_DOCX_EXT.includes(ext)) content = await extractDocxText(file);
       else                                      content = await file.text();
       if (!content || !content.trim()) { skipped.push(`${file.name} (no extractable text)`); continue; }
-      draft.push({ name: file.name, size: file.size, content, addedAt: Date.now() });
+      const chunks = window.BarangayRAG.chunkText(content);
+      draft.push({ name: file.name, size: file.size, content, chunks, addedAt: Date.now() });
       added++;
     } catch (err) {
       console.error('Training extract error:', err);
@@ -1240,6 +1247,7 @@ function renderSourcesPanel() {
   if (chipLabel) chipLabel.textContent = activeN === 1 ? '1 source' : `${activeN} sources`;
   const chip = document.getElementById('kb-chip');
   if (chip) chip.style.display = master.length ? '' : 'none';
+  syncToolsIndicator();
 }
 
 function showToast(msg) {
@@ -1548,6 +1556,16 @@ const MODEL_ENDPOINT = (() => {
 let MODEL_LIST = [];
 let _modelSeq = 0;
 
+// First-run guidance only — shown in the picker when NO endpoint has been
+// added/discovered yet, so a fresh install isn't just a blank "no models"
+// dead end. Purely illustrative: not installed, not selectable as an active
+// model, and gone the moment a real endpoint/model shows up in MODEL_LIST.
+const DEMO_SUGGESTED_MODELS = [
+  { model: 'qwen2.5:3b', badge: '⭐ Recommended', cls: 'rec' },
+  { model: 'gemma3:1b' },
+  { model: 'llama3.2:1b' },
+];
+
 // Enable/disable + deletion state for the endpoint manager (persisted in the DB).
 let _DISABLED_MODELS = new Set();    // keys "base||model" that are turned off
 let _REMOVED_ENDPOINTS = new Set();  // base URLs the user deleted (skipped on discovery)
@@ -1681,6 +1699,24 @@ function renderModelList(filter) {
   );
   if (!rows.length) {
     const hasAny = MODEL_LIST.length > 0;
+    if (!hasAny) {
+      const demo = DEMO_SUGGESTED_MODELS.filter(m => !q || m.model.toLowerCase().includes(q));
+      if (demo.length) {
+        list.innerHTML = `
+          <div class="model-dd-demo-note">No models detected yet — commonly recommended for this camp:</div>
+          ${demo.map(m => `
+            <button class="model-dropdown-opt demo" onclick="showToast('Not installed yet — run: ollama pull ${escHtml(m.model)}')">
+              ${modelIcon}
+              <span class="model-dd-meta">
+                <span class="model-dd-name">${escHtml(m.model)}</span>
+                <span class="model-dd-endpoint">ollama pull ${escHtml(m.model)}</span>
+              </span>
+              ${m.badge ? `<span class="model-dd-badge ${m.cls}">${m.badge}</span>` : ''}
+            </button>`).join('')}
+        `;
+        return;
+      }
+    }
     list.innerHTML = `<div class="model-dd-empty">${hasAny ? 'No models enabled — turn some on in “Add Models”' : 'No models found'}</div>`;
     return;
   }
@@ -1902,6 +1938,42 @@ function selectModelFromDropdown(id) {
 document.addEventListener('click', function(e) {
   const dd = document.getElementById('model-dropdown');
   const btn = document.getElementById('model-select-btn');
+  if (dd && btn && !dd.contains(e.target) && !btn.contains(e.target)) {
+    dd.classList.remove('open');
+    btn.classList.remove('open');
+  }
+});
+
+// ── TOOLS MENU (Gemini "+" style) — sources / deep thinking / web search ──
+function toggleToolsDropdown() {
+  const dd = document.getElementById('tools-dropdown');
+  const btn = document.getElementById('tools-btn');
+  if (!dd) return;
+  const isOpen = dd.classList.contains('open');
+  dd.classList.toggle('open', !isOpen);
+  if (btn) { btn.classList.toggle('open', !isOpen); btn.setAttribute('aria-expanded', String(!isOpen)); }
+}
+
+function closeToolsDropdown() {
+  const dd = document.getElementById('tools-dropdown');
+  const btn = document.getElementById('tools-btn');
+  if (dd) dd.classList.remove('open');
+  if (btn) { btn.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+}
+
+// Small dot on the "+" button whenever a source, deep thinking, or web search is active.
+function syncToolsIndicator() {
+  const btn = document.getElementById('tools-btn');
+  if (!btn) return;
+  const chip = document.getElementById('kb-chip');
+  const hasSources = !!chip && chip.style.display !== 'none';
+  const hasActive = hasSources || !!window._THINKING_ENABLED || !!window._WEB_SEARCH_ENABLED;
+  btn.classList.toggle('has-active', hasActive);
+}
+
+document.addEventListener('click', function(e) {
+  const dd = document.getElementById('tools-dropdown');
+  const btn = document.getElementById('tools-btn');
   if (dd && btn && !dd.contains(e.target) && !btn.contains(e.target)) {
     dd.classList.remove('open');
     btn.classList.remove('open');
@@ -2440,6 +2512,10 @@ function hideWelcome() {
   if (ws) ws.remove();
   const main = document.querySelector('.main');
   if (main) main.classList.remove('welcome-mode');
+  // A conversation just started — collapse the sidebar for full chat width.
+  // It reopens automatically on the next "New Chat".
+  const sb = document.getElementById('sidebar');
+  if (sb && window.innerWidth > 640) sb.classList.add('collapsed');
 }
 
 function appendUserMessage(text) {
@@ -2782,6 +2858,30 @@ function updateHistory(firstMessage) {
   saveSessionsToStorage();
 }
 
+// Header title is contenteditable — commit the rename on blur.
+function commitTitleRename(el) {
+  const session = getCurrentSession();
+  if (!session) return;
+  let text = el.textContent.replace(/\s+/g, ' ').trim();
+  if (!text) text = 'New conversation';
+  el.textContent = text;
+  session.title = text;
+  renderHistory();
+  saveSessionsToStorage();
+}
+
+function handleTitleKey(e, el) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    el.blur();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    const session = getCurrentSession();
+    el.textContent = session ? session.title : el.textContent;
+    el.blur();
+  }
+}
+
 // ── XHR FALLBACK ──────────────────────────────────────────────────────
 function xhrFallback(payload) {
   return new Promise((resolve, reject) => {
@@ -2887,6 +2987,7 @@ function syncWebSearchUI() {
   btn.classList.toggle('active', on);
   btn.setAttribute('aria-pressed', on ? 'true' : 'false');
   btn.title = on ? 'Web search is ON — click to disable' : 'Web search is OFF — click to enable';
+  syncToolsIndicator();
 }
 
 // Quick per-conversation toggle (the globe button). Persists immediately so it survives reload.
@@ -2919,6 +3020,7 @@ function syncThinkingUI() {
   btn.classList.toggle('active', on);
   btn.setAttribute('aria-pressed', on ? 'true' : 'false');
   btn.title = on ? 'Deep thinking is ON — click to disable' : 'Deep thinking is OFF — click to enable';
+  syncToolsIndicator();
 }
 
 function toggleThinkingQuick() {
@@ -3030,11 +3132,27 @@ async function sendMessage() {
 
   const _trainingFiles = Array.isArray(window._TRAINING_FILES_ACTIVE) ? window._TRAINING_FILES_ACTIVE : [];
   const _trainingNotes = window._TRAINING_NOTES_ACTIVE || '';
+  let _retrievedCount = 0, _totalChunkCount = 0;
   if (_trainingFiles.length || _trainingNotes) {
     let trainingBlock = '\n\n## Training Reference Material\nThe user has provided the following reference material. Use it as authoritative background knowledge when relevant.\n';
     if (_trainingNotes) trainingBlock += `\n### Instructions\n${_trainingNotes}\n`;
+
+    // Retrieval: score every chunk against the user's message via TF-IDF +
+    // cosine similarity (plain JS, no embedding model/network call) and keep
+    // only the top-K most relevant, instead of dumping whole files.
+    const allChunks = [];
     for (const f of _trainingFiles) {
-      trainingBlock += `\n### File: ${f.name}\n${f.content}\n`;
+      const fileChunks = (f.chunks && f.chunks.length) ? f.chunks : window.BarangayRAG.chunkText(f.content);
+      for (const chunkStr of fileChunks) allChunks.push({ file: f.name, text: chunkStr });
+    }
+    _totalChunkCount = allChunks.length;
+
+    if (allChunks.length) {
+      const top = window.BarangayRAG.retrieveTopChunks(text, allChunks);
+      _retrievedCount = top.length;
+      for (const c of top) {
+        trainingBlock += `\n### From: ${c.file}\n${c.text}\n`;
+      }
     }
     systemPrompt += trainingBlock;
   }
@@ -3042,8 +3160,9 @@ async function sendMessage() {
   if (_trainingFiles.length || _trainingNotes) {
     const fileCount = _trainingFiles.length;
     const noteLabel = _trainingNotes ? ' + notes' : '';
-    updateThinkingStep('files', 'done', `Knowledge base loaded · ${fileCount} file${fileCount !== 1 ? 's' : ''}${noteLabel}`);
-    if (window._setEduCard) window._setEduCard('📂', `${fileCount} knowledge file${fileCount !== 1 ? 's' : ''}${noteLabel} loaded — the model will use this as context when forming its answer.`);
+    const chunkLabel = _totalChunkCount ? ` · ${_retrievedCount}/${_totalChunkCount} chunks retrieved` : '';
+    updateThinkingStep('files', 'done', `Knowledge base loaded · ${fileCount} file${fileCount !== 1 ? 's' : ''}${noteLabel}${chunkLabel}`);
+    if (window._setEduCard) window._setEduCard('📂', `${fileCount} knowledge file${fileCount !== 1 ? 's' : ''}${noteLabel} loaded — retrieved the ${_retrievedCount} most relevant chunk${_retrievedCount !== 1 ? 's' : ''} (of ${_totalChunkCount}) via keyword matching for this question.`);
   }
   updateThinkingStep('context', 'done', 'Context ready');
 
@@ -3404,6 +3523,11 @@ async function sendMessage() {
 function resetWelcomeScreen() {
   const main = document.querySelector('.main');
   if (main) main.classList.add('welcome-mode');
+  // Back at the welcome screen (new chat, or the last conversation was
+  // deleted) — reopen the sidebar on desktop; it auto-collapses again once
+  // a message actually gets sent (see hideWelcome()).
+  const sb = document.getElementById('sidebar');
+  if (sb && window.innerWidth > 640) sb.classList.remove('collapsed');
   const chatArea = document.getElementById('chat-area');
   chatArea.innerHTML = '';
   const ws = document.createElement('div');

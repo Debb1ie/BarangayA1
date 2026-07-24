@@ -17,10 +17,17 @@
 <style>
   :root {
     --dc-blue: #0057B8;
-    --dc-blue-dark: #003D82;
-    --dc-blue-deeper: #00265A;
-    --dc-blue-light: #E8F1FD;
-    --dc-blue-mid: #1A6FCC;
+    /* Shades/tints below are all derived from --dc-blue via color-mix (read
+       live at paint time), tuned to match the original fixed hex values
+       exactly when --dc-blue is the default. A brand-color swatch pick
+       therefore relights every hover/border/shadow/sidebar-bg that uses
+       them too, instead of leaving 60+ spots stuck on the original blue. */
+    --dc-blue-dark: color-mix(in srgb, var(--dc-blue) 70%, black);
+    --dc-blue-deeper: color-mix(in srgb, var(--dc-blue) 45%, black);
+    --dc-blue-light: color-mix(in srgb, var(--dc-blue) 10%, white);
+    --dc-blue-mid: color-mix(in srgb, var(--dc-blue) 85%, white);
+    --dc-blue-tint: color-mix(in srgb, var(--dc-blue) 65%, white);
+    --dc-blue-tint-light: color-mix(in srgb, var(--dc-blue) 45%, white);
     --dc-accent: #00A8E8;
     --dc-accent-light: #E0F5FC;
     --bg-primary: #F7F9FC;
@@ -39,31 +46,52 @@
     --radius-md: 14px;
     --radius-lg: 20px;
     --sidebar-w: 260px;
-    --header-h: 58px;
-    --shadow-card: 0 2px 12px rgba(0,87,184,0.08);
-    --shadow-input: 0 2px 20px rgba(0,87,184,0.12);
+    --header-h: 92px;
+    --shadow-card: 0 2px 12px color-mix(in srgb, var(--dc-blue) 8%, transparent);
+    --shadow-input: 0 2px 20px color-mix(in srgb, var(--dc-blue) 12%, transparent);
   }
 
+  /* DEVCON 17 dark theme — deep indigo/violet void (poster background) with
+     the brand blue kept for interactive elements; gold is a sparing accent
+     for special highlights, echoing the poster's "17" star. */
   [data-theme="dark"] {
-    --bg-primary: #050D1A;
-    --bg-panel: #0D1B30;
-    --bg-sidebar: #020810;
-    --text-primary: #D6E8FF;
-    --text-secondary: #7A9BBF;
-    --text-muted: #3E5A7A;
-    --border: #1A2E4A;
-    --border-light: #0F2040;
+    --bg-primary: #0A0818;
+    --bg-panel: #150F28;
+    --bg-sidebar: #08061A;
+    --text-primary: #ECE9FA;
+    --text-secondary: #9089B8;
+    --text-muted: #4D4570;
+    --border: #2A2450;
+    --border-light: #1C1638;
     --user-bubble: var(--dc-blue);
-    --ai-bubble: #0D1B30;
-    --dc-blue-light: #0A1F40;
-    --dc-accent-light: #051830;
+    --ai-bubble: #150F28;
+    --dc-blue-light: color-mix(in srgb, var(--dc-blue) 25%, var(--bg-panel));
+    --dc-accent-light: #170F30;
+    --dc-gold: #FFC93C;
+    --dc-violet: #7C5CFF;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* Soft violet/blue/gold glow over the void — same atmosphere as the DEVCON
+     17 poster, kept subtle so text and cards stay the primary focus. */
+  [data-theme="dark"] body {
+    background:
+      radial-gradient(1100px 750px at 12% -8%, rgba(124,92,255,0.22), transparent 60%),
+      radial-gradient(950px 700px at 92% 8%, rgba(0,168,232,0.16), transparent 55%),
+      radial-gradient(900px 800px at 50% 115%, rgba(255,201,60,0.05), transparent 60%),
+      var(--bg-primary);
+  }
+
+  /* Light mode gets the same layered-glow treatment, tuned to a whisper in
+     brand blue/gold so white panels and text stay crisp on top of it. */
   body {
     font-family: var(--font-main);
-    background: var(--bg-primary);
+    background:
+      radial-gradient(1100px 750px at 12% -8%, color-mix(in srgb, var(--dc-blue) 5%, transparent), transparent 60%),
+      radial-gradient(950px 700px at 92% 8%, rgba(0,168,232,0.06), transparent 55%),
+      radial-gradient(900px 800px at 50% 115%, rgba(255,201,60,0.035), transparent 60%),
+      var(--bg-primary);
     color: var(--text-primary);
     height: 100dvh;
     display: flex;
@@ -71,15 +99,20 @@
     transition: background 0.3s, color 0.3s;
   }
 
-  /* SIDEBAR */
+  /* SIDEBAR — floats as a rounded card next to the icon rail on desktop
+     (mobile keeps the old full-bleed square-cornered drawer, see below) */
   .sidebar {
     width: var(--sidebar-w);
     background: var(--bg-sidebar);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    border-right: 1px solid rgba(255,255,255,0.06);
-    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), width 0.25s ease;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-left: none;
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    margin: 10px 10px 10px 0;
+    overflow: hidden;
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), width 0.25s ease, margin 0.25s ease;
     z-index: 100;
   }
   /* Desktop collapse: the icon-rail is the persistent nav, so the sidebar
@@ -87,7 +120,8 @@
   .sidebar.collapsed {
     width: 0;
     min-width: 0;
-    border-right: none;
+    margin: 10px 0;
+    border: none;
     overflow: hidden;
   }
   .sidebar.collapsed .brand-text,
@@ -119,7 +153,6 @@
   .brand-logo {
     width: 34px;
     height: 34px;
-    background: linear-gradient(135deg, var(--dc-blue), var(--dc-accent));
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -129,6 +162,19 @@
     color: white;
     letter-spacing: -0.5px;
     flex-shrink: 0;
+  }
+  /* Every DEVCON logo/avatar/CTA that uses the brand gradient — kept in one
+     place so light mode's 2-stop blue→accent and dark mode's 3-stop
+     blue→violet→gold both apply everywhere consistently, not just here. */
+  .brand-logo, .welcome-icon, .avatar.ai, .modal-logo, .dc-brand-gradient {
+    background: linear-gradient(135deg, var(--dc-blue), var(--dc-accent));
+  }
+  [data-theme="dark"] .brand-logo,
+  [data-theme="dark"] .welcome-icon,
+  [data-theme="dark"] .avatar.ai,
+  [data-theme="dark"] .modal-logo,
+  [data-theme="dark"] .dc-brand-gradient {
+    background: linear-gradient(135deg, var(--dc-blue) 0%, var(--dc-violet) 65%, var(--dc-gold) 130%);
   }
 
   .brand-text { flex: 1; overflow: hidden; }
@@ -153,7 +199,7 @@
     background: color-mix(in srgb, var(--dc-blue) 25%, transparent);
     border: 1px solid color-mix(in srgb, var(--dc-blue) 40%, transparent);
     border-radius: var(--radius-sm);
-    color: #7EB8FF;
+    color: var(--dc-blue-tint);
     font-size: 12.5px;
     font-weight: 600;
     font-family: var(--font-main);
@@ -166,7 +212,7 @@
   }
   .new-chat-btn:hover {
     background: color-mix(in srgb, var(--dc-blue) 40%, transparent);
-    color: #AACFFF;
+    color: var(--dc-blue-tint-light);
   }
   .new-chat-btn svg { flex-shrink: 0; }
 
@@ -203,7 +249,7 @@
     user-select: none;
   }
   .history-item:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.8); }
-  .history-item.active { background: color-mix(in srgb, var(--dc-blue) 20%, transparent); color: #7EB8FF; }
+  .history-item.active { background: color-mix(in srgb, var(--dc-blue) 20%, transparent); color: var(--dc-blue-tint); }
   .history-item svg { flex-shrink: 0; opacity: 0.6; }
   .history-item-title {
     flex: 1;
@@ -226,7 +272,7 @@
   }
   .history-item.active .history-item-badge {
     background: color-mix(in srgb, var(--dc-blue) 35%, transparent);
-    color: rgba(126,184,255,0.8);
+    color: color-mix(in srgb, var(--dc-blue-tint) 80%, transparent);
   }
   .history-item-delete {
     flex-shrink: 0;
@@ -281,51 +327,84 @@
     position: relative;
   }
 
-  /* HEADER */
+  /* HEADER — only shown once a conversation is active; the welcome/main
+     screen stays clean with no header bar (and thus no Back button either,
+     since it lives inside it). */
   .header {
     height: var(--header-h);
     background: var(--bg-panel);
     border-bottom: 1px solid var(--border-light);
     display: flex;
     align-items: center;
-    padding: 0 16px;
-    gap: 10px;
+    padding: 0 28px;
+    gap: 18px;
     flex-shrink: 0;
   }
+  .main.welcome-mode .header { display: none; }
 
-  .hamburger {
-    width: 34px; height: 34px;
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 3px;
     border: none;
     background: none;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 7px 11px 7px 7px;
     border-radius: 8px;
     color: var(--text-secondary);
-    transition: background 0.15s;
+    font-family: var(--font-main);
+    font-size: 13px;
+    font-weight: 600;
+    transition: background 0.15s, color 0.15s;
     flex-shrink: 0;
   }
-  .hamburger:hover { background: var(--border-light); }
+  .back-btn:hover { background: var(--border-light); color: var(--text-primary); }
 
   .header-title {
     flex: 1;
     min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
   .header-title h1 {
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
     color: var(--text-primary);
     line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  /* Click-to-rename: subtle hover hint, clear focus ring while editing */
+  .header-title h1[contenteditable="true"] {
+    cursor: text;
+    border-radius: 6px;
+    padding: 2px 7px;
+    margin: -2px -7px;
+    outline: none;
+    transition: background 0.15s;
+  }
+  .header-title h1[contenteditable="true"]:hover { background: var(--border-light); }
+  .header-title h1[contenteditable="true"]:focus {
+    background: var(--bg-primary);
+    box-shadow: 0 0 0 2px var(--dc-blue);
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
   .header-title p {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-weight: 400;
-    margin-top: 1px;
+    flex-shrink: 0;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 11px;
+    white-space: nowrap;
+    margin-top: 0;
   }
 
   .header-actions {
@@ -531,6 +610,22 @@
   .chat-area::-webkit-scrollbar { width: 4px; }
   .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
+  /* Fade scrim sitting between the scroll area and the floating input bar —
+     messages dissolve into the background as they scroll under it instead
+     of ending in a hard seam right at the box's edge. */
+  .chat-fade {
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 150px;
+    background: linear-gradient(to bottom, transparent, var(--bg-primary) 70%);
+    pointer-events: none;
+    z-index: 5;
+  }
+  .main:not(.welcome-mode) .chat-fade { display: block; }
+
   /* WELCOME */
   .welcome-screen {
     flex: 1;
@@ -545,7 +640,6 @@
 
   .welcome-icon {
     width: 56px; height: 56px;
-    background: linear-gradient(135deg, var(--dc-blue), var(--dc-accent));
     border-radius: 16px;
     display: flex;
     align-items: center;
@@ -554,7 +648,7 @@
     font-weight: 800;
     color: white;
     letter-spacing: -1px;
-    box-shadow: 0 8px 28px rgba(0,87,184,0.28);
+    box-shadow: 0 8px 28px color-mix(in srgb, var(--dc-blue) 28%, transparent);
     flex-shrink: 0;
   }
 
@@ -618,7 +712,7 @@
     color: var(--dc-blue);
     background: var(--dc-blue-light);
     transform: translateY(-1px);
-    box-shadow: 0 3px 12px rgba(0,87,184,0.1);
+    box-shadow: 0 3px 12px color-mix(in srgb, var(--dc-blue) 10%, transparent);
   }
   [data-theme="dark"] .suggestion-chip:hover {
     border-color: var(--dc-accent);
@@ -695,7 +789,6 @@
     letter-spacing: -0.3px;
   }
   .avatar.ai {
-    background: linear-gradient(135deg, var(--dc-blue), var(--dc-accent));
     color: white;
   }
   .avatar.user {
@@ -744,7 +837,7 @@
   .bubble code {
     font-family: var(--font-mono);
     font-size: 11.5px;
-    background: rgba(0,87,184,0.08);
+    background: color-mix(in srgb, var(--dc-blue) 8%, transparent);
     padding: 1px 5px;
     border-radius: 4px;
     color: var(--dc-blue);
@@ -771,7 +864,7 @@
     border-radius: 0 6px 6px 0;
     font-size: 13px;
   }
-  [data-theme="dark"] .bubble blockquote { background: rgba(0,87,184,0.1); }
+  [data-theme="dark"] .bubble blockquote { background: color-mix(in srgb, var(--dc-blue) 10%, transparent); }
 
   /* CODE BLOCK */
   .code-block { margin: 8px 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-light); }
@@ -801,7 +894,7 @@
     cursor: pointer;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
   }
-  .code-copy-btn:hover { background: rgba(0,87,184,0.08); color: var(--dc-blue); border-color: rgba(0,87,184,0.2); }
+  .code-copy-btn:hover { background: color-mix(in srgb, var(--dc-blue) 8%, transparent); color: var(--dc-blue); border-color: color-mix(in srgb, var(--dc-blue) 20%, transparent); }
   [data-theme="dark"] .code-copy-btn:hover { background: rgba(255,255,255,0.08); color: var(--dc-accent); border-color: rgba(255,255,255,0.15); }
   .code-copy-btn.copied { color: #1a8754; background: rgba(26,135,84,0.1); border-color: rgba(26,135,84,0.25); }
   .code-copy-btn svg { flex-shrink: 0; }
@@ -828,7 +921,7 @@
   }
   .bubble tr:last-child td { border-bottom: none; }
   .bubble tbody tr:nth-child(even) td { background: rgba(0,0,0,0.02); }
-  [data-theme="dark"] .bubble th { background: rgba(0,87,184,0.18); color: var(--dc-accent); }
+  [data-theme="dark"] .bubble th { background: color-mix(in srgb, var(--dc-blue) 18%, transparent); color: var(--dc-accent); }
   [data-theme="dark"] .bubble tbody tr:nth-child(even) td { background: rgba(255,255,255,0.03); }
 
   .message-time {
@@ -1098,7 +1191,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     padding: 13px 15px 11px;
-    box-shadow: 0 8px 32px rgba(0,87,184,0.18), 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--dc-blue) 18%, transparent), 0 2px 8px rgba(0,0,0,0.06);
     animation: statsPop 0.16s cubic-bezier(0.4,0,0.2,1);
   }
   [data-theme="dark"] .msg-stats-popover {
@@ -1181,38 +1274,27 @@
   }
   [data-theme="dark"] .source-chip { color: var(--dc-accent); }
 
-  /* INPUT */
+  /* INPUT — floats as a centered card in both welcome AND active-chat
+     state (previously only welcome mode floated; the docked chat-mode bar
+     now gets the same lift/rounding/shadow instead of sitting flush). */
   .input-area {
     padding: 10px 14px 14px;
     background: var(--bg-panel);
-    border-top: 1px solid var(--border-light);
-    border-left: 1.5px solid transparent;
-    border-right: 1.5px solid transparent;
-    border-bottom: 1.5px solid transparent;
+    border: 1.5px solid var(--border);
     flex-shrink: 0;
     position: absolute;
-    left: 0;
-    right: 0;
+    left: 50%;
+    width: calc(100% - 40px);
+    max-width: 760px;
+    transform: translateX(-50%);
+    margin: 0 0 20px;
     bottom: 0;
     z-index: 10;
-    transition: margin 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-                border-radius 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-                border-color 0.3s ease,
-                border-top-color 0.3s ease,
-                box-shadow 0.4s ease;
-  }
-
-  /* Floating state (welcome mode) — input lifts off the bottom with margins */
-  .main.welcome-mode .input-area {
-    margin: 0 20px 20px;
     border-radius: var(--radius-lg);
-    border-top-color: var(--border);
-    border-left-color: var(--border);
-    border-right-color: var(--border);
-    border-bottom-color: var(--border);
-    box-shadow: 0 8px 40px rgba(0,87,184,0.15), 0 2px 8px rgba(0,87,184,0.08);
+    box-shadow: 0 8px 40px color-mix(in srgb, var(--dc-blue) 15%, transparent), 0 2px 8px color-mix(in srgb, var(--dc-blue) 8%, transparent);
+    transition: border-color 0.3s ease, box-shadow 0.4s ease;
   }
-  [data-theme="dark"] .main.welcome-mode .input-area {
+  [data-theme="dark"] .input-area {
     box-shadow: 0 8px 40px rgba(0,168,232,0.1), 0 2px 8px rgba(0,0,0,0.2);
   }
   /* Hide footer details when floating — keep it compact like Gemini */
@@ -1220,29 +1302,30 @@
     display: none;
   }
 
-  /* Chat mode: leave room for the fixed input bar */
+  /* Chat mode: leave room for the floating input bar (+ its bottom margin) */
   .main:not(.welcome-mode) .chat-area {
-    padding-bottom: 180px;
+    padding-bottom: 200px;
   }
 
   .input-box {
     background: var(--bg-primary);
     border: 1.5px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: 8px 8px 8px 14px;
+    padding: 8px;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     gap: 8px;
     transition: border-color 0.2s, box-shadow 0.2s;
     box-shadow: var(--shadow-input);
   }
   .input-box:focus-within {
     border-color: var(--dc-blue);
-    box-shadow: 0 0 0 3px rgba(0,87,184,0.1), var(--shadow-input);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--dc-blue) 10%, transparent), var(--shadow-input);
   }
 
   #message-input {
     flex: 1;
+    min-width: 0;
     border: none;
     background: none;
     font-family: var(--font-main);
@@ -1252,15 +1335,30 @@
     outline: none;
     min-height: 22px;
     max-height: 120px;
+    overflow-y: auto;
+    overflow-x: hidden;
     line-height: 1.5;
     padding: 2px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
-  #message-input::placeholder { color: var(--text-muted); }
+  #message-input::-webkit-scrollbar { width: 4px; }
+  #message-input::-webkit-scrollbar-track { background: transparent; }
+  #message-input::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  #message-input::-webkit-scrollbar-button { display: none; }
+  /* Placeholder hints stay single-line (like Gemini's "Ask Gemini") — real typed
+     text still wraps/scrolls normally when it grows past one row. */
+  #message-input::placeholder {
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   .input-actions {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     flex-shrink: 0;
   }
 
@@ -1277,6 +1375,8 @@
     flex-shrink: 0;
   }
   .send-btn:hover { background: var(--dc-blue-dark); transform: scale(1.04); }
+  [data-theme="dark"] .send-btn { background: linear-gradient(135deg, var(--dc-blue) 0%, var(--dc-violet) 65%, var(--dc-gold) 130%); }
+  [data-theme="dark"] .send-btn:hover { background: linear-gradient(135deg, var(--dc-blue-dark) 0%, var(--dc-violet) 65%, var(--dc-gold) 130%); }
   .send-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
   /* Stop / cancel state while the model is generating */
   .send-btn.stop { background: #DC2626; }
@@ -1302,11 +1402,11 @@
     gap: 5px;
     text-align: center;
     font-size: 10px;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     margin-top: 6px;
     letter-spacing: 0.1px;
   }
-  .input-tip-dot { opacity: 0.35; }
+  .input-tip-dot { opacity: 0.5; }
   .tip-badge {
     display: inline-flex;
     align-items: center;
@@ -1328,6 +1428,7 @@
     align-items: center;
     gap: 4px;
     padding: 5px 12px;
+    margin-left: 4px;
     background: transparent;
     border: 1.5px solid var(--border);
     border-radius: 20px;
@@ -1355,55 +1456,85 @@
   .model-select-btn:hover svg { opacity: 1; }
   .model-select-btn.open svg { transform: rotate(180deg); }
 
-  /* Web search toggle (globe) — sits next to the model picker / send button */
-  .web-search-btn {
-    width: 36px; height: 36px;
+  /* TOOLS MENU (Gemini "+" style) — collapses sources/thinking/web-search into one button */
+  .tools-wrap { position: relative; flex-shrink: 0; }
+
+  .tools-btn {
+    width: 34px; height: 34px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: transparent;
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
+    border: none;
+    border-radius: 50%;
     cursor: pointer;
-    color: var(--text-secondary);
+    color: var(--text-muted);
     transition: all 0.15s;
-    flex-shrink: 0;
+    position: relative;
   }
-  .web-search-btn:hover {
-    border-color: var(--dc-blue);
+  .tools-btn:hover, .tools-btn.open {
+    background: var(--dc-blue-light);
     color: var(--dc-blue);
   }
-  .web-search-btn.active {
-    background: var(--dc-blue);
-    border-color: var(--dc-blue);
-    color: #fff;
+  [data-theme="dark"] .tools-btn:hover, [data-theme="dark"] .tools-btn.open {
+    background: var(--dc-accent-light);
+    color: var(--dc-accent);
   }
-  .web-search-btn.active:hover { background: var(--dc-blue-dark); }
+  .tools-dot {
+    position: absolute;
+    top: 3px; right: 3px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--dc-blue);
+    border: 1.5px solid var(--bg-primary);
+    display: none;
+  }
+  .tools-btn.has-active .tools-dot { display: block; }
 
-  /* Thinking toggle (brain) — sits next to the web-search globe */
-  .thinking-btn {
-    width: 36px; height: 36px;
+  .tools-dropdown {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    background: var(--bg-panel);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+    padding: 6px;
+    width: 200px;
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 20;
+    animation: dropdownIn 0.15s ease;
+  }
+  .tools-dropdown.open { display: flex; }
+
+  .tools-item {
     display: flex;
     align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
+    gap: 9px;
+    padding: 8px 9px;
+    border: none;
+    background: none;
+    border-radius: 8px;
     cursor: pointer;
-    color: var(--text-secondary);
-    transition: all 0.15s;
-    flex-shrink: 0;
+    font-family: var(--font-main);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-primary);
+    text-align: left;
+    width: 100%;
+    transition: background 0.12s;
   }
-  .thinking-btn:hover {
-    border-color: #7c3aed;
-    color: #7c3aed;
-  }
-  .thinking-btn.active {
-    background: #7c3aed;
-    border-color: #7c3aed;
-    color: #fff;
-  }
-  .thinking-btn.active:hover { background: #6d28d9; }
+  .tools-item:hover { background: var(--bg-primary); }
+  .tools-item-ico { flex-shrink: 0; display: flex; opacity: 0.75; }
+  .tools-item-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tools-item-check { flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--dc-blue); opacity: 0; }
+  .tools-item.active { background: var(--dc-blue-light); color: var(--dc-blue); }
+  .tools-item.active .tools-item-ico { opacity: 1; }
+  .tools-item.active .tools-item-check { opacity: 1; }
+  [data-theme="dark"] .tools-item.active { background: var(--dc-accent-light); color: var(--dc-accent); }
+  [data-theme="dark"] .tools-item.active .tools-item-check { color: var(--dc-accent); }
 
   /* Web sources card — shown under answers that used web search */
   .web-sources {
@@ -1522,6 +1653,10 @@
   }
   .model-dd-list { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow-y: auto; }
   .model-dd-empty { padding: 10px 6px; font-size: 12px; color: var(--text-muted); text-align: center; }
+  .model-dd-demo-note { padding: 4px 8px 6px; font-size: 10.5px; color: var(--text-muted); text-align: left; }
+  .model-dropdown-opt.demo { border: 1px dashed var(--border); opacity: 0.85; }
+  .model-dropdown-opt.demo:hover { background: var(--bg-primary); opacity: 1; }
+  .model-dropdown-opt.demo .model-dd-endpoint { font-style: italic; }
   .model-dropdown-opt {
     display: flex;
     align-items: center;
@@ -1894,13 +2029,15 @@
     .sidebar {
       position: fixed;
       left: 0; top: 0; bottom: 0;
+      margin: 0;
+      border-radius: 0;
+      border: none;
       transform: translateX(-100%);
     }
     .sidebar.open { transform: translateX(0); }
 
     .sidebar-overlay.visible { display: block; }
 
-    .hamburger { display: flex; }
     .suggestion-grid { grid-template-columns: 1fr; max-width: 100%; }
     .welcome-title { font-size: 18px; }
     .chat-area { padding: 14px 12px; }
@@ -1916,7 +2053,7 @@
     margin: 0 0 4px;
     padding: 8px 12px;
     background: var(--dc-blue-light);
-    border: 1px solid rgba(0,87,184,0.2);
+    border: 1px solid color-mix(in srgb, var(--dc-blue) 20%, transparent);
     border-radius: var(--radius-sm);
     font-size: 11.5px;
     color: var(--dc-blue);
@@ -2076,7 +2213,7 @@
     align-items: center;
     gap: 5px;
     background: var(--dc-blue-light);
-    border: 1px solid rgba(0,87,184,0.18);
+    border: 1px solid color-mix(in srgb, var(--dc-blue) 18%, transparent);
     border-radius: 20px;
     padding: 4px 11px 4px 8px;
     font-size: 11px;
@@ -2086,8 +2223,8 @@
     white-space: nowrap;
   }
   [data-theme="dark"] .trust-pill {
-    background: rgba(0,87,184,0.15);
-    border-color: rgba(0,87,184,0.3);
+    background: color-mix(in srgb, var(--dc-blue) 15%, transparent);
+    border-color: color-mix(in srgb, var(--dc-blue) 30%, transparent);
     color: var(--dc-accent);
   }
 
@@ -2125,31 +2262,11 @@
     align-items: center;
     gap: 6px;
     font-size: 9.5px;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     line-height: 1.4;
     justify-content: center;
     flex-wrap: wrap;
     text-align: center;
-  }
-  .legal-verify {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    background: #FEF9C3;
-    border: 1px solid #FDE68A;
-    color: #854D0E;
-    border-radius: 4px;
-    padding: 1px 5px;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-  [data-theme="dark"] .legal-verify {
-    background: rgba(133,77,14,0.2);
-    border-color: rgba(133,77,14,0.4);
-    color: #FCD34D;
   }
   .legal-about-btn {
     background: none;
@@ -2203,7 +2320,6 @@
   }
   .modal-logo {
     width: 46px; height: 46px;
-    background: linear-gradient(135deg, var(--dc-blue), var(--dc-accent));
     border-radius: 13px;
     display: flex;
     align-items: center;
@@ -2213,7 +2329,7 @@
     color: white;
     letter-spacing: -0.5px;
     flex-shrink: 0;
-    box-shadow: 0 6px 20px rgba(0,87,184,0.3);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--dc-blue) 30%, transparent);
   }
   .modal-header-text { flex: 1; }
   .modal-header-text h2 {
@@ -2333,7 +2449,7 @@
 
   .modal-highlight {
     background: var(--dc-blue-light);
-    border: 1px solid rgba(0,87,184,0.15);
+    border: 1px solid color-mix(in srgb, var(--dc-blue) 15%, transparent);
     border-radius: 10px;
     padding: 12px 14px;
     margin-bottom: 14px;
@@ -2345,7 +2461,7 @@
     gap: 9px;
     align-items: flex-start;
   }
-  [data-theme="dark"] .modal-highlight { color: var(--dc-accent); background: rgba(0,87,184,0.1); border-color: rgba(0,87,184,0.2); }
+  [data-theme="dark"] .modal-highlight { color: var(--dc-accent); background: color-mix(in srgb, var(--dc-blue) 10%, transparent); border-color: color-mix(in srgb, var(--dc-blue) 20%, transparent); }
   .modal-highlight svg { flex-shrink: 0; margin-top: 2px; }
 
   .stack-grid {
@@ -2372,7 +2488,7 @@
   }
   [data-theme="dark"] a.stack-item:hover {
     border-color: var(--dc-accent);
-    background: rgba(0,87,184,0.12);
+    background: color-mix(in srgb, var(--dc-blue) 12%, transparent);
   }
   .stack-link {
     color: var(--dc-blue);
@@ -2383,7 +2499,7 @@
   }
   .stack-link:hover { color: var(--dc-blue-dark); }
   [data-theme="dark"] .stack-link { color: var(--dc-accent); }
-  [data-theme="dark"] .stack-link:hover { color: #7EB8FF; }
+  [data-theme="dark"] .stack-link:hover { color: var(--dc-blue-tint); }
   .stack-icon {
     width: 28px; height: 28px;
     border-radius: 8px;
@@ -2721,11 +2837,11 @@
     font-size: 10px; font-weight: 800; letter-spacing: 0.3px;
     color: var(--dc-blue);
     background: var(--dc-blue-light);
-    border: 1px solid rgba(0,87,184,0.2);
+    border: 1px solid color-mix(in srgb, var(--dc-blue) 20%, transparent);
     border-radius: 6px;
     padding: 3px 7px;
   }
-  [data-theme="dark"] .gp-chip { color: var(--dc-accent); background: rgba(0,87,184,0.15); }
+  [data-theme="dark"] .gp-chip { color: var(--dc-accent); background: color-mix(in srgb, var(--dc-blue) 15%, transparent); }
   .gp-chip.pre { color: var(--text-muted); background: var(--bg-secondary); border-color: var(--border-light); }
   .gp-page-sub { font-size: 12px; color: var(--text-muted); line-height: 1.55; margin-bottom: 14px; }
   .gp-map-row {
@@ -2875,7 +2991,7 @@
     width: 22px; height: 22px;
     border-radius: 50%;
     background: var(--dc-blue-light);
-    border: 1px solid rgba(0,87,184,0.2);
+    border: 1px solid color-mix(in srgb, var(--dc-blue) 20%, transparent);
     color: var(--dc-blue);
     font-size: 11px;
     font-weight: 800;
@@ -2884,7 +3000,7 @@
     justify-content: center;
     margin-top: 1px;
   }
-  [data-theme="dark"] .guide-step-num { color: var(--dc-accent); background: rgba(0,87,184,0.15); }
+  [data-theme="dark"] .guide-step-num { color: var(--dc-accent); background: color-mix(in srgb, var(--dc-blue) 15%, transparent); }
   .guide-step-body { flex: 1; min-width: 0; }
   .guide-step-body b {
     display: block;
@@ -3055,7 +3171,7 @@
   .settings-header-icon {
     width: 38px; height: 38px;
     background: var(--dc-blue-light);
-    border: 1px solid rgba(0,87,184,0.18);
+    border: 1px solid color-mix(in srgb, var(--dc-blue) 18%, transparent);
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -3063,7 +3179,7 @@
     color: var(--dc-blue);
     flex-shrink: 0;
   }
-  [data-theme="dark"] .settings-header-icon { background: rgba(0,87,184,0.15); color: var(--dc-accent); }
+  [data-theme="dark"] .settings-header-icon { background: color-mix(in srgb, var(--dc-blue) 15%, transparent); color: var(--dc-accent); }
   .settings-header-text { flex: 1; }
   .settings-header-text h2 {
     font-size: 15px;
@@ -3337,7 +3453,7 @@
   .lang-badge.soon { background: #FDE68A; color: #78350F; }
   .lang-chip.active .lang-badge.beta { background: rgba(255,255,255,0.25); color: #fff; }
 
-  #training-dropzone:hover, #training-dropzone.drag { border-color: var(--dc-blue); color: var(--text-primary); background: rgba(0,87,184,0.04); }
+  #training-dropzone:hover, #training-dropzone.drag { border-color: var(--dc-blue); color: var(--text-primary); background: color-mix(in srgb, var(--dc-blue) 4%, transparent); }
   .training-file-item {
     display: flex; align-items: center; gap: 10px;
     padding: 8px 10px; border: 1px solid var(--border-light); border-radius: 8px;
@@ -3384,7 +3500,7 @@
   .preview-avatar {
     width: 42px; height: 42px;
     border-radius: 12px;
-    background: linear-gradient(135deg, #0057B8 0%, #0057B8bb 100%);
+    background: linear-gradient(135deg, var(--dc-blue) 0%, color-mix(in srgb, var(--dc-blue) 73%, transparent) 100%);
     color: #fff;
     font-size: 14px;
     font-weight: 800;
@@ -3453,7 +3569,7 @@
     border-color: var(--dc-blue);
     color: var(--dc-blue);
   }
-  [data-theme="dark"] .tone-preset-chip.active { background: rgba(0,87,184,0.18); }
+  [data-theme="dark"] .tone-preset-chip.active { background: color-mix(in srgb, var(--dc-blue) 18%, transparent); }
 
   /* ── ICON RAIL ────────────────────────────────────────────────────── */
   .icon-rail {
@@ -3501,7 +3617,6 @@
 
   /* Rail replaces these header buttons on desktop */
   @media (min-width: 641px) {
-    .hamburger,
     .icon-btn[title^="Camp Guide"],
     .icon-btn[title="Personalize AI"],
     .icon-btn[title="Toggle theme"] { display: none; }
@@ -3606,8 +3721,8 @@
     white-space: nowrap;
   }
   .kb-add:hover { background: var(--dc-blue-light); border-color: var(--dc-blue); }
-  [data-theme="dark"] .kb-add { color: #7EB8FF; }
-  [data-theme="dark"] .kb-add:hover { background: rgba(0,87,184,0.18); }
+  [data-theme="dark"] .kb-add { color: var(--dc-blue-tint); }
+  [data-theme="dark"] .kb-add:hover { background: color-mix(in srgb, var(--dc-blue) 18%, transparent); }
   .kb-list {
     overflow-y: auto;
     flex: 1;
@@ -3677,27 +3792,6 @@
     cursor: pointer;
     flex-shrink: 0;
   }
-
-  /* ── COMPOSER SOURCES CHIP ────────────────────────────────────────── */
-  .kb-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    border: 1px solid var(--border);
-    border-radius: 100px;
-    background: var(--dc-blue-light);
-    color: var(--dc-blue);
-    font-family: var(--font-main);
-    font-size: 11px;
-    font-weight: 700;
-    padding: 6px 11px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.15s;
-    flex-shrink: 0;
-  }
-  .kb-chip:hover { border-color: var(--dc-blue); }
-  [data-theme="dark"] .kb-chip { background: rgba(0,87,184,0.2); color: #7EB8FF; }
 
   /* ── FLAT, DOCUMENT-STYLE ANSWERS (Study 2) ──────────────────────── */
   .bubble.ai {
@@ -3856,12 +3950,13 @@
 <!-- MAIN -->
 <main class="main welcome-mode" id="main-area">
   <header class="header">
-    <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Toggle menu">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <button class="back-btn" id="hamburger" onclick="resetWelcomeScreen()" aria-label="Back to main screen">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back
     </button>
 
     <div class="header-title">
-      <h1 id="chat-title">DEVCON BARANGAY AI CODE CAMPS</h1>
+      <h1 id="chat-title" contenteditable="true" spellcheck="false" title="Click to rename this conversation" onblur="commitTitleRename(this)" onkeydown="handleTitleKey(event, this)">DEVCON BARANGAY AI CODE CAMPS</h1>
       <p id="header-subtitle">Qwen 2.5 3B · Local</p>
     </div>
 
@@ -3869,9 +3964,6 @@
       <div class="status-chip" id="header-status-chip">
         <div class="status-dot" id="header-status-dot"></div>
         <span id="header-status-text">Ollama</span>
-      </div>
-      <div class="lang-toggle-btn" title="Reply language: English, Filipino, Bisaya, Hiligaynon, Ilocano — change in Settings" onclick="openSettings()" style="cursor:pointer">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       </div>
       <button class="icon-btn" onclick="openGuide()" title="Camp Guide — full step-by-step guidebook">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
@@ -3881,9 +3973,6 @@
       </button>
       <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
         <svg id="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-      </button>
-      <button class="icon-btn" onclick="clearChat()" title="Clear chat">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14a2,2,0,0,1-2,2H8a2,2,0,0,1-2-2L5,6"/><path d="M10,11v6M14,11v6"/><path d="M9,6V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1V6"/></svg>
       </button>
     </div>
   </header>
@@ -3920,6 +4009,8 @@
     </div>
   </div>
 
+  <div class="chat-fade" id="chat-fade" aria-hidden="true"></div>
+
   <button class="scroll-bottom-btn" id="scroll-btn" onclick="scrollToBottom()">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
   </button>
@@ -3935,6 +4026,28 @@
       <div class="model-dd-list" id="model-dd-list"></div>
     </div>
     <div class="input-box">
+      <div class="tools-wrap">
+        <button class="tools-btn" id="tools-btn" onclick="toggleToolsDropdown()" title="Tools — sources, deep thinking, web search" aria-haspopup="true" aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span class="tools-dot" id="tools-dot"></span>
+        </button>
+        <div class="tools-dropdown" id="tools-dropdown">
+          <button class="tools-item" id="kb-chip" onclick="focusSources(); closeToolsDropdown();" title="Sources grounding your answers — click to manage" style="display:none">
+            <span class="tools-item-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>
+            <span class="tools-item-label" id="kb-chip-label">0 sources</span>
+          </button>
+          <button class="tools-item" id="thinking-btn" onclick="toggleThinkingQuick()" aria-pressed="false" title="Deep thinking is OFF — click to enable">
+            <span class="tools-item-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5c0 1.5.5 2.5 1 3.5.5 1 1 2 1 3.5h6c0-1.5.5-2.5 1-3.5.5-1 1-2 1-3.5a5 5 0 0 0-5-5z"/><path d="M9 21h6"/><path d="M10 18h4"/></svg></span>
+            <span class="tools-item-label">Deep thinking</span>
+            <span class="tools-item-check">✓</span>
+          </button>
+          <button class="tools-item" id="web-search-btn" onclick="toggleWebSearchQuick()" aria-pressed="false" title="Web search is OFF — click to enable">
+            <span class="tools-item-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/></svg></span>
+            <span class="tools-item-label">Web search</span>
+            <span class="tools-item-check">✓</span>
+          </button>
+        </div>
+      </div>
       <textarea
         id="message-input"
         placeholder="Ask the DEVCON Barangay AI anything…"
@@ -3943,16 +4056,6 @@
         oninput="autoResize(this)"
       ></textarea>
       <div class="input-actions">
-        <button class="kb-chip" id="kb-chip" onclick="focusSources()" title="Sources grounding your answers — click to manage" style="display:none">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-          <span id="kb-chip-label">0 sources</span>
-        </button>
-        <button class="thinking-btn" id="thinking-btn" onclick="toggleThinkingQuick()" aria-pressed="false" title="Deep thinking is OFF — click to enable">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5c0 1.5.5 2.5 1 3.5.5 1 1 2 1 3.5h6c0-1.5.5-2.5 1-3.5.5-1 1-2 1-3.5a5 5 0 0 0-5-5z"/><path d="M9 21h6"/><path d="M10 18h4"/></svg>
-        </button>
-        <button class="web-search-btn" id="web-search-btn" onclick="toggleWebSearchQuick()" aria-pressed="false" title="Web search is OFF — click to enable">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/></svg>
-        </button>
         <button class="model-select-btn" id="model-select-btn" onclick="toggleModelDropdown()" title="Select model">
           <svg class="model-dd-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M9 15h6"/></svg>
           <span id="model-select-label">Select model</span>
@@ -3972,8 +4075,7 @@
     </div>
     <div class="legal-disclaimer">
       <div class="legal-disclaimer-inner">
-        <span class="legal-verify">⚠ Always verify</span>
-        AI can make mistakes. Double-check important information before acting on it. Do not rely on AI responses for medical, legal, or financial decisions.
+        AI can make mistakes. Verify outputs before acting on them.
       </div>
     </div>
   </div>
@@ -4452,7 +4554,7 @@ git commit -m "Make the AI mine"</code></div></div>
           About DEVCON
         </summary>
         <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
-          <div style="width:38px;height:38px;background:linear-gradient(135deg,var(--dc-blue),var(--dc-accent));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white;flex-shrink:0;letter-spacing:-0.5px">DC</div>
+          <div class="dc-brand-gradient" style="width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white;flex-shrink:0;letter-spacing:-0.5px">DC</div>
           <div>
             <div style="font-size:13.5px;font-weight:700;color:var(--text-primary);margin-bottom:3px">DEVCON Philippines</div>
             <div style="font-size:12px;color:var(--text-secondary);line-height:1.6">The Philippines&#39; largest developer community — a non-profit volunteer org that has been running tech events, code camps, and developer education since 2007.</div>
@@ -4472,7 +4574,7 @@ git commit -m "Make the AI mine"</code></div></div>
             <span>DEVCON believes the next generation of AI builders should come from the Philippines — not just use tools built elsewhere.</span>
           </div>
         </div>
-        <a href="https://devcon.ph/codecamps" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--dc-blue),var(--dc-accent));border-radius:12px;padding:14px 16px;text-decoration:none;margin-bottom:10px">
+        <a href="https://devcon.ph/codecamps" target="_blank" rel="noopener" class="dc-brand-gradient" style="display:flex;align-items:center;justify-content:space-between;border-radius:12px;padding:14px 16px;text-decoration:none;margin-bottom:10px">
           <div>
             <div style="font-size:12.5px;font-weight:800;color:white;line-height:1.4;margin-bottom:5px">19,000+ geeks · 300 student-built projects<br>deployed to production every year · nationwide</div>
             <div style="font-size:11.5px;color:rgba(255,255,255,0.85);line-height:1.55">DEVCON reaches 19,000 in-person developers through its nationwide network of community chapters — and ships 300 student-built projects deployed to production every year across the Philippines.</div>
@@ -4851,11 +4953,11 @@ git commit -m "Make the AI mine"</code></div></div>
           </label>
           <div class="color-swatch-row" id="brand-swatches">
             <button class="color-swatch active" style="background:#0057B8" data-color="#0057B8" onclick="setSwatchColor('brand','#0057B8',this)" title="DEVCON Blue"></button>
-            <button class="color-swatch" style="background:#7C3AED" data-color="#7C3AED" onclick="setSwatchColor('brand','#7C3AED',this)" title="Violet"></button>
-            <button class="color-swatch" style="background:#059669" data-color="#059669" onclick="setSwatchColor('brand','#059669',this)" title="Emerald"></button>
-            <button class="color-swatch" style="background:#DC2626" data-color="#DC2626" onclick="setSwatchColor('brand','#DC2626',this)" title="Red"></button>
-            <button class="color-swatch" style="background:#D97706" data-color="#D97706" onclick="setSwatchColor('brand','#D97706',this)" title="Amber"></button>
-            <button class="color-swatch" style="background:#0E7490" data-color="#0E7490" onclick="setSwatchColor('brand','#0E7490',this)" title="Teal"></button>
+            <button class="color-swatch" style="background:#7C5CFF" data-color="#7C5CFF" onclick="setSwatchColor('brand','#7C5CFF',this)" title="Violet"></button>
+            <button class="color-swatch" style="background:#4F46E5" data-color="#4F46E5" onclick="setSwatchColor('brand','#4F46E5',this)" title="Indigo"></button>
+            <button class="color-swatch" style="background:#C026D3" data-color="#C026D3" onclick="setSwatchColor('brand','#C026D3',this)" title="Magenta"></button>
+            <button class="color-swatch" style="background:#FFC93C" data-color="#FFC93C" onclick="setSwatchColor('brand','#FFC93C',this)" title="Gold"></button>
+            <button class="color-swatch" style="background:#0891B2" data-color="#0891B2" onclick="setSwatchColor('brand','#0891B2',this)" title="Teal"></button>
           </div>
         </div>
       </div>
@@ -5026,6 +5128,7 @@ git commit -m "Make the AI mine"</code></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
 <script src="db.js"></script>
+<script src="rag.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
