@@ -1,0 +1,702 @@
+// ── MODEL SELECTOR ────────────────────────────────────────────────────
+// host:port shown in the picker for the default local endpoint
+const MODEL_ENDPOINT = (() => {
+  try { const u = new URL(API_BASE); return u.host; } catch { return '127.0.0.1:11434'; }
+})();
+// Data-driven model registry. Each entry carries its own endpoint base + key,
+// so models added via the "Add Models" dialog (local or cloud) work too.
+// Nothing is seeded — real local models are discovered live from the endpoint
+// on startup (see initModelRegistry), and user-added endpoints are restored
+// from the DB. A spec-fit default is auto-selected once discovery finishes
+// (see initModelRegistry); the user can switch models at any time.
+let MODEL_LIST = [];
+let _modelSeq = 0;
+
+// First-run guidance only — shown in the picker when NO endpoint has been
+// added/discovered yet, so a fresh install isn't just a blank "no models"
+// dead end. Purely illustrative: not installed, not selectable as an active
+// model, and gone the moment a real endpoint/model shows up in MODEL_LIST.
+const DEMO_SUGGESTED_MODELS = [
+  { model: 'qwen2.5:3b', badge: '⭐ Recommended', cls: 'rec' },
+  { model: 'gemma3:1b' },
+  { model: 'llama3.2:1b' },
+];
+
+// Enable/disable + deletion state for the endpoint manager (persisted in the DB).
+let _DISABLED_MODELS = new Set();    // keys "base||model" that are turned off
+let _REMOVED_ENDPOINTS = new Set();  // base URLs the user deleted (skipped on discovery)
+const _EXPANDED_ENDPOINTS = new Set(); // bases whose model list is expanded in the UI (view-only)
+
+function modelKey(m) { return `${m.base}||${m.model}`; }
+
+function loadModelPrefs() {
+  if (!(window.BarangayDB && window.BarangayDB.dbGetItem)) return;
+  _DISABLED_MODELS  = new Set(window.BarangayDB.dbGetItem('disabled_models', []) || []);
+  _REMOVED_ENDPOINTS = new Set(window.BarangayDB.dbGetItem('removed_endpoints', []) || []);
+}
+function persistDisabledModels() {
+  if (window.BarangayDB && window.BarangayDB.dbSetItem) window.BarangayDB.dbSetItem('disabled_models', [..._DISABLED_MODELS]);
+}
+function persistRemovedEndpoints() {
+  if (window.BarangayDB && window.BarangayDB.dbSetItem) window.BarangayDB.dbSetItem('removed_endpoints', [..._REMOVED_ENDPOINTS]);
+}
+
+const modelIcon = '<svg class="model-dd-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M9 15h6"/></svg>';
+
+// Real vendor marks for the model families we ship logos for — matched against
+// the model tag (e.g. "qwen2.5:3b", "llama3.2:1b", "gemma3:1b"). Anything we
+// don't recognize falls back to the Ollama logo (DEFAULT_MODEL_LOGO below),
+// since every model in the picker is served through an Ollama-compatible
+// endpoint one way or another.
+const MODEL_LOGOS = [
+  { test: /qwen/i,              src: 'assets/logos/Qwen_logo.webp',        alt: 'Qwen' },
+  { test: /llama|meta-?llama/i, src: 'assets/logos/Meta_logo.png',         alt: 'Meta' },
+  { test: /gemma/i,             src: 'assets/logos/gemma_logo.png',        alt: 'Gemma' },
+  { test: /granite/i,           src: 'assets/logos/IBM_granite_logo.webp', alt: 'IBM Granite' },
+  { test: /deepseek/i,          src: 'assets/logos/deepseek_logo.png',     alt: 'DeepSeek' },
+  { test: /mistral|mixtral/i,   src: 'assets/logos/Mistral_logo.webp',     alt: 'Mistral' },
+  { test: /phi/i,                src: 'assets/logos/microsoft_logo.png',    alt: 'Microsoft Phi' },
+];
+const DEFAULT_MODEL_LOGO = { src: 'assets/logos/ollama_logo.png', alt: 'Ollama' };
+
+// Icon markup for a model row/button: a real vendor logo when we recognize the
+// family, otherwise the default Ollama mark — both sized to `size` px.
+function modelIconHtml(modelName, size) {
+  const hit = MODEL_LOGOS.find(l => l.test.test(modelName || '')) || DEFAULT_MODEL_LOGO;
+  return `<img class="model-dd-icon" width="${size}" height="${size}" src="${hit.src}" alt="${hit.alt}">`;
+}
+
+// ── PER-ENDPOINT LIVE STATUS ──────────────────────────────────────────
+// Each model dot reflects the reachability of ITS endpoint, not a single
+// global flag: green = online, red = offline, orange = checking / loading.
+const ENDPOINT_STATUS = new Map();   // base -> 'online' | 'offline' | 'checking'
+
+// Dot state for a model row:
+//   green  = endpoint online AND this is the model in use (active)
+//   orange = endpoint reachable but idle (not selected) OR still checking
+//   red    = endpoint offline
+function modelDotClass(m) {
+  const s = ENDPOINT_STATUS.get(m.base);
+  if (s === 'offline') return 'offline';
+  const inUse = window.ACTIVE_MODEL === m.model && (window.ACTIVE_BASE || API_BASE) === m.base;
+  if (s === 'online') return inUse ? 'online' : 'idle';
+  return 'checking';
+}
+function modelDotLabel(m) {
+  const s = ENDPOINT_STATUS.get(m.base);
+  if (s === 'offline') return 'Offline';
+  const inUse = window.ACTIVE_MODEL === m.model && (window.ACTIVE_BASE || API_BASE) === m.base;
+  if (s === 'online') return inUse ? 'Online · in use' : 'Idle · not in use';
+  return 'Checking…';
+}
+
+// ── MODEL PICKER BADGES + SPEC-BASED DEFAULT ─────────────────────────
+// Parse the parameter count (in billions) out of a model tag, e.g.
+// "qwen2.5:3b" → 3, "llama3.1:8b-instruct-q4" → 8. null when unknown.
+function modelParamsB(tag) {
+  const m = /(\d+(?:\.\d+)?)\s*b\b/i.exec(tag || '');
+  return m ? parseFloat(m[1]) : null;
+}
+
+// Rough memory need for a Q4 model: ~0.75 GB per B of params + 1 GB overhead
+// (same heuristic family as the onboarding recommender's needGB column).
+function modelNeedGB(tag) {
+  const p = modelParamsB(tag);
+  return p == null ? null : p * 0.75 + 1;
+}
+
+// The largest model that fits this machine's memory budget.
+// navigator.deviceMemory is capped at 8 by Chrome, which is fine — it keeps
+// the default conservative. Falls back to the smallest model when nothing fits.
+function pickDefaultModelForSpecs(rows) {
+  const pool = (rows || MODEL_LIST).filter(m => m.enabled !== false);
+  if (!pool.length) return null;
+  const sized = pool.filter(m => modelParamsB(m.model) != null)
+    .sort((a, b) => modelParamsB(a.model) - modelParamsB(b.model));
+  if (!sized.length) return pool[0];
+  const budget = (navigator.deviceMemory || 8) * 0.6;
+  const fits = sized.filter(m => modelNeedGB(m.model) <= budget);
+  return fits.length ? fits[fits.length - 1] : sized[0];
+}
+
+// Badges for the model picker: ⭐ Recommended (best spec fit), ⚡ Fastest
+// (smallest), 🧠 Smartest (biggest). One badge per model — Recommended wins.
+function computeModelBadges(rows) {
+  const badges = new Map();   // id -> {label, cls}
+  const sized = rows.filter(m => modelParamsB(m.model) != null);
+  if (!sized.length) return badges;
+  const bySize = [...sized].sort((a, b) => modelParamsB(a.model) - modelParamsB(b.model));
+  const fastest = bySize[0];
+  const smartest = bySize[bySize.length - 1];
+  const recommended = pickDefaultModelForSpecs(sized) || fastest;
+  badges.set(recommended.id, { label: '⭐ Recommended', cls: 'rec' });
+  if (!badges.has(fastest.id)) badges.set(fastest.id, { label: '⚡ Fastest', cls: 'fast' });
+  if (smartest.id !== fastest.id && !badges.has(smartest.id)) {
+    badges.set(smartest.id, { label: '🧠 Smartest', cls: 'smart' });
+  }
+  return badges;
+}
+
+// Probe one endpoint's /models and record whether it's reachable.
+async function probeEndpoint(base, key) {
+  if (!base) return;
+  if (!ENDPOINT_STATUS.has(base)) ENDPOINT_STATUS.set(base, 'checking');
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 6000);
+    const res = await fetch(`${base}/models`, {
+      headers: key ? { 'Authorization': `Bearer ${key}` } : {},
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    ENDPOINT_STATUS.set(base, res.ok ? 'online' : 'offline');
+  } catch {
+    ENDPOINT_STATUS.set(base, 'offline');
+  }
+  // Repaint the dots if the picker is currently open.
+  const dd = document.getElementById('model-dropdown');
+  if (dd && dd.classList.contains('open')) {
+    renderModelList(document.getElementById('model-dd-search')?.value || '');
+  }
+}
+
+// Probe every unique endpoint referenced by the model list.
+function refreshEndpointStatuses() {
+  const seen = new Map();   // base -> a representative key
+  for (const m of MODEL_LIST) {
+    if (m.base && !seen.has(m.base)) seen.set(m.base, m.key);
+  }
+  seen.forEach((key, base) => probeEndpoint(base, key));
+}
+
+function renderModelList(filter) {
+  const list = document.getElementById('model-dd-list');
+  if (!list) return;
+  const q = (filter || '').trim().toLowerCase();
+  const rows = MODEL_LIST.filter(m =>
+    m.enabled !== false && (!q || m.model.toLowerCase().includes(q) || m.endpoint.toLowerCase().includes(q))
+  );
+  if (!rows.length) {
+    const hasAny = MODEL_LIST.length > 0;
+    if (!hasAny) {
+      const demo = DEMO_SUGGESTED_MODELS.filter(m => !q || m.model.toLowerCase().includes(q));
+      if (demo.length) {
+        list.innerHTML = `
+          <div class="model-dd-demo-note">No models detected yet — commonly recommended for this camp:</div>
+          ${demo.map(m => `
+            <button class="model-dropdown-opt demo" onclick="showToast('Not installed yet — run: ollama pull ${escHtml(m.model)}')">
+              ${modelIconHtml(m.model, 16)}
+              <span class="model-dd-meta">
+                <span class="model-dd-name">${escHtml(m.model)}</span>
+                <span class="model-dd-endpoint">ollama pull ${escHtml(m.model)}</span>
+              </span>
+              ${m.badge ? `<span class="model-dd-badge ${m.cls}">${m.badge}</span>` : ''}
+            </button>`).join('')}
+        `;
+        return;
+      }
+    }
+    list.innerHTML = `<div class="model-dd-empty">${hasAny ? 'No models enabled — turn some on in “Add Models”' : 'No models found'}</div>`;
+    return;
+  }
+  // Badges are computed over ALL enabled models (not the filtered rows) so
+  // "Recommended" doesn't jump around while the user types in the search box.
+  const badges = computeModelBadges(MODEL_LIST.filter(m => m.enabled !== false));
+  list.innerHTML = rows.map(m => {
+    const b = badges.get(m.id);
+    return `
+    <button class="model-dropdown-opt${window.ACTIVE_MODEL === m.model ? ' active' : ''}" onclick="selectModelFromDropdown('${m.id}')">
+      ${modelIconHtml(m.model, 16)}
+      <span class="model-dd-meta">
+        <span class="model-dd-name">${escHtml(m.model)}</span>
+        <span class="model-dd-endpoint">${escHtml(m.endpoint)}</span>
+      </span>
+      ${b ? `<span class="model-dd-badge ${b.cls}">${b.label}</span>` : ''}
+      <span class="model-dd-dot ${modelDotClass(m)}" title="${modelDotLabel(m)}"></span>
+    </button>`;
+  }).join('');
+}
+
+function filterModels(value) {
+  renderModelList(value);
+}
+
+function selectModel(id, opts = {}) {
+  const m = MODEL_LIST.find(x => x.id === id);
+  if (!m) return;
+  window.ACTIVE_MODEL = m.model;
+  window.ACTIVE_BASE  = m.base || API_BASE;
+  window.ACTIVE_KEY   = m.key  || API_KEY;
+
+  // Update composer trigger label + icon (real vendor logo when recognized)
+  const labelEl = document.getElementById('model-select-label');
+  if (labelEl) labelEl.textContent = m.model;
+  const iconEl = document.getElementById('model-select-icon');
+  if (iconEl) iconEl.innerHTML = modelIconHtml(m.model, 13);
+
+  // Re-render picker rows to reflect active state
+  renderModelList(document.getElementById('model-dd-search')?.value || '');
+
+  // Update subtitle
+  const subtitle = document.getElementById('header-subtitle');
+  if (subtitle) subtitle.textContent = `${m.model} · ${m.kind === 'local' ? 'Local' : m.endpoint}`;
+
+  if (!opts.silent) showToast(`Switched to ${m.model}`);
+}
+
+// Clear the active model (e.g. after it was disabled or its endpoint deleted).
+function deselectModel() {
+  window.ACTIVE_MODEL = null;
+  const labelEl = document.getElementById('model-select-label');
+  if (labelEl) labelEl.textContent = 'Select model';
+  const iconEl = document.getElementById('model-select-icon');
+  if (iconEl) iconEl.innerHTML = modelIcon.replace(/width="16" height="16"/, 'width="13" height="13"');
+  const subtitle = document.getElementById('header-subtitle');
+  if (subtitle) {
+    subtitle.textContent = MODEL_LIST.some(m => m.enabled !== false)
+      ? 'No model selected — choose one below'
+      : 'No model available';
+  }
+}
+
+// ── ENDPOINT MANAGER (Added Models) ───────────────────────────────────
+const _epIconLocal = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>';
+const _epIconApi = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+const _epChevron = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>';
+const _epCopyIcon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+
+function renderAddedEndpoints() {
+  const host = document.getElementById('added-endpoints-list');
+  if (!host) return;
+  if (!MODEL_LIST.length) {
+    host.innerHTML = '<div class="added-endpoints-empty">No endpoints yet — add a local or cloud endpoint above.</div>';
+    return;
+  }
+  // Group models by endpoint base, preserving insertion order.
+  const groups = [];
+  const byBase = new Map();
+  for (const m of MODEL_LIST) {
+    if (!byBase.has(m.base)) {
+      const g = { base: m.base, endpoint: m.endpoint, kind: m.kind, models: [] };
+      byBase.set(m.base, g);
+      groups.push(g);
+    }
+    byBase.get(m.base).models.push(m);
+  }
+  window._ENDPOINT_GROUPS = groups;
+
+  host.innerHTML = groups.map((g, gi) => {
+    const total   = g.models.length;
+    const enabled = g.models.filter(m => m.enabled !== false).length;
+    const anyOn   = enabled > 0;
+    const expanded = _EXPANDED_ENDPOINTS.has(g.base);
+    const kindLabel = g.kind === 'local' ? 'LOCAL' : 'API';
+    const kindIcon  = g.kind === 'local' ? _epIconLocal : _epIconApi;
+    const modelsHtml = expanded ? `
+          <div class="ep-models">
+            ${g.models.map((m, mi) => `
+            <div class="ep-model-row">
+              <span class="ep-model-name${m.enabled === false ? ' disabled' : ''}">${escHtml(m.model)}</span>
+              <button class="ep-toggle${m.enabled !== false ? ' on' : ''}" title="${m.enabled !== false ? 'Disable' : 'Enable'} this model" onclick="toggleModelEnabled(${gi}, ${mi})"></button>
+            </div>`).join('')}
+          </div>` : '';
+    return `
+      <div class="ep-group">
+        <div class="ep-group-label">${kindIcon}<span>${kindLabel}</span></div>
+        <div class="ep-card">
+          <div class="ep-card-main">
+            <span class="ep-card-name">${escHtml(g.endpoint)}</span>
+            <span class="ep-badge${anyOn ? '' : ' off'}">${enabled}/${total} models enabled</span>
+            <span class="ep-manage-hint" onclick="toggleEndpointExpand(${gi})">${expanded ? 'Hide models' : 'Click to manage models'}</span>
+            <div class="ep-card-actions">
+              <button class="ep-mini-btn" onclick="toggleEndpointEnabled(${gi})">${anyOn ? 'Disable' : 'Enable'}</button>
+              <button class="ep-mini-btn danger" onclick="deleteEndpoint(${gi})">Delete</button>
+              <button class="ep-chevron${expanded ? ' open' : ''}" onclick="toggleEndpointExpand(${gi})" aria-label="Expand models">${_epChevron}</button>
+            </div>
+          </div>
+          <div class="ep-url-row">
+            <span>${escHtml(g.base)}</span>
+            <button class="ep-url-copy" title="Copy endpoint URL" onclick="copyEndpointUrl(${gi})">${_epCopyIcon}</button>
+          </div>
+          ${modelsHtml}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function _epGroup(gi) { return (window._ENDPOINT_GROUPS || [])[gi] || null; }
+
+function setModelEnabled(m, on) {
+  m.enabled = on;
+  const k = modelKey(m);
+  if (on) _DISABLED_MODELS.delete(k); else _DISABLED_MODELS.add(k);
+}
+
+// Re-sync picker + header after enabling/disabling/removing models.
+function afterModelAvailabilityChange() {
+  if (window.ACTIVE_MODEL) {
+    const stillUsable = MODEL_LIST.find(m => m.model === window.ACTIVE_MODEL && m.enabled !== false);
+    if (!stillUsable) deselectModel();
+  }
+  renderModelList(document.getElementById('model-dd-search')?.value || '');
+  renderAddedEndpoints();
+}
+
+function toggleEndpointExpand(gi) {
+  const g = _epGroup(gi);
+  if (!g) return;
+  if (_EXPANDED_ENDPOINTS.has(g.base)) _EXPANDED_ENDPOINTS.delete(g.base);
+  else _EXPANDED_ENDPOINTS.add(g.base);
+  renderAddedEndpoints();
+}
+
+function toggleEndpointEnabled(gi) {
+  const g = _epGroup(gi);
+  if (!g) return;
+  const anyOn = g.models.some(m => m.enabled !== false);
+  g.models.forEach(m => setModelEnabled(m, !anyOn));   // all off → enable all; otherwise disable all
+  persistDisabledModels();
+  afterModelAvailabilityChange();
+}
+
+function toggleModelEnabled(gi, mi) {
+  const g = _epGroup(gi);
+  if (!g) return;
+  const m = g.models[mi];
+  if (!m) return;
+  setModelEnabled(m, m.enabled === false);   // flip
+  persistDisabledModels();
+  afterModelAvailabilityChange();
+}
+
+function deleteEndpoint(gi) {
+  const g = _epGroup(gi);
+  if (!g) return;
+  if (!confirm(`Delete endpoint "${g.endpoint}"? Its ${g.models.length} model(s) will be removed from the picker.`)) return;
+  g.models.forEach(m => _DISABLED_MODELS.delete(modelKey(m)));
+  MODEL_LIST = MODEL_LIST.filter(m => m.base !== g.base);
+  _EXPANDED_ENDPOINTS.delete(g.base);
+  _REMOVED_ENDPOINTS.add(g.base);            // skip on next discovery until re-added
+  persistRemovedEndpoints();
+  persistDisabledModels();
+  saveModels();                               // rewrite persisted user endpoints without these
+  afterModelAvailabilityChange();
+  showToast('Endpoint removed');
+}
+
+function copyEndpointUrl(gi) {
+  const g = _epGroup(gi);
+  if (!g) return;
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(g.base).then(() => showToast('Endpoint URL copied')).catch(() => showToast('Copy failed'));
+  } else {
+    showToast(g.base);
+  }
+}
+
+function toggleModelDropdown() {
+  const dd = document.getElementById('model-dropdown');
+  const btn = document.getElementById('model-select-btn');
+  if (!dd) return;
+  const isOpen = dd.classList.contains('open');
+  dd.classList.toggle('open');
+  if (btn) btn.classList.toggle('open', !isOpen);
+  if (!isOpen) {
+    renderModelList('');
+    refreshEndpointStatuses();   // re-probe so the dots reflect live status
+    const search = document.getElementById('model-dd-search');
+    if (search) { search.value = ''; setTimeout(() => search.focus(), 0); }
+  }
+}
+
+function selectModelFromDropdown(id) {
+  selectModel(id);
+  const dd = document.getElementById('model-dropdown');
+  const btn = document.getElementById('model-select-btn');
+  if (dd) dd.classList.remove('open');
+  if (btn) btn.classList.remove('open');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  const dd = document.getElementById('model-dropdown');
+  const btn = document.getElementById('model-select-btn');
+  if (dd && btn && !dd.contains(e.target) && !btn.contains(e.target)) {
+    dd.classList.remove('open');
+    btn.classList.remove('open');
+  }
+});
+
+// ── TOOLS MENU (Gemini "+" style) — sources / deep thinking / web search ──
+function toggleToolsDropdown() {
+  const dd = document.getElementById('tools-dropdown');
+  const btn = document.getElementById('tools-btn');
+  if (!dd) return;
+  const isOpen = dd.classList.contains('open');
+  dd.classList.toggle('open', !isOpen);
+  if (btn) { btn.classList.toggle('open', !isOpen); btn.setAttribute('aria-expanded', String(!isOpen)); }
+}
+
+function closeToolsDropdown() {
+  const dd = document.getElementById('tools-dropdown');
+  const btn = document.getElementById('tools-btn');
+  if (dd) dd.classList.remove('open');
+  if (btn) { btn.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+}
+
+// Small dot on the "+" button whenever a source, deep thinking, or web search is active.
+function syncToolsIndicator() {
+  const btn = document.getElementById('tools-btn');
+  if (!btn) return;
+  const hasSources = (window._TRAINING_FILES_MASTER || []).length > 0;
+  const hasActive = hasSources || !!window._THINKING_ENABLED || !!window._WEB_SEARCH_ENABLED;
+  btn.classList.toggle('has-active', hasActive);
+}
+
+document.addEventListener('click', function(e) {
+  const dd = document.getElementById('tools-dropdown');
+  const btn = document.getElementById('tools-btn');
+  if (dd && btn && !dd.contains(e.target) && !btn.contains(e.target)) {
+    dd.classList.remove('open');
+    btn.classList.remove('open');
+  }
+});
+
+// ── ADD MODELS DIALOG (endpoints — local or cloud) ────────────────────
+function openAddModels() {
+  // Close the model picker if it's open
+  const dd = document.getElementById('model-dropdown');
+  const sbtn = document.getElementById('model-select-btn');
+  if (dd) dd.classList.remove('open');
+  if (sbtn) sbtn.classList.remove('open');
+  document.getElementById('add-models-modal').style.display = 'flex';
+  renderAddedEndpoints();
+}
+function closeAddModels() {
+  document.getElementById('add-models-modal').style.display = 'none';
+}
+function handleAddModelsBackdrop(e) {
+  if (e.target === document.getElementById('add-models-modal')) closeAddModels();
+}
+function toggleQuickstart() {
+  const body = document.getElementById('quickstart-body');
+  const row  = document.getElementById('quickstart-row');
+  if (!body) return;
+  const open = body.hasAttribute('hidden') ? false : true;
+  if (open) { body.setAttribute('hidden', ''); row.classList.remove('open'); }
+  else      { body.removeAttribute('hidden');  row.classList.add('open'); }
+}
+
+const PROVIDER_ENDPOINTS = {
+  DeepSeek: 'https://api.deepseek.com/v1',
+  OpenAI:   'https://api.openai.com/v1',
+  Together: 'https://api.together.xyz/v1',
+  Groq:     'https://api.groq.com/openai/v1',
+  Custom:   '',
+};
+function onProviderChange(provider) {
+  const input = document.getElementById('api-endpoint');
+  if (input && provider in PROVIDER_ENDPOINTS) input.value = PROVIDER_ENDPOINTS[provider];
+}
+
+// Normalise a base URL (ensure it ends without trailing slash, has /v1 for cloud is user's job)
+function normaliseBase(url) {
+  return (url || '').trim().replace(/\/+$/, '');
+}
+
+async function testEndpoint(kind) {
+  const base = normaliseBase(document.getElementById(kind + '-endpoint').value);
+  const key  = (document.getElementById(kind + '-key')?.value || '').trim() || (kind === 'local' ? API_KEY : '');
+  if (!base) { showToast('Enter an endpoint URL first'); return; }
+  const btn = document.getElementById(kind + '-test-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Testing…'; }
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(`${base}/models`, {
+      headers: key ? { 'Authorization': `Bearer ${key}` } : {},
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    if (res.ok) showToast('✓ Endpoint reachable');
+    else showToast(`Endpoint responded ${res.status}`);
+  } catch {
+    showToast('Could not reach endpoint');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Test'; }
+  }
+}
+
+// Query an OpenAI-compatible /models endpoint and return the list of model ids.
+async function discoverModels(base, key) {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(`${base}/models`, {
+      headers: key ? { 'Authorization': `Bearer ${key}` } : {},
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.data || data.models || []).map(m => m.id || m.name).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+// Persist user-added endpoints so they survive reloads.
+function saveModels() {
+  if (!(window.BarangayDB && window.BarangayDB.dbSaveModels)) return;
+  const userModels = MODEL_LIST
+    .filter(m => m.source === 'user')
+    .map(({ model, endpoint, base, key, kind }) => ({ model, endpoint, base, key, kind, source: 'user' }));
+  window.BarangayDB.dbSaveModels(userModels);
+}
+
+function addModelEntry({ model, base, key, kind, source = 'user' }) {
+  const endpoint = (() => { try { return new URL(base).host; } catch { return base; } })();
+  // Avoid duplicates (same model + endpoint)
+  const existing = MODEL_LIST.find(m => m.model === model && m.base === base);
+  if (existing) return existing;
+  const id = 'm' + (++_modelSeq);
+  const entry = { id, model, endpoint, base, key, kind, source, enabled: !_DISABLED_MODELS.has(`${base}||${model}`) };
+  MODEL_LIST.push(entry);
+  renderModelList(document.getElementById('model-dd-search')?.value || '');
+  renderAddedEndpoints();
+  if (source === 'user') saveModels();
+  return entry;
+}
+
+// On startup: restore persisted user endpoints, then discover live local models.
+async function initModelRegistry() {
+  loadModelPrefs();   // disabled models + removed endpoints
+  if (window.BarangayDB && window.BarangayDB.dbLoadModels) {
+    for (const m of window.BarangayDB.dbLoadModels()) {
+      if (_REMOVED_ENDPOINTS.has(m.base)) continue;
+      addModelEntry({ model: m.model, base: m.base, key: m.key, kind: m.kind, source: 'user' });
+    }
+  }
+  // Discover models actually available on the default local endpoint (unless the user deleted it).
+  if (!_REMOVED_ENDPOINTS.has(API_BASE)) {
+    const ids = await discoverModels(API_BASE, API_KEY);
+    for (const id of ids) {
+      addModelEntry({ model: id, base: API_BASE, key: API_KEY, kind: 'local', source: 'discovered' });
+    }
+  }
+  renderModelList(document.getElementById('model-dd-search')?.value || '');
+  renderAddedEndpoints();
+  refreshEndpointStatuses();   // seed the live status dots
+
+  // Default model — auto-select the best fit for this machine's specs so
+  // chat works out of the box. The user can still switch any time.
+  if (!window.ACTIVE_MODEL) {
+    const pick = pickDefaultModelForSpecs();
+    if (pick) {
+      selectModel(pick.id, { silent: true });
+      showToast(`Auto-selected ${pick.model} for your PC — change it any time below`);
+    } else {
+      const subtitle = document.getElementById('header-subtitle');
+      if (subtitle) subtitle.textContent = 'No model installed — pull one with Ollama';
+      const labelEl = document.getElementById('model-select-label');
+      if (labelEl) labelEl.textContent = 'Select model';
+    }
+  }
+}
+
+async function addEndpoint(kind) {
+  const base = normaliseBase(document.getElementById(kind + '-endpoint').value);
+  const key  = (document.getElementById(kind + '-key')?.value || '').trim() || (kind === 'local' ? API_KEY : '');
+  if (!base) { showToast('Enter an endpoint URL first'); return; }
+
+  // Re-adding an endpoint the user previously deleted clears its removed flag.
+  if (_REMOVED_ENDPOINTS.delete(base)) persistRemovedEndpoints();
+
+  const btn = document.getElementById(kind + '-add-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
+
+  let added = 0;
+  let first = null;
+
+  // Try to discover models from the endpoint
+  const ids = await discoverModels(base, key);
+  ids.forEach(id => { const e = addModelEntry({ model: id, base, key, kind, source: 'user' }); if (!first) first = e; added++; });
+
+  // Cloud providers usually don't expose /models without scopes — fall back to provider default
+  if (!added) {
+    const fallback = kind === 'api'
+      ? (document.getElementById('api-provider')?.value === 'OpenAI' ? 'gpt-4o-mini' : 'deepseek-chat')
+      : 'custom-model';
+    first = addModelEntry({ model: fallback, base, key, kind, source: 'user' });
+    added = 1;
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Add'; }
+  showToast(added > 1 ? `Added ${added} models` : `Added ${first.model}`);
+  if (first) selectModel(first.id);
+  closeAddModels();
+}
+
+// ── CONNECTIVITY CHECK ────────────────────────────────────────────────
+async function checkConnectivity() {
+  try {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 6000);
+    await fetch(`${API_BASE}/models`, {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${API_KEY}` },
+      signal: ctrl.signal
+    });
+    clearTimeout(timeout);
+    setConnected(true);
+    return;
+  } catch {}
+
+  // Only probe chat completions if a model is actually selected (otherwise the
+  // GET /models check above is what tells us whether Ollama is reachable).
+  if (window.ACTIVE_MODEL) {
+    try {
+      const ctrl2 = new AbortController();
+      const timeout2 = setTimeout(() => ctrl2.abort(), 8000);
+      await fetch(`${API_BASE}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: window.ACTIVE_MODEL, messages: [{ role: 'user', content: 'hi' }], max_tokens: 1, stream: false }),
+        signal: ctrl2.signal
+      });
+      clearTimeout(timeout2);
+      setConnected(true);
+      return;
+    } catch {}
+  }
+
+  setConnected(false);
+}
+
+function setConnected(ok) {
+  isConnected = ok;
+
+  const chip = document.getElementById('header-status-chip');
+  const text = document.getElementById('header-status-text');
+  chip.classList.toggle('disconnected', !ok);
+  text.textContent = ok ? 'Ollama' : 'Offline';
+
+  const card = document.getElementById('sidebar-wifi');
+  const status = document.getElementById('sidebar-wifi-status');
+  const statusText = document.getElementById('sidebar-wifi-text');
+  card.className = 'sidebar-wifi ' + (ok ? 'connected' : 'disconnected');
+  status.className = 'sidebar-wifi-status ' + (ok ? 'ok' : 'err');
+  statusText.textContent = ok ? 'Connected · Model online' : 'Ollama not detected';
+
+  const railDot = document.getElementById('rail-dot');
+  if (railDot) railDot.className = 'rail-dot ' + (ok ? 'ok' : 'err');
+
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('message-input').placeholder = ok
+    ? 'Ask anything — local, private, free…'
+    : 'Ollama not detected — is it running?';
+}
+
+checkConnectivity();
+setInterval(() => { checkConnectivity(); refreshEndpointStatuses(); }, 15000);
+

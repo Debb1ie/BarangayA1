@@ -14,3837 +14,57 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --dc-blue: #0057B8;
-    /* Shades/tints below are all derived from --dc-blue via color-mix (read
-       live at paint time), tuned to match the original fixed hex values
-       exactly when --dc-blue is the default. A brand-color swatch pick
-       therefore relights every hover/border/shadow/sidebar-bg that uses
-       them too, instead of leaving 60+ spots stuck on the original blue. */
-    --dc-blue-dark: color-mix(in srgb, var(--dc-blue) 70%, black);
-    --dc-blue-deeper: color-mix(in srgb, var(--dc-blue) 45%, black);
-    --dc-blue-light: color-mix(in srgb, var(--dc-blue) 10%, white);
-    --dc-blue-mid: color-mix(in srgb, var(--dc-blue) 85%, white);
-    --dc-blue-tint: color-mix(in srgb, var(--dc-blue) 65%, white);
-    --dc-blue-tint-light: color-mix(in srgb, var(--dc-blue) 45%, white);
-    --dc-accent: #00A8E8;
-    --dc-accent-light: #E0F5FC;
-    --bg-primary: #F7F9FC;
-    --bg-panel: #FFFFFF;
-    --bg-sidebar: var(--dc-blue-deeper);
-    --text-primary: #0D1B2E;
-    --text-secondary: #4A6280;
-    --text-muted: #8AA0B8;
-    --border: #D0DDF0;
-    --border-light: #E8EFF8;
-    --user-bubble: var(--dc-blue);
-    --ai-bubble: #FFFFFF;
-    --font-main: 'Plus Jakarta Sans', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
-    --radius-sm: 8px;
-    --radius-md: 14px;
-    --radius-lg: 20px;
-    --sidebar-w: 260px;
-    --header-h: 92px;
-    --shadow-card: 0 2px 12px color-mix(in srgb, var(--dc-blue) 8%, transparent);
-    --shadow-input: 0 2px 20px color-mix(in srgb, var(--dc-blue) 12%, transparent);
-  }
-
-  /* DEVCON 17 dark theme — deep indigo/violet void (poster background) with
-     the brand blue kept for interactive elements; gold is a sparing accent
-     for special highlights, echoing the poster's "17" star. */
-  [data-theme="dark"] {
-    --bg-primary: #0A0818;
-    --bg-panel: #150F28;
-    --bg-sidebar: #08061A;
-    --text-primary: #ECE9FA;
-    --text-secondary: #9089B8;
-    --text-muted: #4D4570;
-    --border: #2A2450;
-    --border-light: #1C1638;
-    --user-bubble: var(--dc-blue);
-    --ai-bubble: #150F28;
-    --dc-blue-light: color-mix(in srgb, var(--dc-blue) 25%, var(--bg-panel));
-    --dc-accent-light: #170F30;
-    --dc-gold: #FFC93C;
-    --dc-violet: #7C5CFF;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  /* Soft violet/blue/gold glow over the void — same atmosphere as the DEVCON
-     17 poster, kept subtle so text and cards stay the primary focus. */
-  [data-theme="dark"] body {
-    background:
-      radial-gradient(1100px 750px at 12% -8%, rgba(124,92,255,0.22), transparent 60%),
-      radial-gradient(950px 700px at 92% 8%, rgba(0,168,232,0.16), transparent 55%),
-      radial-gradient(900px 800px at 50% 115%, rgba(255,201,60,0.05), transparent 60%),
-      var(--bg-primary);
-  }
-
-  /* Light mode gets the same layered-glow treatment, tuned to a whisper in
-     brand blue/gold so white panels and text stay crisp on top of it. */
-  body {
-    font-family: var(--font-main);
-    background:
-      radial-gradient(1100px 750px at 12% -8%, color-mix(in srgb, var(--dc-blue) 5%, transparent), transparent 60%),
-      radial-gradient(950px 700px at 92% 8%, rgba(0,168,232,0.06), transparent 55%),
-      radial-gradient(900px 800px at 50% 115%, rgba(255,201,60,0.035), transparent 60%),
-      var(--bg-primary);
-    color: var(--text-primary);
-    height: 100dvh;
-    display: flex;
-    overflow: hidden;
-    transition: background 0.3s, color 0.3s;
-  }
-
-  /* SIDEBAR — floats as a rounded card next to the icon rail on desktop
-     (mobile keeps the old full-bleed square-cornered drawer, see below) */
-  .sidebar {
-    width: var(--sidebar-w);
-    background: var(--bg-sidebar);
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    border: 1px solid rgba(255,255,255,0.06);
-    border-left: none;
-    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
-    margin: 10px 10px 10px 0;
-    overflow: hidden;
-    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), width 0.25s ease, margin 0.25s ease;
-    z-index: 100;
-  }
-  /* Desktop collapse: the icon-rail is the persistent nav, so the sidebar
-     panel collapses away entirely instead of becoming a second icon rail */
-  .sidebar.collapsed {
-    width: 0;
-    min-width: 0;
-    margin: 10px 0;
-    border: none;
-    overflow: hidden;
-  }
-  .sidebar.collapsed .brand-text,
-  .sidebar.collapsed .sidebar-collapse-btn,
-  .sidebar.collapsed .sidebar-section,
-  .sidebar.collapsed .history-list,
-  .sidebar.collapsed .nc-label,
-  .sidebar.collapsed .sidebar-wifi-status,
-  .sidebar.collapsed .sidebar-wifi-ssid { display: none; }
-  .sidebar.collapsed .sidebar-brand { justify-content: center; padding-left: 0; padding-right: 0; }
-  .sidebar.collapsed .new-chat-btn {
-    justify-content: center;
-    gap: 0;
-    padding-left: 0;
-    padding-right: 0;
-  }
-  .sidebar.collapsed .sidebar-footer { padding: 10px 0; }
-  .sidebar.collapsed .sidebar-wifi { margin: 0 auto; padding: 7px; width: 40px; }
-  .sidebar.collapsed .sidebar-wifi-top { justify-content: center; margin-bottom: 0; gap: 0; }
-
-  .sidebar-brand {
-    padding: 18px 16px 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-  }
-
-  .brand-logo {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: 700;
-    color: white;
-    letter-spacing: -0.5px;
-    flex-shrink: 0;
-  }
-  /* Every DEVCON logo/avatar/CTA that uses the brand gradient — kept in one
-     place so light mode's 2-stop blue→accent and dark mode's 3-stop
-     blue→violet→gold both apply everywhere consistently, not just here. */
-  .brand-logo, .welcome-icon, .avatar.ai, .modal-logo, .dc-brand-gradient {
-    background: linear-gradient(135deg, var(--dc-blue), var(--dc-accent));
-  }
-  [data-theme="dark"] .brand-logo,
-  [data-theme="dark"] .welcome-icon,
-  [data-theme="dark"] .avatar.ai,
-  [data-theme="dark"] .modal-logo,
-  [data-theme="dark"] .dc-brand-gradient {
-    background: linear-gradient(135deg, var(--dc-blue) 0%, var(--dc-violet) 65%, var(--dc-gold) 130%);
-  }
-
-  .brand-text { flex: 1; overflow: hidden; }
-  .brand-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: #FFFFFF;
-    letter-spacing: 0.3px;
-  }
-  .brand-sub {
-    font-size: 10px;
-    color: rgba(255,255,255,0.38);
-    font-weight: 400;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    margin-top: 1px;
-  }
-
-  .new-chat-btn {
-    margin: 12px 12px 8px;
-    padding: 9px 14px;
-    background: color-mix(in srgb, var(--dc-blue) 25%, transparent);
-    border: 1px solid color-mix(in srgb, var(--dc-blue) 40%, transparent);
-    border-radius: var(--radius-sm);
-    color: var(--dc-blue-tint);
-    font-size: 12.5px;
-    font-weight: 600;
-    font-family: var(--font-main);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    transition: all 0.2s;
-    letter-spacing: 0.2px;
-  }
-  .new-chat-btn:hover {
-    background: color-mix(in srgb, var(--dc-blue) 40%, transparent);
-    color: var(--dc-blue-tint-light);
-  }
-  .new-chat-btn svg { flex-shrink: 0; }
-
-  .sidebar-section {
-    padding: 8px 12px 4px;
-    font-size: 9.5px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.22);
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-  }
-
-  .history-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 4px 8px 8px;
-  }
-  .history-list::-webkit-scrollbar { width: 3px; }
-  .history-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-
-  .history-item {
-    padding: 8px 10px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: rgba(255,255,255,0.55);
-    font-size: 12.5px;
-    font-weight: 400;
-    transition: all 0.15s;
-    margin-bottom: 2px;
-    overflow: hidden;
-    user-select: none;
-  }
-  .history-item:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.8); }
-  .history-item.active { background: color-mix(in srgb, var(--dc-blue) 20%, transparent); color: var(--dc-blue-tint); }
-  .history-item svg { flex-shrink: 0; opacity: 0.6; }
-  .history-item-title {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 12.5px;
-    line-height: 1.3;
-  }
-  .history-item-badge {
-    flex-shrink: 0;
-    font-size: 9.5px;
-    font-weight: 700;
-    background: rgba(255,255,255,0.08);
-    color: rgba(255,255,255,0.35);
-    border-radius: 10px;
-    padding: 1px 6px;
-    min-width: 18px;
-    text-align: center;
-  }
-  .history-item.active .history-item-badge {
-    background: color-mix(in srgb, var(--dc-blue) 35%, transparent);
-    color: color-mix(in srgb, var(--dc-blue-tint) 80%, transparent);
-  }
-  .history-item-delete {
-    flex-shrink: 0;
-    display: none;
-    background: none;
-    border: none;
-    padding: 2px 4px;
-    cursor: pointer;
-    color: rgba(255,255,255,0.35);
-    border-radius: 4px;
-    line-height: 1;
-    transition: color 0.15s, background 0.15s;
-  }
-  .history-item:hover .history-item-delete { display: flex; align-items: center; }
-  .history-item-delete:hover { color: #ff6b6b; background: rgba(255,107,107,0.12); }
-
-  .sidebar-footer {
-    padding: 10px 12px;
-    border-top: 1px solid rgba(255,255,255,0.07);
-  }
-
-  .model-badge {
-    background: rgba(0,168,232,0.12);
-    border: 1px solid rgba(0,168,232,0.25);
-    border-radius: 20px;
-    padding: 5px 10px 5px 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: rgba(0,168,232,0.9);
-    font-weight: 500;
-  }
-  .model-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: #00A8E8;
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.8); }
-  }
-
-  /* MAIN */
-  .main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-width: 0;
-    position: relative;
-  }
-
-  /* HEADER — only shown once a conversation is active; the welcome/main
-     screen stays clean with no header bar (and thus no Back button either,
-     since it lives inside it). */
-  .header {
-    height: var(--header-h);
-    background: var(--bg-panel);
-    border-bottom: 1px solid var(--border-light);
-    display: flex;
-    align-items: center;
-    padding: 0 28px;
-    gap: 18px;
-    flex-shrink: 0;
-  }
-  .main.welcome-mode .header { display: none; }
-
-  .back-btn {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    padding: 7px 11px 7px 7px;
-    border-radius: 8px;
-    color: var(--text-secondary);
-    font-family: var(--font-main);
-    font-size: 13px;
-    font-weight: 600;
-    transition: background 0.15s, color 0.15s;
-    flex-shrink: 0;
-  }
-  .back-btn:hover { background: var(--border-light); color: var(--text-primary); }
-
-  .header-title {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .header-title h1 {
-    font-size: 21px;
-    font-weight: 800;
-    letter-spacing: -0.3px;
-    color: var(--text-primary);
-    line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  /* Click-to-rename: subtle hover hint, clear focus ring while editing */
-  .header-title h1[contenteditable="true"] {
-    cursor: text;
-    border-radius: 6px;
-    padding: 2px 7px;
-    margin: -2px -7px;
-    outline: none;
-    transition: background 0.15s;
-  }
-  .header-title h1[contenteditable="true"]:hover { background: var(--border-light); }
-  .header-title h1[contenteditable="true"]:focus {
-    background: var(--bg-primary);
-    box-shadow: 0 0 0 2px var(--dc-blue);
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-  }
-  .header-title p {
-    flex-shrink: 0;
-    font-size: 11.5px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 4px 11px;
-    white-space: nowrap;
-    margin-top: 0;
-  }
-
-  .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-  }
-
-  .lang-toggle-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    color: var(--text-muted);
-    user-select: none;
-    flex-shrink: 0;
-    transition: border-color 0.15s;
-  }
-  .lang-toggle-btn:hover { border-color: var(--dc-blue); }
-  @media (max-width: 640px) { .lang-toggle-btn { display: none; } }
-
-  .icon-btn {
-    width: 34px; height: 34px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-secondary);
-    transition: all 0.15s;
-  }
-  .icon-btn:hover { background: var(--border-light); color: var(--text-primary); }
-
-  .status-chip {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    background: #EDFAF3;
-    border: 1px solid #B2E6C8;
-    border-radius: 20px;
-    padding: 4px 10px 4px 7px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #1A7A45;
-    transition: all 0.4s;
-  }
-  .status-chip.disconnected {
-    background: #FEF2F2;
-    border-color: #FECACA;
-    color: #991B1B;
-  }
-  [data-theme="dark"] .status-chip {
-    background: rgba(26,122,69,0.15);
-    border-color: rgba(26,122,69,0.3);
-    color: #4AE08A;
-  }
-  [data-theme="dark"] .status-chip.disconnected {
-    background: rgba(153,27,27,0.15);
-    border-color: rgba(153,27,27,0.35);
-    color: #FCA5A5;
-  }
-  .status-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #22C55E;
-    transition: background 0.4s;
-    animation: pulse 2s infinite;
-  }
-  .status-chip.disconnected .status-dot {
-    background: #EF4444;
-    animation: none;
-  }
-
-  /* WIFI BANNER */
-  .wifi-banner {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 16px;
-    font-size: 12px;
-    font-weight: 500;
-    background: #EDFAF3;
-    border-bottom: 1px solid #B2E6C8;
-    color: #1A7A45;
-    transition: all 0.4s;
-    flex-shrink: 0;
-  }
-  .wifi-banner.disconnected {
-    background: #FFF7ED;
-    border-color: #FED7AA;
-    color: #92400E;
-  }
-  [data-theme="dark"] .wifi-banner {
-    background: rgba(26,122,69,0.1);
-    border-color: rgba(26,122,69,0.25);
-    color: #4AE08A;
-  }
-  [data-theme="dark"] .wifi-banner.disconnected {
-    background: rgba(146,64,14,0.12);
-    border-color: rgba(146,64,14,0.3);
-    color: #FBB97C;
-  }
-  .wifi-ssid {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    background: rgba(0,0,0,0.07);
-    padding: 1px 7px;
-    border-radius: 5px;
-  }
-  [data-theme="dark"] .wifi-ssid { background: rgba(255,255,255,0.08); }
-  .wifi-banner-right {
-    margin-left: auto;
-    font-size: 10.5px;
-    opacity: 0.7;
-    white-space: nowrap;
-  }
-  .wifi-bars {
-    display: flex;
-    align-items: flex-end;
-    gap: 2px;
-    height: 14px;
-    flex-shrink: 0;
-  }
-  .wifi-bars span {
-    display: block;
-    width: 3px;
-    border-radius: 1px;
-    background: currentColor;
-    transition: opacity 0.4s;
-  }
-  .wifi-bars span:nth-child(1) { height: 4px; }
-  .wifi-bars span:nth-child(2) { height: 7px; }
-  .wifi-bars span:nth-child(3) { height: 10px; }
-  .wifi-bars span:nth-child(4) { height: 14px; }
-  .wifi-banner.disconnected .wifi-bars span { opacity: 0.25; }
-  .wifi-banner.disconnected .wifi-bars span:nth-child(1) { opacity: 0.6; }
-
-  /* SIDEBAR WIFI CARD */
-  .sidebar-wifi {
-    margin: 8px 10px 4px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px;
-    padding: 10px 12px;
-    transition: all 0.4s;
-  }
-  .sidebar-wifi.connected { border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.07); }
-  .sidebar-wifi.disconnected { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.07); }
-  .sidebar-wifi-top {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    margin-bottom: 7px;
-  }
-  .sidebar-wifi-icon {
-    display: flex; align-items: center; justify-content: center;
-    width: 26px; height: 26px;
-    border-radius: 7px;
-    background: rgba(255,255,255,0.07);
-    flex-shrink: 0;
-  }
-  .sidebar-wifi-ssid {
-    font-size: 12px;
-    font-weight: 700;
-    font-family: var(--font-mono);
-    color: rgba(255,255,255,0.85);
-    letter-spacing: 0.3px;
-  }
-  .sidebar-wifi-status {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    font-weight: 600;
-    margin-top: 2px;
-  }
-  .sidebar-wifi-status.ok { color: #4AE08A; }
-  .sidebar-wifi-status.err { color: #FC8181; }
-  .swifi-dot {
-    width: 5px; height: 5px; border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .sidebar-wifi-status.ok .swifi-dot { background: #22C55E; animation: pulse 2s infinite; }
-  .sidebar-wifi-status.err .swifi-dot { background: #EF4444; }
-
-  /* CHAT AREA */
-  .chat-area {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  .chat-area::-webkit-scrollbar { width: 4px; }
-  .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-  /* Fade scrim sitting between the scroll area and the floating input bar —
-     messages dissolve into the background as they scroll under it instead
-     of ending in a hard seam right at the box's edge. */
-  .chat-fade {
-    display: none;
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 150px;
-    background: linear-gradient(to bottom, transparent, var(--bg-primary) 70%);
-    pointer-events: none;
-    z-index: 5;
-  }
-  .main:not(.welcome-mode) .chat-fade { display: block; }
-
-  /* WELCOME */
-  .welcome-screen {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 20px 20px 180px;
-    gap: 20px;
-  }
-
-  .welcome-icon {
-    width: 56px; height: 56px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    font-weight: 800;
-    color: white;
-    letter-spacing: -1px;
-    box-shadow: 0 8px 28px color-mix(in srgb, var(--dc-blue) 28%, transparent);
-    flex-shrink: 0;
-  }
-
-  .welcome-hero { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-
-  .welcome-brief {
-    font-size: 12px;
-    color: var(--text-muted);
-    max-width: 480px;
-    line-height: 1.5;
-    letter-spacing: 0.05px;
-  }
-
-  .welcome-greeting {
-    font-size: 13px;
-    color: var(--text-muted);
-    font-weight: 500;
-    letter-spacing: 0.1px;
-  }
-
-  .welcome-title {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1.2;
-    letter-spacing: -0.5px;
-  }
-  .welcome-sub {
-    font-size: 13px;
-    color: var(--text-secondary);
-    max-width: 340px;
-    line-height: 1.65;
-  }
-
-  /* SUGGESTION CHIPS (replaces big cards on welcome screen) */
-  .suggestion-chips {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
-    max-width: 600px;
-  }
-  .suggestion-chip {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 9px 16px;
-    border: 1.5px solid var(--border);
-    border-radius: 24px;
-    background: var(--bg-panel);
-    color: var(--text-secondary);
-    font-family: var(--font-main);
-    font-size: 12.5px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .suggestion-chip:hover {
-    border-color: var(--dc-blue);
-    color: var(--dc-blue);
-    background: var(--dc-blue-light);
-    transform: translateY(-1px);
-    box-shadow: 0 3px 12px color-mix(in srgb, var(--dc-blue) 10%, transparent);
-  }
-  [data-theme="dark"] .suggestion-chip:hover {
-    border-color: var(--dc-accent);
-    color: var(--dc-accent);
-    background: var(--dc-accent-light);
-  }
-  .suggestion-chip-icon { font-size: 14px; line-height: 1; }
-
-  /* Keep old suggestion-grid for any legacy references */
-  .suggestion-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 8px;
-    width: 100%;
-    max-width: 480px;
-  }
-
-  .suggestion-card {
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 12px 13px;
-    text-align: left;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: var(--shadow-card);
-  }
-  .suggestion-card:hover {
-    border-color: var(--dc-blue);
-    background: var(--dc-blue-light);
-    transform: translateY(-1px);
-  }
-  .suggestion-card-icon {
-    font-size: 18px;
-    margin-bottom: 6px;
-    display: block;
-  }
-  .suggestion-card-label {
-    font-size: 11.5px;
-    font-weight: 600;
-    color: var(--text-primary);
-    line-height: 1.3;
-  }
-  .suggestion-card-desc {
-    font-size: 10.5px;
-    color: var(--text-muted);
-    margin-top: 2px;
-    line-height: 1.3;
-  }
-
-  /* MESSAGES */
-  .message-group {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .message-row {
-    display: flex;
-    gap: 10px;
-    align-items: flex-end;
-  }
-  .message-row.user { flex-direction: row-reverse; }
-
-  .avatar {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-  }
-  .avatar.ai {
-    color: white;
-  }
-  .avatar.user {
-    background: var(--border-light);
-    color: var(--text-secondary);
-    font-size: 11px;
-  }
-
-  .bubble {
-    max-width: calc(100% - 44px);
-    padding: 10px 13px;
-    border-radius: 16px;
-    font-size: 13.5px;
-    line-height: 1.65;
-    word-break: break-word;
-  }
-
-  .bubble.ai {
-    background: var(--ai-bubble);
-    border: 1px solid var(--border-light);
-    border-radius: 4px 16px 16px 16px;
-    color: var(--text-primary);
-    box-shadow: var(--shadow-card);
-  }
-
-  .bubble.user {
-    background: var(--user-bubble);
-    color: white;
-    border-radius: 16px 4px 16px 16px;
-    font-weight: 500;
-  }
-
-  .bubble pre {
-    background: rgba(0,0,0,0.06);
-    border-radius: 6px;
-    padding: 8px 10px;
-    margin: 8px 0;
-    overflow-x: auto;
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-    line-height: 1.5;
-  }
-  [data-theme="dark"] .bubble.ai pre { background: rgba(255,255,255,0.05); }
-  .bubble.user pre { background: rgba(255,255,255,0.15); }
-
-  .bubble code {
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-    background: color-mix(in srgb, var(--dc-blue) 8%, transparent);
-    padding: 1px 5px;
-    border-radius: 4px;
-    color: var(--dc-blue);
-  }
-  .bubble.user code { background: rgba(255,255,255,0.2); color: white; }
-
-  .bubble strong { font-weight: 600; }
-  .bubble em { font-style: italic; }
-  .bubble s { text-decoration: line-through; opacity: 0.7; }
-  .bubble p { margin: 2px 0; line-height: 1.65; }
-  .bubble ul, .bubble ol { padding-left: 18px; margin: 5px 0; }
-  .bubble li { margin: 2px 0; line-height: 1.6; }
-  .bubble h2 { font-size: 14.5px; font-weight: 700; margin: 12px 0 4px; color: var(--dc-blue); border-bottom: 1px solid var(--border-light); padding-bottom: 3px; }
-  .bubble h3 { font-size: 13.5px; font-weight: 700; margin: 10px 0 3px; color: var(--dc-blue); }
-  .bubble h4 { font-size: 13px; font-weight: 700; margin: 8px 0 3px; color: var(--text-secondary); }
-  [data-theme="dark"] .bubble h2, [data-theme="dark"] .bubble h3 { color: var(--dc-accent); }
-  .bubble hr { border: none; border-top: 1px solid var(--border-light); margin: 10px 0; }
-  .bubble blockquote {
-    border-left: 3px solid var(--dc-blue);
-    margin: 6px 0;
-    padding: 4px 12px;
-    color: var(--text-secondary);
-    background: var(--dc-blue-light);
-    border-radius: 0 6px 6px 0;
-    font-size: 13px;
-  }
-  [data-theme="dark"] .bubble blockquote { background: color-mix(in srgb, var(--dc-blue) 10%, transparent); }
-
-  /* CODE BLOCK */
-  .code-block { margin: 8px 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-light); }
-  .code-block-header {
-    display: flex; align-items: center; justify-content: space-between;
-    background: var(--border-light);
-    border-bottom: 1px solid var(--border-light);
-    padding: 2px 6px 2px 10px;
-  }
-  [data-theme="dark"] .code-block-header { background: rgba(255,255,255,0.06); }
-  .code-lang-label {
-    color: var(--text-muted);
-    font-family: var(--font-mono);
-    font-size: 10px; font-weight: 700;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-  }
-  .code-copy-btn {
-    display: inline-flex; align-items: center; gap: 4px;
-    background: transparent;
-    border: 1px solid transparent;
-    color: var(--text-muted);
-    font-family: var(--font-sans, inherit);
-    font-size: 11px; font-weight: 600;
-    padding: 3px 7px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
-  }
-  .code-copy-btn:hover { background: color-mix(in srgb, var(--dc-blue) 8%, transparent); color: var(--dc-blue); border-color: color-mix(in srgb, var(--dc-blue) 20%, transparent); }
-  [data-theme="dark"] .code-copy-btn:hover { background: rgba(255,255,255,0.08); color: var(--dc-accent); border-color: rgba(255,255,255,0.15); }
-  .code-copy-btn.copied { color: #1a8754; background: rgba(26,135,84,0.1); border-color: rgba(26,135,84,0.25); }
-  .code-copy-btn svg { flex-shrink: 0; }
-  .code-block pre { margin: 0; border-radius: 0; border: none; white-space: pre; }
-
-  /* TABLE */
-  .table-wrap { overflow-x: auto; margin: 8px 0; border-radius: 8px; border: 1px solid var(--border-light); }
-  .bubble table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-  .bubble th {
-    background: var(--dc-blue-light);
-    color: var(--dc-blue);
-    font-weight: 700;
-    text-align: left;
-    padding: 7px 11px;
-    border-bottom: 1px solid var(--border);
-    white-space: nowrap;
-    font-size: 12px;
-  }
-  .bubble td {
-    padding: 6px 11px;
-    border-bottom: 1px solid var(--border-light);
-    vertical-align: top;
-    line-height: 1.5;
-  }
-  .bubble tr:last-child td { border-bottom: none; }
-  .bubble tbody tr:nth-child(even) td { background: rgba(0,0,0,0.02); }
-  [data-theme="dark"] .bubble th { background: color-mix(in srgb, var(--dc-blue) 18%, transparent); color: var(--dc-accent); }
-  [data-theme="dark"] .bubble tbody tr:nth-child(even) td { background: rgba(255,255,255,0.03); }
-
-  .message-time {
-    font-size: 10px;
-    color: var(--text-muted);
-    padding: 0 42px;
-    margin-top: 2px;
-  }
-  .message-time.user { text-align: right; }
-
-  /* THINKING INDICATOR */
-  .thinking-bubble {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0;
-    padding: 10px 14px;
-    min-width: 220px;
-  }
-  .thinking-top-row {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    width: 100%;
-    cursor: pointer;
-    user-select: none;
-  }
-  .thinking-top-chevron {
-    font-size: 9px;
-    color: var(--text-muted);
-    margin-left: 4px;
-    transition: transform 0.2s;
-    flex-shrink: 0;
-  }
-  .thinking-spinner {
-    width: 13px; height: 13px;
-    border-radius: 50%;
-    border: 2px solid var(--border-light);
-    border-top-color: var(--dc-blue);
-    animation: spin 0.75s linear infinite;
-    flex-shrink: 0;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .thinking-label {
-    font-size: 12.5px;
-    color: var(--text-secondary);
-    font-style: italic;
-  }
-  .thinking-model-tag {
-    font-size: 10px;
-    color: var(--text-muted);
-    margin-left: auto;
-    font-style: normal;
-    white-space: nowrap;
-  }
-  .thinking-collapsible {
-    margin-top: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    width: 100%;
-  }
-  .thinking-collapsible.hidden { display: none; }
-  .thinking-steps-section {
-    margin-top: 10px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border-light);
-    width: 100%;
-  }
-  .thinking-steps-label {
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    margin-bottom: 6px;
-  }
-  .thinking-steps-list {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    width: 100%;
-  }
-  .thinking-step {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 11.5px;
-    color: var(--text-secondary);
-  }
-  .thinking-step.step-active { color: var(--text-primary); font-weight: 500; }
-  .thinking-step.step-done { color: var(--text-muted); }
-  .step-icon {
-    width: 14px;
-    height: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-size: 10px;
-    line-height: 1;
-  }
-  .step-mini-spinner {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    border: 1.5px solid var(--border-light);
-    border-top-color: var(--dc-blue);
-    animation: spin 0.75s linear infinite;
-    display: inline-block;
-  }
-
-  /* EDUCATIONAL CARD inside thinking bubble */
-  .thinking-edu-card {
-    background: var(--dc-blue-light);
-    border: 1px solid var(--border-light);
-    border-radius: 8px;
-    width: 100%;
-    box-sizing: border-box;
-    overflow: hidden;
-    transition: opacity 0.25s ease;
-  }
-  .thinking-edu-body {
-    display: flex;
-    gap: 8px;
-    align-items: flex-start;
-    padding: 9px 11px 8px;
-  }
-  .thinking-edu-icon {
-    font-size: 14px;
-    flex-shrink: 0;
-    margin-top: 1px;
-    line-height: 1.4;
-  }
-  .thinking-edu-text {
-    font-size: 11.5px;
-    color: var(--text-secondary);
-    line-height: 1.55;
-    font-style: normal;
-  }
-  .thinking-edu-footer {
-    border-top: 1px solid var(--border-light);
-    padding: 7px 11px 9px;
-  }
-  .thinking-edu-footer-label {
-    display: block;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    margin-bottom: 6px;
-  }
-  .thinking-edu-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-  }
-  .thinking-edu-links a {
-    font-size: 10.5px;
-    color: var(--dc-blue);
-    text-decoration: none;
-    background: var(--bg-primary, #fff);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 3px 9px;
-    font-weight: 600;
-  }
-  .thinking-edu-links a:hover { text-decoration: underline; }
-
-  /* THINK BLOCK (model reasoning output) */
-  .think-block {
-    border: 1px solid var(--border-light);
-    border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 10px;
-  }
-  .think-block-header {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 8px 12px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    background: var(--dc-blue-light);
-    user-select: none;
-    line-height: 1;
-    transition: background 0.15s;
-  }
-  .think-block-header:hover { background: var(--border-light); }
-  .think-icon {
-    font-size: 13px;
-    line-height: 1;
-    display: inline-block;
-    animation: spin 1.4s linear infinite;
-  }
-  .think-icon.think-done { animation: none; }
-  .think-block-chevron {
-    margin-left: auto;
-    font-size: 13px;
-    font-weight: 400;
-    display: inline-block;
-    transition: transform 0.2s;
-    color: var(--text-muted);
-    line-height: 1;
-  }
-  .think-block-chevron.open { transform: rotate(90deg); }
-  .think-block-body {
-    padding: 11px 13px;
-    font-size: 11.5px;
-    color: var(--text-secondary);
-    font-family: var(--font-mono);
-    white-space: pre-wrap;
-    max-height: 240px;
-    overflow-y: auto;
-    line-height: 1.65;
-    border-top: 1px solid var(--border-light);
-    background: var(--bg-primary);
-  }
-  [data-theme="dark"] .think-block-body { background: rgba(0,0,0,0.18); }
-  .think-block-body.hidden { display: none; }
-
-  /* MESSAGE METADATA */
-  .msg-meta {
-    font-size: 10px;
-    color: var(--text-muted);
-    padding: 3px 42px 0;
-    letter-spacing: 0.1px;
-    display: flex;
-    gap: 0;
-    align-items: center;
-  }
-  .msg-meta-dot {
-    margin: 0 5px;
-    opacity: 0.45;
-  }
-
-  /* CLICKABLE MESSAGE STATS */
-  .msg-meta-wrap {
-    position: relative;
-    margin-left: 42px;
-  }
-  .msg-meta-clickable {
-    cursor: pointer;
-    padding: 3px 8px;
-    border-radius: 6px;
-    transition: background 0.15s, color 0.15s;
-    width: fit-content;
-  }
-  .msg-meta-clickable:hover { color: var(--text-secondary); background: var(--border-light); }
-  .msg-meta-chevron {
-    margin-left: 5px;
-    opacity: 0.5;
-    transition: transform 0.2s;
-    vertical-align: -1px;
-  }
-  .msg-meta-clickable.open .msg-meta-chevron { transform: rotate(180deg); }
-
-  .msg-stats-popover {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    z-index: 50;
-    min-width: 230px;
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 13px 15px 11px;
-    box-shadow: 0 8px 32px color-mix(in srgb, var(--dc-blue) 18%, transparent), 0 2px 8px rgba(0,0,0,0.06);
-    animation: statsPop 0.16s cubic-bezier(0.4,0,0.2,1);
-  }
-  [data-theme="dark"] .msg-stats-popover {
-    box-shadow: 0 8px 32px rgba(0,0,0,0.45);
-  }
-  .msg-stats-popover.hidden { display: none; }
-  /* Flip above the trigger when there isn't room below (e.g. last message) */
-  .msg-stats-popover.up {
-    top: auto;
-    bottom: calc(100% + 6px);
-    animation-name: statsPopUp;
-  }
-  @keyframes statsPop {
-    from { opacity: 0; transform: translateY(-4px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes statsPopUp {
-    from { opacity: 0; transform: translateY(4px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .msg-stats-title {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-primary);
-    letter-spacing: 0.2px;
-    margin-bottom: 10px;
-  }
-  .msg-stats-rows { display: flex; flex-direction: column; gap: 6px; }
-  .msg-stats-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 16px;
-    font-size: 11.5px;
-  }
-  .msg-stats-k {
-    color: var(--text-muted);
-    font-weight: 500;
-    flex-shrink: 0;
-  }
-  .msg-stats-v {
-    color: var(--text-secondary);
-    text-align: right;
-  }
-  .msg-stats-v b { color: var(--text-primary); font-weight: 600; }
-  .msg-stats-v.mono { font-family: var(--font-mono); font-size: 11px; }
-  .msg-stats-divider {
-    height: 1px;
-    background: var(--border-light);
-    margin: 10px 0;
-  }
-  .msg-stats-note {
-    font-size: 10px;
-    color: var(--text-muted);
-    margin-top: 9px;
-    opacity: 0.8;
-  }
-
-  /* SOURCE CHIPS */
-  .source-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border-light);
-  }
-  .source-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: var(--dc-blue-light);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 3px 9px;
-    font-size: 10.5px;
-    color: var(--dc-blue);
-    font-weight: 500;
-    cursor: default;
-  }
-  [data-theme="dark"] .source-chip { color: var(--dc-accent); }
-
-  /* INPUT — floats as a centered card in both welcome AND active-chat
-     state (previously only welcome mode floated; the docked chat-mode bar
-     now gets the same lift/rounding/shadow instead of sitting flush). */
-  .input-area {
-    padding: 10px 14px 14px;
-    background: var(--bg-panel);
-    border: 1.5px solid var(--border);
-    flex-shrink: 0;
-    position: absolute;
-    left: 50%;
-    width: calc(100% - 40px);
-    max-width: 760px;
-    transform: translateX(-50%);
-    margin: 0 0 20px;
-    bottom: 0;
-    z-index: 10;
-    border-radius: var(--radius-lg);
-    box-shadow: 0 8px 40px color-mix(in srgb, var(--dc-blue) 15%, transparent), 0 2px 8px color-mix(in srgb, var(--dc-blue) 8%, transparent);
-    transition: border-color 0.3s ease, box-shadow 0.4s ease;
-  }
-  [data-theme="dark"] .input-area {
-    box-shadow: 0 8px 40px rgba(0,168,232,0.1), 0 2px 8px rgba(0,0,0,0.2);
-  }
-  /* Hide footer details when floating — keep it compact like Gemini */
-  .main.welcome-mode .legal-disclaimer {
-    display: none;
-  }
-
-  /* Chat mode: leave room for the floating input bar (+ its bottom margin) */
-  .main:not(.welcome-mode) .chat-area {
-    padding-bottom: 200px;
-  }
-
-  .input-box {
-    background: var(--bg-primary);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    box-shadow: var(--shadow-input);
-  }
-  .input-box:focus-within {
-    border-color: var(--dc-blue);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--dc-blue) 10%, transparent), var(--shadow-input);
-  }
-
-  #message-input {
-    flex: 1;
-    min-width: 0;
-    border: none;
-    background: none;
-    font-family: var(--font-main);
-    font-size: 13.5px;
-    color: var(--text-primary);
-    resize: none;
-    outline: none;
-    min-height: 22px;
-    max-height: 120px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    line-height: 1.5;
-    padding: 2px 0;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-  }
-  #message-input::-webkit-scrollbar { width: 4px; }
-  #message-input::-webkit-scrollbar-track { background: transparent; }
-  #message-input::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-  #message-input::-webkit-scrollbar-button { display: none; }
-  /* Placeholder hints stay single-line (like Gemini's "Ask Gemini") — real typed
-     text still wraps/scrolls normally when it grows past one row. */
-  #message-input::placeholder {
-    color: var(--text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .input-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-  }
-
-  .send-btn {
-    width: 36px; height: 36px;
-    background: var(--dc-blue);
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    flex-shrink: 0;
-  }
-  .send-btn:hover { background: var(--dc-blue-dark); transform: scale(1.04); }
-  [data-theme="dark"] .send-btn { background: linear-gradient(135deg, var(--dc-blue) 0%, var(--dc-violet) 65%, var(--dc-gold) 130%); }
-  [data-theme="dark"] .send-btn:hover { background: linear-gradient(135deg, var(--dc-blue-dark) 0%, var(--dc-violet) 65%, var(--dc-gold) 130%); }
-  .send-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-  /* Stop / cancel state while the model is generating */
-  .send-btn.stop { background: #DC2626; }
-  .send-btn.stop:hover { background: #b91c1c; }
-  .cancelled-note {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 10px;
-    padding-top: 8px;
-    border-top: 1px dashed var(--border);
-    font-size: 12px;
-    font-style: italic;
-    color: var(--text-muted);
-  }
-  .cancelled-note svg { flex-shrink: 0; opacity: 0.8; }
-
-  .input-tip {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 5px;
-    text-align: center;
-    font-size: 10px;
-    color: var(--text-secondary);
-    margin-top: 6px;
-    letter-spacing: 0.1px;
-  }
-  .input-tip-dot { opacity: 0.5; }
-  .tip-badge {
-    display: inline-flex;
-    align-items: center;
-    border-radius: 3px;
-    padding: 1px 6px;
-    font-size: 9px;
-    font-weight: 800;
-    color: white;
-    letter-spacing: 0.3px;
-    white-space: nowrap;
-    line-height: 1.6;
-  }
-  .tip-badge.aws { background: #FF9900; }
-  .tip-badge.alibaba { background: linear-gradient(135deg, #FF6A00, #FF9A00); }
-
-  /* MODEL SELECT BUTTON (inside input box — Gemini Flash style) */
-  .model-select-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 5px 12px;
-    margin-left: 4px;
-    background: transparent;
-    border: 1.5px solid var(--border);
-    border-radius: 20px;
-    cursor: pointer;
-    font-family: var(--font-main);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    transition: all 0.15s;
-    white-space: nowrap;
-    flex-shrink: 0;
-    letter-spacing: 0.1px;
-  }
-  .model-select-btn:hover {
-    background: var(--dc-blue-light);
-    border-color: var(--dc-blue);
-    color: var(--dc-blue);
-  }
-  [data-theme="dark"] .model-select-btn:hover {
-    background: var(--dc-accent-light);
-    border-color: var(--dc-accent);
-    color: var(--dc-accent);
-  }
-  .model-select-btn svg { flex-shrink: 0; opacity: 0.6; transition: transform 0.2s; }
-  .model-select-btn:hover svg { opacity: 1; }
-  .model-select-btn.open svg { transform: rotate(180deg); }
-
-  /* TOOLS MENU (Gemini "+" style) — collapses sources/thinking/web-search into one button */
-  .tools-wrap { position: relative; flex-shrink: 0; }
-
-  .tools-btn {
-    width: 34px; height: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    color: var(--text-muted);
-    transition: all 0.15s;
-    position: relative;
-  }
-  .tools-btn:hover, .tools-btn.open {
-    background: var(--dc-blue-light);
-    color: var(--dc-blue);
-  }
-  [data-theme="dark"] .tools-btn:hover, [data-theme="dark"] .tools-btn.open {
-    background: var(--dc-accent-light);
-    color: var(--dc-accent);
-  }
-  .tools-dot {
-    position: absolute;
-    top: 3px; right: 3px;
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--dc-blue);
-    border: 1.5px solid var(--bg-primary);
-    display: none;
-  }
-  .tools-btn.has-active .tools-dot { display: block; }
-
-  .tools-dropdown {
-    position: absolute;
-    bottom: calc(100% + 8px);
-    left: 0;
-    background: var(--bg-panel);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-md);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
-    padding: 6px;
-    width: 200px;
-    display: none;
-    flex-direction: column;
-    gap: 2px;
-    z-index: 20;
-    animation: dropdownIn 0.15s ease;
-  }
-  .tools-dropdown.open { display: flex; }
-
-  .tools-item {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    padding: 8px 9px;
-    border: none;
-    background: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: var(--font-main);
-    font-size: 12.5px;
-    font-weight: 500;
-    color: var(--text-primary);
-    text-align: left;
-    width: 100%;
-    transition: background 0.12s;
-  }
-  .tools-item:hover { background: var(--bg-primary); }
-  .tools-item-ico { flex-shrink: 0; display: flex; opacity: 0.75; }
-  .tools-item-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tools-item-check { flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--dc-blue); opacity: 0; }
-  .tools-item.active { background: var(--dc-blue-light); color: var(--dc-blue); }
-  .tools-item.active .tools-item-ico { opacity: 1; }
-  .tools-item.active .tools-item-check { opacity: 1; }
-  [data-theme="dark"] .tools-item.active { background: var(--dc-accent-light); color: var(--dc-accent); }
-  [data-theme="dark"] .tools-item.active .tools-item-check { color: var(--dc-accent); }
-
-  /* Web sources card — shown under answers that used web search */
-  .web-sources {
-    margin-top: 12px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .web-sources-head {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 2px;
-  }
-  .web-source-link {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
-    border-radius: 8px;
-    text-decoration: none;
-    color: var(--text-secondary);
-    font-size: 12.5px;
-    transition: background 0.12s, color 0.12s;
-  }
-  .web-source-link:hover { background: var(--dc-blue-light); color: var(--dc-blue); }
-  [data-theme="dark"] .web-source-link:hover { background: var(--dc-accent-light); color: var(--dc-accent); }
-  .web-source-num {
-    flex-shrink: 0;
-    width: 18px; height: 18px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 5px;
-    background: var(--dc-blue);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-  }
-  .web-source-title {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .web-source-host {
-    flex-shrink: 0;
-    color: var(--text-muted);
-    font-size: 11px;
-  }
-
-  /* MODEL DROPDOWN PANEL (search-style picker) */
-  .model-dropdown {
-    position: absolute;
-    bottom: calc(100% + 8px);
-    right: 14px;
-    background: var(--bg-panel);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-md);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
-    padding: 8px;
-    width: 280px;
-    display: none;
-    flex-direction: column;
-    gap: 6px;
-    z-index: 20;
-    animation: dropdownIn 0.15s ease;
-  }
-  .model-dropdown.open { display: flex; }
-  @keyframes dropdownIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .model-dd-search-row { display: flex; align-items: center; gap: 6px; }
-  .model-dd-search {
-    flex: 1;
-    min-width: 0;
-    padding: 7px 10px;
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-family: var(--font-main);
-    font-size: 12.5px;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .model-dd-search:focus { border-color: var(--dc-accent); }
-  .model-dd-search::placeholder { color: var(--text-muted); }
-  .model-dd-add {
-    flex-shrink: 0;
-    width: 30px; height: 30px;
-    display: flex; align-items: center; justify-content: center;
-    border: 1.5px solid var(--dc-accent);
-    border-radius: 8px;
-    background: transparent;
-    color: var(--dc-accent);
-    font-size: 18px;
-    line-height: 1;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .model-dd-add:hover { background: var(--dc-accent); color: #fff; }
-  .model-dd-recent-label {
-    font-size: 9.5px;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.9px;
-    padding: 2px 4px 0;
-  }
-  .model-dd-list { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow-y: auto; }
-  .model-dd-empty { padding: 10px 6px; font-size: 12px; color: var(--text-muted); text-align: center; }
-  .model-dd-demo-note { padding: 4px 8px 6px; font-size: 10.5px; color: var(--text-muted); text-align: left; }
-  .model-dropdown-opt.demo { border: 1px dashed var(--border); opacity: 0.85; }
-  .model-dropdown-opt.demo:hover { background: var(--bg-primary); opacity: 1; }
-  .model-dropdown-opt.demo .model-dd-endpoint { font-style: italic; }
-  .model-dropdown-opt {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    padding: 8px 10px;
-    border: none;
-    background: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: var(--font-main);
-    font-size: 12.5px;
-    color: var(--text-primary);
-    font-weight: 500;
-    transition: background 0.12s;
-    text-align: left;
-    width: 100%;
-  }
-  .model-dropdown-opt:hover { background: var(--bg-primary); }
-  .model-dropdown-opt.active { background: var(--dc-blue-light); }
-  [data-theme="dark"] .model-dropdown-opt.active { background: var(--dc-accent-light); }
-  .model-dd-icon { flex-shrink: 0; opacity: 0.8; }
-  .model-dd-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-  .model-dd-name { font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .model-dropdown-opt.active .model-dd-name { color: var(--dc-accent); }
-  .model-dd-endpoint { font-size: 10.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .model-dd-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    margin-left: auto;
-    background: #F59E0B;   /* default: checking / idle */
-    transition: background 0.2s;
-  }
-  .model-dd-dot.online  { background: #22C55E; }
-  .model-dd-dot.idle    { background: #F59E0B; }
-  .model-dd-dot.offline { background: #EF4444; }
-  .model-dd-badge {
-    font-size: 9.5px;
-    font-weight: 800;
-    letter-spacing: 0.3px;
-    padding: 2px 7px;
-    border-radius: 20px;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .model-dd-badge.rec   { background: rgba(34,197,94,0.14);  color: #16A34A; }
-  .model-dd-badge.fast  { background: rgba(245,158,11,0.16); color: #B45309; }
-  .model-dd-badge.smart { background: rgba(139,92,246,0.14); color: #7C3AED; }
-  [data-theme="dark"] .model-dd-badge.rec   { color: #4ADE80; }
-  [data-theme="dark"] .model-dd-badge.fast  { color: #FBBF24; }
-  [data-theme="dark"] .model-dd-badge.smart { color: #A78BFA; }
-  .model-dd-dot.checking {
-    background: #F59E0B;
-    animation: dot-pulse 1s ease-in-out infinite;
-  }
-  @keyframes dot-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-
-  /* ADD MODELS — ENDPOINT CARDS */
-  .endpoint-card {
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    background: var(--bg-primary);
-  }
-  .endpoint-source {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 11px;
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg-panel);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.6px;
-    color: var(--text-secondary);
-  }
-  .endpoint-source svg { opacity: 0.7; }
-  .endpoint-row { display: flex; align-items: center; gap: 8px; }
-  .endpoint-row .settings-input { flex: 1; min-width: 0; }
-  .endpoint-type, .endpoint-provider {
-    flex-shrink: 0;
-    background: var(--bg-panel);
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 9px;
-    font-family: var(--font-main);
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--text-primary);
-    cursor: pointer;
-    outline: none;
-  }
-  .endpoint-type { width: 76px; }
-  .endpoint-provider { display: flex; align-items: center; }
-  .endpoint-type:focus, .endpoint-provider:focus { border-color: var(--dc-blue); }
-  .endpoint-actions { display: flex; justify-content: flex-end; gap: 8px; }
-  .endpoint-btn {
-    padding: 8px 18px;
-    border-radius: 8px;
-    font-family: var(--font-main);
-    font-size: 12.5px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .endpoint-btn.ghost {
-    background: transparent;
-    border: 1.5px solid var(--border);
-    color: var(--text-secondary);
-  }
-  .endpoint-btn.ghost:hover:not(:disabled) { border-color: var(--dc-blue); color: var(--dc-blue); }
-  .endpoint-btn.solid {
-    background: var(--dc-blue);
-    border: 1.5px solid var(--dc-blue);
-    color: #fff;
-  }
-  .endpoint-btn.solid:hover:not(:disabled) { filter: brightness(1.08); }
-  .endpoint-btn:disabled { opacity: 0.6; cursor: default; }
-  .endpoint-quickstart {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 9px 11px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg-panel);
-    font-family: var(--font-main);
-    font-size: 12.5px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .endpoint-quickstart:hover { background: var(--bg-primary); }
-  .endpoint-quickstart svg { transition: transform 0.2s; opacity: 0.6; }
-  .endpoint-quickstart.open svg { transform: rotate(90deg); }
-  .quickstart-body {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-    padding: 4px 4px 2px;
-    font-size: 12px;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
-  .quickstart-body code {
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 6px 10px;
-    font-size: 11.5px;
-    color: var(--dc-blue);
-    font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  }
-  .quickstart-body strong { color: var(--text-primary); }
-  .quickstart-body a { color: var(--dc-blue); font-weight: 600; text-decoration: none; }
-  .quickstart-body a:hover { text-decoration: underline; }
-  .qs-step { display: flex; gap: 9px; align-items: flex-start; }
-  .qs-num {
-    flex-shrink: 0;
-    width: 19px;
-    height: 19px;
-    margin-top: 1px;
-    border-radius: 50%;
-    background: var(--dc-blue);
-    color: #fff;
-    font-size: 11px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .qs-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
-  .qs-text strong { font-size: 12.5px; }
-  .qs-text code { align-self: flex-start; max-width: 100%; overflow-x: auto; }
-  .qs-tip {
-    margin-top: 2px;
-    padding: 8px 10px;
-    border-radius: 7px;
-    background: var(--bg-panel);
-    font-size: 11.5px;
-    line-height: 1.55;
-  }
-  .qs-tip code {
-    background: none;
-    border: none;
-    padding: 0;
-    font-size: 11px;
-  }
-
-  /* ADDED MODELS / ENDPOINT MANAGER */
-  .added-endpoints-section { margin-top: 4px; }
-  .added-endpoints-head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-  .added-endpoints-head svg { opacity: 0.65; }
-  .added-endpoints-sub { font-weight: 500; color: var(--text-muted); }
-  .added-endpoints-desc {
-    margin: 4px 0 12px;
-    font-size: 11.5px;
-    color: var(--text-muted);
-  }
-  .ep-group { margin-bottom: 14px; }
-  .ep-group-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 0.6px;
-    color: var(--text-muted);
-    margin-bottom: 6px;
-  }
-  .ep-group-label svg { opacity: 0.6; }
-  .ep-card {
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 13px;
-    background: var(--bg-primary);
-  }
-  .ep-card-main { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
-  .ep-card-name {
-    font-size: 13.5px;
-    font-weight: 700;
-    color: var(--text-primary);
-    white-space: nowrap;
-  }
-  .ep-badge {
-    font-size: 10.5px;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 20px;
-    background: rgba(5,150,105,0.12);
-    color: #059669;
-    white-space: nowrap;
-  }
-  .ep-badge.off { background: var(--bg-panel); color: var(--text-muted); }
-  .ep-manage-hint {
-    flex: 1;
-    min-width: 0;
-    font-size: 11px;
-    color: var(--text-muted);
-    cursor: pointer;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .ep-card-actions { display: flex; align-items: center; gap: 7px; flex-shrink: 0; margin-left: auto; }
-  .ep-mini-btn {
-    padding: 5px 12px;
-    border-radius: 7px;
-    font-family: var(--font-main);
-    font-size: 11.5px;
-    font-weight: 600;
-    cursor: pointer;
-    background: transparent;
-    border: 1.5px solid var(--border);
-    color: var(--text-secondary);
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .ep-mini-btn:hover { border-color: var(--dc-blue); color: var(--dc-blue); }
-  .ep-mini-btn.danger:hover { border-color: #DC2626; color: #DC2626; }
-  .ep-chevron {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    border: none;
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-radius: 6px;
-  }
-  .ep-chevron:hover { background: var(--bg-panel); }
-  .ep-chevron svg { transition: transform 0.2s; }
-  .ep-chevron.open svg { transform: rotate(180deg); }
-  .ep-url-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 8px;
-    font-size: 11px;
-    color: var(--text-muted);
-    font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  }
-  .ep-url-copy {
-    border: none;
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 2px;
-    display: inline-flex;
-    border-radius: 4px;
-  }
-  .ep-url-copy:hover { color: var(--dc-blue); }
-  .ep-models {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .ep-model-row {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    padding: 6px 4px;
-    font-size: 12.5px;
-    color: var(--text-primary);
-  }
-  .ep-model-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ep-model-name.disabled { color: var(--text-muted); text-decoration: line-through; }
-  .ep-toggle {
-    flex-shrink: 0;
-    width: 34px;
-    height: 18px;
-    border-radius: 20px;
-    border: none;
-    background: var(--border);
-    position: relative;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .ep-toggle.on { background: var(--dc-blue); }
-  .ep-toggle::after {
-    content: '';
-    position: absolute;
-    top: 2px; left: 2px;
-    width: 14px; height: 14px;
-    border-radius: 50%;
-    background: #fff;
-    transition: transform 0.15s;
-  }
-  .ep-toggle.on::after { transform: translateX(16px); }
-  .added-endpoints-empty {
-    padding: 16px;
-    border: 1px dashed var(--border);
-    border-radius: 10px;
-    text-align: center;
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-
-  /* SIDEBAR OVERLAY (mobile) */
-  .sidebar-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 99;
-  }
-
-  /* MOBILE */
-  @media (max-width: 640px) {
-    :root { --sidebar-w: 260px; }
-
-    .sidebar {
-      position: fixed;
-      left: 0; top: 0; bottom: 0;
-      margin: 0;
-      border-radius: 0;
-      border: none;
-      transform: translateX(-100%);
-    }
-    .sidebar.open { transform: translateX(0); }
-
-    .sidebar-overlay.visible { display: block; }
-
-    .suggestion-grid { grid-template-columns: 1fr; max-width: 100%; }
-    .welcome-title { font-size: 18px; }
-    .chat-area { padding: 14px 12px; }
-    .input-area { padding: 8px 10px 12px; }
-
-    .status-chip { display: none; }
-
-    .bubble { max-width: calc(100% - 38px); }
-  }
-
-  /* CONTEXT NOTIFICATION */
-  .context-bar {
-    margin: 0 0 4px;
-    padding: 8px 12px;
-    background: var(--dc-blue-light);
-    border: 1px solid color-mix(in srgb, var(--dc-blue) 20%, transparent);
-    border-radius: var(--radius-sm);
-    font-size: 11.5px;
-    color: var(--dc-blue);
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-weight: 500;
-  }
-  [data-theme="dark"] .context-bar { color: var(--dc-accent); }
-
-  .scroll-bottom-btn {
-    position: fixed;
-    bottom: 100px;
-    right: 20px;
-    width: 36px; height: 36px;
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.12);
-    transition: all 0.2s;
-    z-index: 50;
-    color: var(--text-secondary);
-  }
-  .scroll-bottom-btn.visible { display: flex; }
-  .scroll-bottom-btn:hover { background: var(--dc-blue); color: white; border-color: var(--dc-blue); }
-
-  /* ERROR */
-  .error-bubble {
-    background: #FEF2F2;
-    border: 1px solid #FECACA;
-    border-radius: var(--radius-md);
-    padding: 14px 16px;
-    font-size: 13px;
-    margin: 4px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .error-bubble-top {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .error-bubble-icon {
-    width: 32px; height: 32px;
-    background: #FEE2E2;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    color: #DC2626;
-  }
-  .error-bubble-title {
-    font-size: 13.5px;
-    font-weight: 700;
-    color: #991B1B;
-    margin-bottom: 3px;
-    line-height: 1.3;
-  }
-  .error-bubble-desc {
-    font-size: 12.5px;
-    color: #B91C1C;
-    line-height: 1.6;
-  }
-  .error-bubble-steps {
-    background: #FEE2E2;
-    border-radius: 8px;
-    padding: 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .error-bubble-steps-title {
-    font-size: 10.5px;
-    font-weight: 700;
-    color: #991B1B;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    margin-bottom: 2px;
-  }
-  .error-step {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    font-size: 12px;
-    color: #7F1D1D;
-    line-height: 1.5;
-  }
-  .error-step-num {
-    width: 16px; height: 16px;
-    border-radius: 50%;
-    background: #DC2626;
-    color: white;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 9px; font-weight: 700;
-    flex-shrink: 0; margin-top: 1px;
-  }
-  .error-step code {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    background: rgba(0,0,0,0.08);
-    padding: 1px 5px;
-    border-radius: 4px;
-  }
-  .error-bubble-dismiss {
-    align-self: flex-end;
-    background: none;
-    border: 1px solid #FECACA;
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #991B1B;
-    cursor: pointer;
-    font-family: var(--font-main);
-    transition: background 0.15s;
-  }
-  .error-bubble-dismiss:hover { background: #FEE2E2; }
-  .error-bubble-actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-  }
-  .error-bubble-cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: #DC2626;
-    border: 1px solid #DC2626;
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #fff;
-    cursor: pointer;
-    font-family: var(--font-main);
-    transition: background 0.15s, transform 0.05s;
-  }
-  .error-bubble-cta:hover { background: #B91C1C; }
-  .error-bubble-cta:active { transform: translateY(1px); }
-  .error-bubble-cta svg { flex-shrink: 0; }
-  [data-theme="dark"] .error-bubble { background: rgba(153,27,27,0.15); border-color: rgba(153,27,27,0.3); }
-  [data-theme="dark"] .error-bubble-icon { background: rgba(220,38,38,0.2); color: #FCA5A5; }
-  [data-theme="dark"] .error-bubble-title { color: #FCA5A5; }
-  [data-theme="dark"] .error-bubble-desc { color: #F87171; }
-  [data-theme="dark"] .error-bubble-steps { background: rgba(220,38,38,0.12); }
-  [data-theme="dark"] .error-bubble-steps-title { color: #FCA5A5; }
-  [data-theme="dark"] .error-step { color: #FCA5A5; }
-  [data-theme="dark"] .error-bubble-dismiss { border-color: rgba(220,38,38,0.3); color: #FCA5A5; }
-  /* TRUST PILLS */
-  .trust-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    background: var(--dc-blue-light);
-    border: 1px solid color-mix(in srgb, var(--dc-blue) 18%, transparent);
-    border-radius: 20px;
-    padding: 4px 11px 4px 8px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--dc-blue);
-    letter-spacing: 0.1px;
-    white-space: nowrap;
-  }
-  [data-theme="dark"] .trust-pill {
-    background: color-mix(in srgb, var(--dc-blue) 15%, transparent);
-    border-color: color-mix(in srgb, var(--dc-blue) 30%, transparent);
-    color: var(--dc-accent);
-  }
-
-  .community-desc {
-    width: 100%;
-    max-width: 400px;
-  }
-  .community-desc-inner {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    padding: 11px 13px;
-    font-size: 12px;
-    color: var(--text-secondary);
-    line-height: 1.65;
-    box-shadow: var(--shadow-card);
-    text-align: left;
-  }
-  .community-desc-inner svg { color: var(--dc-blue); margin-top: 1px; }
-  [data-theme="dark"] .community-desc-inner svg { color: var(--dc-accent); }
-  .community-desc-inner strong { color: var(--text-primary); font-weight: 600; }
-
-  /* LEGAL DISCLAIMER */
-  .legal-disclaimer {
-    background: var(--bg-panel);
-    border-top: 1px solid var(--border-light);
-    padding: 5px 16px 6px;
-    flex-shrink: 0;
-  }
-  .legal-disclaimer-inner {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 9.5px;
-    color: var(--text-secondary);
-    line-height: 1.4;
-    justify-content: center;
-    flex-wrap: wrap;
-    text-align: center;
-  }
-  .legal-about-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 9.5px;
-    color: var(--dc-blue);
-    font-family: var(--font-main);
-    font-weight: 600;
-    padding: 0;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-  [data-theme="dark"] .legal-about-btn { color: var(--dc-accent); }
-
-  /* WELCOME MODAL */
-  .modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(5, 15, 35, 0.72);
-    z-index: 200;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    backdrop-filter: blur(3px);
-    animation: fade-in 0.2s ease;
-  }
-  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-
-  .modal-card {
-    background: var(--bg-panel);
-    border-radius: 20px;
-    width: 100%;
-    max-width: 440px;
-    max-height: 88dvh;
-    overflow-y: auto;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.3);
-    animation: slide-up 0.25s cubic-bezier(0.34,1.56,0.64,1);
-    border: 1px solid var(--border);
-  }
-  @keyframes slide-up { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  .modal-card::-webkit-scrollbar { width: 3px; }
-  .modal-card::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-  .modal-header {
-    padding: 22px 22px 0;
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-  }
-  .modal-logo {
-    width: 46px; height: 46px;
-    border-radius: 13px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 17px;
-    font-weight: 800;
-    color: white;
-    letter-spacing: -0.5px;
-    flex-shrink: 0;
-    box-shadow: 0 6px 20px color-mix(in srgb, var(--dc-blue) 30%, transparent);
-  }
-  .modal-header-text { flex: 1; }
-  .modal-header-text h2 {
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1.2;
-    margin-bottom: 3px;
-  }
-  .modal-header-text p {
-    font-size: 11.5px;
-    color: var(--text-muted);
-    font-weight: 400;
-  }
-  .modal-mabuhay {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--dc-blue);
-    letter-spacing: 0.3px;
-    margin-bottom: 4px;
-  }
-  [data-theme="dark"] .modal-mabuhay { color: var(--dc-accent); }
-
-  .lang-toggle-soon {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 4px 8px;
-    font-size: 10.5px;
-    font-weight: 600;
-    color: var(--text-muted);
-    cursor: not-allowed;
-    white-space: nowrap;
-    user-select: none;
-  }
-  .soon-badge {
-    background: #FEF9C3;
-    border: 1px solid #FDE68A;
-    color: #854D0E;
-    border-radius: 4px;
-    padding: 0 5px;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
-  }
-  [data-theme="dark"] .soon-badge {
-    background: rgba(133,77,14,0.2);
-    border-color: rgba(133,77,14,0.4);
-    color: #FCD34D;
-  }
-  .modal-close {
-    width: 28px; height: 28px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    flex-shrink: 0;
-    transition: all 0.15s;
-    margin-top: -2px;
-  }
-  .modal-close:hover { background: var(--border-light); color: var(--text-primary); }
-
-  .modal-tabs {
-    display: flex;
-    gap: 0;
-    padding: 16px 22px 0;
-    border-bottom: 1px solid var(--border-light);
-    margin-top: 16px;
-  }
-  .modal-tab {
-    padding: 7px 13px 9px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-muted);
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    font-family: var(--font-main);
-    transition: all 0.15s;
-    margin-bottom: -1px;
-    white-space: nowrap;
-  }
-  .modal-tab.active {
-    color: var(--dc-blue);
-    border-bottom-color: var(--dc-blue);
-  }
-  [data-theme="dark"] .modal-tab.active { color: var(--dc-accent); border-bottom-color: var(--dc-accent); }
-
-  .modal-body { padding: 20px 22px 22px; }
-  .modal-panel { display: none; }
-  .modal-panel.active { display: block; }
-
-  .modal-section-title {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 10px;
-  }
-  .modal-text {
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.7;
-    margin-bottom: 14px;
-  }
-  .modal-text strong { color: var(--text-primary); font-weight: 600; }
-
-  .modal-highlight {
-    background: var(--dc-blue-light);
-    border: 1px solid color-mix(in srgb, var(--dc-blue) 15%, transparent);
-    border-radius: 10px;
-    padding: 12px 14px;
-    margin-bottom: 14px;
-    font-size: 12.5px;
-    color: var(--dc-blue);
-    font-weight: 500;
-    line-height: 1.6;
-    display: flex;
-    gap: 9px;
-    align-items: flex-start;
-  }
-  [data-theme="dark"] .modal-highlight { color: var(--dc-accent); background: color-mix(in srgb, var(--dc-blue) 10%, transparent); border-color: color-mix(in srgb, var(--dc-blue) 20%, transparent); }
-  .modal-highlight svg { flex-shrink: 0; margin-top: 2px; }
-
-  .stack-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-  .stack-item {
-    background: var(--bg-primary);
-    border: 1px solid var(--border-light);
-    border-radius: 10px;
-    padding: 10px 12px;
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    text-decoration: none;
-    color: inherit;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  a.stack-item:hover {
-    border-color: var(--dc-blue);
-    background: var(--dc-blue-light);
-  }
-  [data-theme="dark"] a.stack-item:hover {
-    border-color: var(--dc-accent);
-    background: color-mix(in srgb, var(--dc-blue) 12%, transparent);
-  }
-  .stack-link {
-    color: var(--dc-blue);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    font-weight: 700;
-    font-size: inherit;
-  }
-  .stack-link:hover { color: var(--dc-blue-dark); }
-  [data-theme="dark"] .stack-link { color: var(--dc-accent); }
-  [data-theme="dark"] .stack-link:hover { color: var(--dc-blue-tint); }
-  .stack-icon {
-    width: 28px; height: 28px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    flex-shrink: 0;
-  }
-  .stack-item-text {}
-  .stack-item-name {
-    font-size: 12.5px;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1.2;
-    margin-bottom: 3px;
-  }
-  .stack-item-desc {
-    font-size: 11.5px;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
-
-  .open-source-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border-light);
-    font-size: 12.5px;
-  }
-  .open-source-row:last-child { border-bottom: none; padding-bottom: 0; }
-  .open-source-row svg { flex-shrink: 0; margin-top: 2px; color: var(--dc-blue); }
-  [data-theme="dark"] .open-source-row svg { color: var(--dc-accent); }
-  .open-source-row strong { color: var(--text-primary); font-weight: 600; }
-  .open-source-row span { color: var(--text-secondary); line-height: 1.65; }
-  .modal-why-row { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--text-secondary); line-height: 1.65; }
-  .modal-why-row strong { color: var(--text-primary); font-weight: 600; }
-  .modal-why-row em { font-style: italic; }
-  .modal-hour-row { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
-  .modal-hour-row strong { color: var(--text-primary); font-weight: 600; }
-
-  .modal-footer-btn {
-    width: 100%;
-    padding: 11px;
-    background: var(--dc-blue);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-family: var(--font-main);
-    font-size: 13.5px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 18px;
-    transition: background 0.2s;
-    letter-spacing: 0.2px;
-  }
-  .modal-footer-btn:hover { background: var(--dc-blue-dark); }
-
-  /* ── ONBOARDING (single column — about + why up front, rest collapsed) ── */
-  .onboarding-card { max-width: 480px; }
-
-  /* Step 2 — AI setup blocks */
-  .onboard-setup-block {
-    border: 1px solid var(--border-light);
-    border-radius: 12px;
-    padding: 14px;
-    margin-bottom: 12px;
-    background: var(--bg-secondary);
-  }
-  .onboard-setup-head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13.5px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 10px;
-  }
-  .onboard-setup-num {
-    flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--dc-blue);
-    color: #fff;
-    font-size: 11.5px;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .onboard-action-btn {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    background: var(--dc-blue-light);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 14px;
-    color: var(--dc-blue);
-    font-family: var(--font-main);
-    font-size: 13.5px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
-  }
-  .onboard-action-btn:hover {
-    background: var(--dc-blue);
-    border-color: var(--dc-blue);
-    color: #fff;
-  }
-  .onboard-action-btn > span { flex: 1; text-align: left; }
-  .onboard-action-arrow { opacity: 0.7; }
-
-  /* Step 2 — installation requirements (collapsible) */
-  .install-req { margin-bottom: 14px; }
-  .install-req summary {
-    cursor: pointer; list-style: none; user-select: none;
-    display: flex; align-items: center; gap: 7px;
-    font-size: 12.5px; font-weight: 700; color: var(--dc-blue);
-    padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px;
-    background: var(--bg-secondary);
-  }
-  .install-req summary::-webkit-details-marker { display: none; }
-  .install-req summary::after { content: '▾'; margin-left: auto; font-size: 11px; opacity: 0.7; }
-  .install-req[open] summary {
-    border-bottom-left-radius: 0; border-bottom-right-radius: 0;
-  }
-  .install-req[open] summary::after { content: '▴'; }
-  .install-req-body {
-    border: 1px solid var(--border); border-top: none;
-    border-radius: 0 0 10px 10px; padding: 10px 12px;
-    background: var(--bg-secondary);
-    display: flex; flex-direction: column; gap: 7px;
-  }
-  .install-req-row {
-    display: flex; gap: 10px; font-size: 12px; line-height: 1.5;
-    color: var(--text-secondary);
-  }
-  .install-req-row b { flex: 0 0 60px; color: var(--text-primary); }
-
-  /* Step 2 — model recommender */
-  .rec-select-row { display: flex; gap: 10px; margin-bottom: 12px; }
-  .rec-select-row label {
-    flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;
-    font-size: 11px; font-weight: 700; color: var(--text-secondary);
-    text-transform: uppercase; letter-spacing: 0.4px;
-  }
-  .rec-select {
-    width: 100%; background: var(--bg-secondary); border: 1px solid var(--border);
-    border-radius: 10px; padding: 9px 10px; color: var(--text-primary);
-    font-family: var(--font-main); font-size: 12.5px; font-weight: 600;
-    outline: none; cursor: pointer;
-  }
-  .rec-group { margin-bottom: 12px; }
-  .rec-group-head {
-    display: flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 800;
-    text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);
-    margin: 10px 0 6px;
-  }
-  .rec-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .rec-row {
-    display: flex; align-items: center; gap: 10px; padding: 8px 10px;
-    border: 1px solid var(--border-light); border-radius: 10px;
-    background: var(--bg-secondary); margin-bottom: 6px;
-  }
-  .rec-row.dim { opacity: 0.55; }
-  .rec-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-  .rec-name { font-size: 12.5px; font-weight: 700; color: var(--text-primary); font-family: var(--font-mono); }
-  .rec-name em { font-style: normal; font-weight: 600; font-size: 11px; color: var(--text-muted); margin-left: 6px; }
-  .rec-desc { font-size: 11.5px; color: var(--text-secondary); }
-  .rec-copy {
-    flex-shrink: 0; background: none; border: 1px solid var(--border); border-radius: 8px;
-    padding: 5px 10px; font-family: var(--font-main); font-size: 11px; font-weight: 700;
-    color: var(--dc-blue); cursor: pointer; transition: background 0.15s;
-  }
-  .rec-copy:hover { background: var(--dc-blue-light); }
-  .rec-cpu-note { font-size: 11.5px; color: var(--text-muted); margin: 2px 0 8px; }
-  /* (i) spec help popover */
-  .spec-help { display: inline-block; margin-left: auto; }
-  .spec-help summary {
-    list-style: none; cursor: pointer; width: 18px; height: 18px; border-radius: 50%;
-    border: 1.5px solid var(--dc-blue); color: var(--dc-blue); font-size: 11px; font-weight: 800;
-    font-style: italic; font-family: Georgia, serif;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .spec-help summary::-webkit-details-marker { display: none; }
-  .spec-help[open] summary { background: var(--dc-blue); color: #fff; }
-  .spec-help-body {
-    position: absolute; right: 10px; top: 38px; z-index: 10;
-    width: min(290px, calc(100% - 20px));
-    background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px;
-    box-shadow: var(--shadow-card); padding: 12px; font-size: 11.5px; line-height: 1.55;
-    color: var(--text-secondary); font-weight: 500; text-transform: none; letter-spacing: 0;
-  }
-  .spec-help-body code, .spec-help-body kbd {
-    font-family: var(--font-mono); font-size: 10.5px; background: var(--bg-secondary);
-    border: 1px solid var(--border-light); border-radius: 4px; padding: 1px 4px;
-  }
-
-  /* ── CAMP GUIDE — floating + dockable book panel ──────────────── */
-  .guide-panel {
-    position: fixed;
-    top: 74px;
-    right: 18px;
-    z-index: 600;
-    width: 384px;
-    max-width: calc(100vw - 24px);
-    height: 580px;
-    max-height: calc(100dvh - 92px);
-    display: flex;
-    flex-direction: column;
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.30);
-    overflow: hidden;
-    animation: slide-up 0.25s cubic-bezier(0.34,1.56,0.64,1);
-  }
-  .guide-panel[hidden] { display: none; }
-
-  /* Docked: drop into the body flex flow as a right-side panel (VS Code style) */
-  .guide-panel.docked {
-    position: relative;
-    top: auto; right: auto; left: auto !important;
-    width: var(--guide-w, 384px);
-    min-width: 240px;
-    max-width: 80vw;
-    height: auto;
-    max-height: none;
-    border-radius: 0;
-    border-width: 0 0 0 1px;
-    box-shadow: none;
-    flex-shrink: 0;
-    animation: none;
-    transition: width 0.2s ease;
-  }
-  .gp-resizing .guide-panel.docked { transition: none; }   /* no lag while dragging */
-
-  /* Resize splitter — draggable divider on the panel's left edge (docked only) */
-  .gp-resizer { display: none; }
-  .guide-panel.docked .gp-resizer {
-    display: block;
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 7px;
-    cursor: col-resize;
-    z-index: 3;
-  }
-  .guide-panel.docked .gp-resizer::after {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 2px;
-    background: transparent;
-    transition: background 0.15s;
-  }
-  .guide-panel.docked .gp-resizer:hover::after,
-  .gp-resizing .guide-panel.docked .gp-resizer::after { background: var(--dc-blue); }
-  [data-theme="dark"] .guide-panel.docked .gp-resizer:hover::after,
-  [data-theme="dark"] .gp-resizing .guide-panel.docked .gp-resizer::after { background: var(--dc-accent); }
-  .gp-resizing { cursor: col-resize; user-select: none; }
-
-  .gp-head {
-    display: flex; align-items: center; gap: 8px;
-    padding: 10px 10px 10px 14px;
-    border-bottom: 1px solid var(--border-light);
-    flex-shrink: 0;
-    cursor: move;
-    user-select: none;
-    touch-action: none;
-  }
-  .guide-panel.docked .gp-head { cursor: default; }
-  .gp-grip { display: flex; color: var(--text-muted); }
-  .guide-panel.docked .gp-grip { display: none; }
-  .gp-head-icon { font-size: 15px; line-height: 1; }
-  .gp-title { font-size: 13px; font-weight: 800; color: var(--text-primary); white-space: nowrap; }
-  .gp-head-spacer { flex: 1; }
-  .gp-btn {
-    width: 27px; height: 27px;
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    background: none;
-    cursor: pointer;
-    color: var(--text-muted);
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    transition: all 0.15s;
-  }
-  .gp-btn:hover { color: var(--text-primary); background: var(--border-light); border-color: var(--border); }
-  .gp-btn.active { color: var(--dc-blue); border-color: var(--dc-blue); background: var(--dc-blue-light); }
-  [data-theme="dark"] .gp-btn.active { color: var(--dc-accent); }
-
-  .gp-tabs {
-    display: flex; gap: 5px;
-    padding: 9px 12px;
-    border-bottom: 1px solid var(--border-light);
-    overflow-x: auto;
-    flex-shrink: 0;
-    scrollbar-width: none;
-  }
-  .gp-tabs::-webkit-scrollbar { display: none; }
-  .gp-tab {
-    flex-shrink: 0;
-    font-family: var(--font-main);
-    font-size: 11px; font-weight: 700;
-    color: var(--text-muted);
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-light);
-    border-radius: 999px;
-    padding: 5px 11px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.15s;
-  }
-  .gp-tab:hover { color: var(--text-primary); border-color: var(--border); }
-  .gp-tab.active { background: var(--dc-blue); color: #fff; border-color: var(--dc-blue); }
-
-  .gp-pages { flex: 1; overflow-y: auto; padding: 16px 16px 8px; }
-  .gp-pages::-webkit-scrollbar { width: 4px; }
-  .gp-pages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-  .gp-page { display: none; animation: fade-in 0.2s ease; }
-  .gp-page.active { display: block; }
-  .gp-page-h {
-    display: flex; align-items: center; gap: 9px;
-    font-size: 15.5px; font-weight: 800;
-    color: var(--text-primary);
-    line-height: 1.2;
-    margin-bottom: 5px;
-  }
-  .gp-chip {
-    flex-shrink: 0;
-    font-size: 10px; font-weight: 800; letter-spacing: 0.3px;
-    color: var(--dc-blue);
-    background: var(--dc-blue-light);
-    border: 1px solid color-mix(in srgb, var(--dc-blue) 20%, transparent);
-    border-radius: 6px;
-    padding: 3px 7px;
-  }
-  [data-theme="dark"] .gp-chip { color: var(--dc-accent); background: color-mix(in srgb, var(--dc-blue) 15%, transparent); }
-  .gp-chip.pre { color: var(--text-muted); background: var(--bg-secondary); border-color: var(--border-light); }
-  .gp-page-sub { font-size: 12px; color: var(--text-muted); line-height: 1.55; margin-bottom: 14px; }
-  .gp-map-row {
-    display: flex; gap: 10px; align-items: flex-start;
-    padding: 8px 0; border-bottom: 1px solid var(--border-light);
-    font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;
-  }
-  .gp-map-row:last-child { border-bottom: none; }
-  .gp-map-row b { color: var(--dc-blue); font-weight: 800; flex-shrink: 0; width: 48px; }
-  [data-theme="dark"] .gp-map-row b { color: var(--dc-accent); }
-
-  .gp-foot {
-    display: flex; align-items: center; gap: 8px;
-    padding: 10px 12px;
-    border-top: 1px solid var(--border-light);
-    flex-shrink: 0;
-  }
-  .gp-nav {
-    display: inline-flex; align-items: center; gap: 5px;
-    font-family: var(--font-main);
-    font-size: 12.5px; font-weight: 700;
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    padding: 8px 12px;
-    background: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .gp-nav:hover:not(:disabled) { border-color: var(--dc-blue); color: var(--dc-blue); }
-  .gp-nav:disabled { opacity: 0.4; cursor: not-allowed; }
-  .gp-nav.primary { background: var(--dc-blue); color: #fff; border-color: var(--dc-blue); }
-  .gp-nav.primary:hover:not(:disabled) { background: var(--dc-blue-dark); color: #fff; }
-  .gp-progress { flex: 1; text-align: center; font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.2px; }
-
-  /* Guide panel — responsive */
-  @media (max-width: 900px) {
-    .guide-panel { width: 340px; }
-    .guide-panel.docked { max-width: 60vw; }
-  }
-  @media (max-width: 640px) {
-    /* Floating: near full-screen sheet */
-    .guide-panel {
-      top: 50px; right: 8px; left: 8px;
-      width: auto;
-      max-width: none;
-      height: auto;
-      bottom: 8px;
-      max-height: none;
-    }
-    /* Docked: become an overlay drawer so it never crushes the chat */
-    .guide-panel.docked {
-      position: fixed;
-      top: 0; right: 0; bottom: 0; left: auto !important;
-      width: min(var(--guide-w, 384px), 90vw) !important;
-      min-width: 0;
-      max-width: 90vw;
-      height: 100dvh;
-      z-index: 600;
-      border-left: 1px solid var(--border);
-      box-shadow: -10px 0 40px rgba(0,0,0,0.28);
-    }
-    .guide-panel.docked .gp-resizer { display: none; }   /* no drag-resize on phones */
-  }
-
-  .wip-banner {
-    display: flex;
-    align-items: flex-start;
-    gap: 9px;
-    background: #FEF9C3;
-    border: 1px solid #FDE68A;
-    border-radius: 10px;
-    padding: 11px 13px;
-    margin-bottom: 16px;
-    font-size: 12px;
-    color: #854D0E;
-    line-height: 1.55;
-  }
-  .wip-banner svg { flex-shrink: 0; margin-top: 1px; }
-  .wip-banner strong { font-weight: 800; }
-  [data-theme="dark"] .wip-banner {
-    background: rgba(133,77,14,0.18);
-    border-color: rgba(133,77,14,0.4);
-    color: #FCD34D;
-  }
-  .wip-pill {
-    display: inline-block;
-    background: #854D0E;
-    color: #FEF9C3;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
-    border-radius: 5px;
-    padding: 1px 6px;
-    margin-left: 6px;
-    vertical-align: middle;
-  }
-  [data-theme="dark"] .wip-pill { background: #FCD34D; color: #422006; }
-
-  /* Phase header (Before camp / Hour 1 … 4) */
-  .guide-phase {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 22px 0 12px;
-  }
-  .guide-phase:first-of-type { margin-top: 4px; }
-  .guide-phase-badge {
-    flex-shrink: 0;
-    min-width: 52px;
-    text-align: center;
-    background: var(--dc-blue);
-    color: white;
-    font-size: 10.5px;
-    font-weight: 800;
-    letter-spacing: 0.3px;
-    border-radius: 7px;
-    padding: 5px 8px;
-    line-height: 1.1;
-  }
-  .guide-phase-badge.pre { background: var(--text-muted); }
-  .guide-phase-title {
-    font-size: 13.5px;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1.25;
-  }
-  .guide-phase-title small {
-    display: block;
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text-muted);
-    margin-top: 1px;
-  }
-
-  /* Numbered step */
-  .guide-step {
-    display: flex;
-    gap: 11px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border-light);
-  }
-  .guide-step:last-child { border-bottom: none; }
-  .guide-step-num {
-    flex-shrink: 0;
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    background: var(--dc-blue-light);
-    border: 1px solid color-mix(in srgb, var(--dc-blue) 20%, transparent);
-    color: var(--dc-blue);
-    font-size: 11px;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 1px;
-  }
-  [data-theme="dark"] .guide-step-num { color: var(--dc-accent); background: color-mix(in srgb, var(--dc-blue) 15%, transparent); }
-  .guide-step-body { flex: 1; min-width: 0; }
-  .guide-step-body b {
-    display: block;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 3px;
-  }
-  .guide-step-body p {
-    font-size: 12.5px;
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-  .guide-step-body p + p { margin-top: 5px; }
-  .guide-step-body em { font-style: italic; color: var(--text-muted); }
-
-  /* Inline command / code chip */
-  .guide-cmd {
-    display: block;
-    background: var(--bg-primary);
-    border: 1px solid var(--border-light);
-    border-radius: 7px;
-    padding: 7px 10px;
-    margin-top: 6px;
-    font-family: var(--font-mono, ui-monospace, monospace);
-    font-size: 11.5px;
-    color: var(--dc-blue);
-    overflow-x: auto;
-    white-space: pre;
-  }
-  [data-theme="dark"] .guide-cmd { color: var(--dc-accent); }
-  .guide-step-body a { color: var(--dc-blue); font-weight: 600; text-decoration: none; }
-  .guide-step-body a:hover { text-decoration: underline; }
-  [data-theme="dark"] .guide-step-body a { color: var(--dc-accent); }
-
-  [data-theme="dark"] .error-bubble { background: rgba(153,27,27,0.15); border-color: rgba(153,27,27,0.3); color: #FCA5A5; }
-
-  /* LOGO TOOLTIP — Alibaba Cloud attribution */
-  .logo-wrapper {
-    position: relative;
-    display: inline-flex;
-    cursor: default;
-  }
-  .logo-tooltip {
-    position: absolute;
-    bottom: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-50%) translateY(4px);
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 9px 13px;
-    min-width: 168px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.14);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s, transform 0.2s;
-    z-index: 400;
-    text-align: center;
-    white-space: nowrap;
-  }
-  .logo-wrapper:hover .logo-tooltip {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-  .logo-tooltip::after {
-    content: '';
-    position: absolute;
-    bottom: -5px;
-    left: 50%;
-    transform: translateX(-50%) rotate(45deg);
-    width: 8px; height: 8px;
-    background: var(--bg-panel);
-    border-right: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-  }
-  .logo-tooltip-label {
-    font-size: 9px;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-    margin-bottom: 5px;
-  }
-  .logo-tooltip-brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    background: linear-gradient(135deg, #FF6A00, #FF9A00);
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-size: 11.5px;
-    font-weight: 800;
-    color: white;
-    letter-spacing: 0.3px;
-  }
-  /* Sidebar brand-logo tooltip goes right, not up */
-  .sidebar-brand .logo-wrapper .logo-tooltip {
-    bottom: auto;
-    top: 50%;
-    left: calc(100% + 10px);
-    transform: translateY(-50%) translateX(4px);
-  }
-  .sidebar-brand .logo-wrapper:hover .logo-tooltip {
-    transform: translateY(-50%) translateX(0);
-  }
-  .sidebar-brand .logo-wrapper .logo-tooltip::after {
-    bottom: auto;
-    top: 50%;
-    left: -5px;
-    right: auto;
-    transform: translateY(-50%) rotate(135deg);
-  }
-
-  /* ALIBABA CLOUD FOOTER (legacy — kept for sidebar tooltip) */
-  .alibaba-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: linear-gradient(135deg, #FF6A00, #FF9A00);
-    border-radius: 4px;
-    padding: 1px 7px 1px 5px;
-    font-size: 9px;
-    font-weight: 800;
-    color: white;
-    letter-spacing: 0.4px;
-    white-space: nowrap;
-  }
-  .alibaba-cloud-icon {
-    display: inline-flex;
-    opacity: 0.9;
-  }
-
-  /* SETTINGS MODAL */
-  .settings-modal {
-    position: fixed;
-    inset: 0;
-    background: rgba(5, 15, 35, 0.72);
-    z-index: 500;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    backdrop-filter: blur(3px);
-    animation: fade-in 0.2s ease;
-  }
-  .settings-card {
-    background: var(--bg-panel);
-    border-radius: 20px;
-    width: 100%;
-    max-width: 420px;
-    max-height: 88dvh;
-    overflow-y: auto;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.3);
-    animation: slide-up 0.25s cubic-bezier(0.34,1.56,0.64,1);
-    border: 1px solid var(--border);
-  }
-  .settings-card::-webkit-scrollbar { width: 3px; }
-  .settings-card::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-  .settings-header {
-    padding: 20px 22px 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border-bottom: 1px solid var(--border-light);
-    padding-bottom: 16px;
-  }
-  .settings-header-icon {
-    width: 38px; height: 38px;
-    background: var(--dc-blue-light);
-    border: 1px solid color-mix(in srgb, var(--dc-blue) 18%, transparent);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--dc-blue);
-    flex-shrink: 0;
-  }
-  [data-theme="dark"] .settings-header-icon { background: color-mix(in srgb, var(--dc-blue) 15%, transparent); color: var(--dc-accent); }
-  .settings-header-text { flex: 1; }
-  .settings-header-text h2 {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 2px;
-  }
-  .settings-header-text p {
-    font-size: 11px;
-    color: var(--text-muted);
-  }
-  .settings-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 18px; }
-  .settings-field { display: flex; flex-direction: column; gap: 5px; }
-  .settings-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-  }
-  .settings-input {
-    background: var(--bg-primary);
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 11px;
-    font-family: var(--font-main);
-    font-size: 13px;
-    color: var(--text-primary);
-    outline: none;
-    transition: border-color 0.2s;
-    width: 100%;
-  }
-  .settings-input:focus { border-color: var(--dc-blue); }
-  .settings-textarea {
-    resize: vertical;
-    min-height: 80px;
-    max-height: 160px;
-    line-height: 1.55;
-  }
-  .settings-hint {
-    font-size: 10.5px;
-    color: var(--text-muted);
-    line-height: 1.5;
-  }
-  /* Model-control sliders */
-  .slider-head { display: flex; align-items: center; justify-content: space-between; }
-  .slider-value {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--dc-blue);
-    font-variant-numeric: tabular-nums;
-  }
-  [data-theme="dark"] .slider-value { color: var(--dc-accent); }
-  .settings-slider {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 100%;
-    height: 4px;
-    border-radius: 3px;
-    background: var(--border);
-    outline: none;
-    margin: 4px 0 2px;
-    cursor: pointer;
-  }
-  .settings-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 15px;
-    height: 15px;
-    border-radius: 50%;
-    background: var(--dc-blue);
-    border: 2px solid var(--bg-card, #fff);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
-    cursor: pointer;
-  }
-  .settings-slider::-moz-range-thumb {
-    width: 15px;
-    height: 15px;
-    border-radius: 50%;
-    background: var(--dc-blue);
-    border: 2px solid var(--bg-card, #fff);
-    cursor: pointer;
-  }
-  [data-theme="dark"] .settings-slider::-webkit-slider-thumb { background: var(--dc-accent); }
-  [data-theme="dark"] .settings-slider::-moz-range-thumb { background: var(--dc-accent); }
-  .slider-scale {
-    display: flex;
-    font-size: 10px;
-    color: var(--text-muted);
-    margin-top: 3px;
-  }
-  .slider-scale span { flex: 1; }
-  .slider-scale span:first-child { text-align: left; }
-  .slider-scale span:last-child { text-align: right; }
-  .slider-scale span:not(:first-child):not(:last-child) { text-align: center; }
-  /* Persona controls */
-  .persona-select-row { display: flex; gap: 8px; align-items: stretch; }
-  .persona-select-row select { flex: 1; min-width: 0; cursor: pointer; }
-  .persona-new-btn {
-    flex: 0 0 auto;
-    padding: 0 14px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    background: var(--bg-input, transparent);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: var(--font-main);
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .persona-new-btn:hover { border-color: var(--dc-blue); color: var(--dc-blue); }
-  .persona-prompt-wrap { position: relative; }
-  .persona-expand-btn {
-    position: absolute;
-    right: 8px;
-    bottom: 8px;
-    padding: 5px 11px;
-    font-size: 11.5px;
-    font-weight: 600;
-    color: var(--dc-blue);
-    background: var(--bg-card, #fff);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    cursor: pointer;
-    font-family: var(--font-main);
-    transition: all 0.15s;
-  }
-  .persona-expand-btn:hover { border-color: var(--dc-blue); background: var(--dc-blue); color: #fff; }
-  .persona-expand-btn:disabled { opacity: 0.6; cursor: default; }
-  [data-theme="dark"] .persona-expand-btn { color: var(--dc-accent); }
-  [data-theme="dark"] .persona-expand-btn:hover { background: var(--dc-accent); color: #fff; border-color: var(--dc-accent); }
-  .persona-delete-btn {
-    align-self: flex-start;
-    margin-top: 4px;
-    padding: 0;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-muted);
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-family: var(--font-main);
-  }
-  .persona-delete-btn:hover { color: #DC2626; text-decoration: underline; }
-  .color-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .color-pick-wrap {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    background: var(--bg-primary);
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    padding: 5px 10px 5px 7px;
-    cursor: pointer;
-    flex: 1;
-    min-width: 120px;
-    transition: border-color 0.2s;
-  }
-  .color-pick-wrap:focus-within { border-color: var(--dc-blue); }
-  .color-pick-wrap input[type="color"] {
-    width: 22px; height: 22px;
-    border: none;
-    background: none;
-    padding: 0;
-    cursor: pointer;
-    border-radius: 4px;
-    flex-shrink: 0;
-  }
-  .color-pick-label {
-    font-size: 11.5px;
-    color: var(--text-secondary);
-    font-weight: 500;
-    flex: 1;
-  }
-  .color-swatch-row { display: flex; gap: 5px; flex-wrap: wrap; }
-  .color-swatch {
-    width: 20px; height: 20px;
-    border-radius: 5px;
-    border: 2px solid transparent;
-    cursor: pointer;
-    transition: transform 0.15s, border-color 0.15s;
-    outline: none;
-  }
-  .color-swatch:hover { transform: scale(1.2); }
-  .color-swatch.active { border-color: var(--text-primary); }
-  .settings-divider {
-    border: none;
-    border-top: 1px solid var(--border-light);
-    margin: 0;
-  }
-  .settings-footer {
-    padding: 14px 22px 20px;
-    border-top: 1px solid var(--border-light);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .settings-footer-row {
-    display: flex;
-    gap: 8px;
-  }
-  .settings-btn-secondary {
-    flex: 1;
-    padding: 9px;
-    background: none;
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    font-family: var(--font-main);
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .settings-btn-secondary:hover { border-color: var(--dc-blue); color: var(--dc-blue); }
-  .settings-btn-primary {
-    width: 100%;
-    padding: 11px;
-    background: var(--dc-blue);
-    border: none;
-    border-radius: 8px;
-    font-family: var(--font-main);
-    font-size: 13px;
-    font-weight: 700;
-    color: white;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .settings-btn-primary:hover { background: var(--dc-blue-dark); }
-  .settings-reset-btn {
-    flex: 1;
-    padding: 9px;
-    background: none;
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    font-family: var(--font-main);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.15s;
-    text-align: center;
-  }
-  .settings-reset-btn:hover { border-color: var(--border); color: var(--text-secondary); }
-
-  /* TOAST */
-  .lang-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-  .lang-chip {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 11px; font-size: 12px; font-weight: 600;
-    background: var(--bg-secondary); color: var(--text-secondary);
-    border: 1px solid var(--border-light); border-radius: 999px;
-    cursor: pointer; font-family: var(--font-main);
-    transition: all 0.15s;
-  }
-  .lang-chip:hover:not(.disabled):not(.active) { border-color: var(--dc-blue); color: var(--dc-blue); }
-  .lang-chip.active { background: var(--dc-blue); color: #fff; border-color: var(--dc-blue); }
-  .lang-chip.disabled { opacity: 0.55; cursor: not-allowed; }
-  .lang-badge {
-    font-size: 9.5px; font-weight: 800; letter-spacing: 0.5px;
-    padding: 2px 5px; border-radius: 4px; line-height: 1;
-  }
-  .lang-badge.beta { background: #FEF3C7; color: #92400E; }
-  .lang-badge.soon { background: #FDE68A; color: #78350F; }
-  .lang-chip.active .lang-badge.beta { background: rgba(255,255,255,0.25); color: #fff; }
-
-  #training-dropzone:hover, #training-dropzone.drag { border-color: var(--dc-blue); color: var(--text-primary); background: color-mix(in srgb, var(--dc-blue) 4%, transparent); }
-  .training-file-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 10px; border: 1px solid var(--border-light); border-radius: 8px;
-    background: var(--bg-secondary); font-size: 12.5px;
-  }
-  .training-file-item .tf-name { flex: 1; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .training-file-item .tf-size { color: var(--text-muted); font-size: 11.5px; }
-  .training-file-item .tf-remove {
-    background: none; border: none; color: var(--text-muted); cursor: pointer;
-    padding: 4px 6px; border-radius: 4px; font-size: 14px; line-height: 1;
-  }
-  .training-file-item .tf-remove:hover { background: var(--border-light); color: #DC2626; }
-
-  .settings-toast {
-    position: fixed;
-    bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%) translateY(10px);
-    background: #1A7A45;
-    color: white;
-    border-radius: 20px;
-    padding: 8px 18px;
-    font-size: 12.5px;
-    font-weight: 600;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-    opacity: 0;
-    transition: opacity 0.2s, transform 0.2s;
-    z-index: 9999;
-    pointer-events: none;
-    white-space: nowrap;
-  }
-  .settings-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-  /* SETTINGS PREVIEW CARD */
-  .settings-preview-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--bg-primary);
-    border: 1.5px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 14px;
-  }
-  .preview-avatar {
-    width: 42px; height: 42px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, var(--dc-blue) 0%, color-mix(in srgb, var(--dc-blue) 73%, transparent) 100%);
-    color: #fff;
-    font-size: 14px;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    letter-spacing: 0.5px;
-    transition: background 0.2s;
-  }
-  .preview-info { flex: 1; min-width: 0; }
-  .preview-greeting {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-bottom: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .preview-name {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .preview-label {
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-left: auto;
-    flex-shrink: 0;
-    align-self: flex-start;
-    padding-top: 2px;
-  }
-
-  /* TONE PRESET CHIPS */
-  .tone-presets {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    margin-bottom: 2px;
-  }
-  .tone-preset-chip {
-    padding: 7px 4px;
-    background: var(--bg-primary);
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    font-family: var(--font-main);
-    font-size: 11.5px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.15s;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .tone-preset-chip:hover { border-color: var(--dc-blue); color: var(--dc-blue); }
-  .tone-preset-chip.active {
-    background: var(--dc-blue-light);
-    border-color: var(--dc-blue);
-    color: var(--dc-blue);
-  }
-  [data-theme="dark"] .tone-preset-chip.active { background: color-mix(in srgb, var(--dc-blue) 18%, transparent); }
-
-  /* ── ICON RAIL ────────────────────────────────────────────────────── */
-  .icon-rail {
-    width: 58px;
-    background: var(--bg-sidebar);
-    border-right: 1px solid rgba(255,255,255,0.08);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 14px 0 12px;
-    gap: 6px;
-    flex-shrink: 0;
-    z-index: 110;
-  }
-  .rail-toggle-btn { margin-bottom: 8px; }
-  .rail-btn {
-    width: 40px; height: 40px;
-    border-radius: 12px;
-    border: none; background: transparent;
-    color: rgba(255,255,255,0.42);
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    position: relative;
-    transition: all 0.15s;
-    flex-shrink: 0;
-  }
-  .rail-btn:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.07); }
-  .rail-btn.active { color: #fff; background: rgba(255,255,255,0.12); }
-  .rail-btn.active::before {
-    content: '';
-    position: absolute; left: -9px; top: 10px; bottom: 10px;
-    width: 3px; border-radius: 3px;
-    background: var(--dc-accent);
-  }
-  .rail-spacer { flex: 1; }
-  .rail-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    margin: 4px 0 8px;
-    flex-shrink: 0;
-  }
-  .rail-dot.ok { background: #22C55E; box-shadow: 0 0 0 4px rgba(34,197,94,0.15); }
-  .rail-dot.err { background: #EF4444; box-shadow: 0 0 0 4px rgba(239,68,68,0.15); }
-  @media (max-width: 640px) { .icon-rail { display: none; } }
-
-  /* Rail replaces these header buttons on desktop */
-  @media (min-width: 641px) {
-    .icon-btn[title^="Camp Guide"],
-    .icon-btn[title="Personalize AI"],
-    .icon-btn[title="Toggle theme"] { display: none; }
-  }
-
-  /* ── SIDEBAR COLLAPSE TOGGLE (desktop only — mobile uses the drawer) ── */
-  .sidebar-collapse-btn {
-    width: 26px; height: 26px;
-    border-radius: 7px;
-    border: none;
-    background: transparent;
-    color: rgba(255,255,255,0.35);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: all 0.15s;
-  }
-  .sidebar-collapse-btn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85); }
-  @media (max-width: 640px) { .sidebar-collapse-btn { display: none; } }
-
-  /* ── SEGMENTED TABS (Chats / Sources) ────────────────────────────── */
-  .seg-tabs {
-    display: flex;
-    gap: 4px;
-    margin: 4px 12px 6px;
-    background: var(--border-light);
-    border-radius: 11px;
-    padding: 3px;
-    flex-shrink: 0;
-  }
-  .seg-tabs button {
-    flex: 1;
-    border: none;
-    border-radius: 9px;
-    background: transparent;
-    font-family: var(--font-main);
-    font-size: 11.5px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    padding: 7px 0;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .seg-tabs button.on {
-    background: var(--bg-panel);
-    color: var(--text-primary);
-    box-shadow: 0 1px 4px rgba(22,32,46,0.1);
-  }
-  #sidebar[data-tab="sources"] .sidebar-section,
-  #sidebar[data-tab="sources"] .history-list { display: none; }
-  #sidebar[data-tab="chats"] #kb-panel { display: none; }
-  .sidebar.collapsed .seg-tabs,
-  .sidebar.collapsed #kb-panel { display: none; }
-
-  /* ── SOURCES PANEL ────────────────────────────────────────────────── */
-  #kb-panel {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-    padding: 4px 8px 8px;
-    border-radius: 12px;
-    transition: box-shadow 0.3s;
-  }
-  #kb-panel.flash { box-shadow: 0 0 0 2px var(--dc-blue); }
-  .kb-head {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 8px 8px 6px;
-    flex-shrink: 0;
-  }
-  .kb-title {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1.1px;
-    text-transform: uppercase;
-    color: var(--text-muted);
-  }
-  .kb-total {
-    font-size: 9.5px;
-    font-weight: 700;
-    color: var(--text-muted);
-    background: var(--border-light);
-    border-radius: 10px;
-    padding: 1px 7px;
-  }
-  .kb-add {
-    margin-left: auto;
-    border: 1px dashed var(--border);
-    background: transparent;
-    color: var(--dc-blue);
-    font-family: var(--font-main);
-    font-size: 10.5px;
-    font-weight: 700;
-    border-radius: 8px;
-    padding: 3px 9px;
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .kb-add:hover { background: var(--dc-blue-light); border-color: var(--dc-blue); }
-  [data-theme="dark"] .kb-add { color: var(--dc-blue-tint); }
-  [data-theme="dark"] .kb-add:hover { background: color-mix(in srgb, var(--dc-blue) 18%, transparent); }
-  .kb-list {
-    overflow-y: auto;
-    flex: 1;
-    min-height: 60px;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-  }
-  .kb-list::-webkit-scrollbar { width: 3px; }
-  .kb-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-  .kb-empty {
-    font-size: 11px;
-    color: var(--text-muted);
-    line-height: 1.55;
-    padding: 8px 10px 10px;
-  }
-  .kb-item {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    padding: 6px 8px;
-    border-radius: 9px;
-    cursor: pointer;
-    transition: background 0.12s;
-    user-select: none;
-  }
-  .kb-item:hover { background: var(--bg-primary); }
-  [data-theme="dark"] .kb-item:hover { background: rgba(255,255,255,0.04); }
-  .kb-item.off { opacity: 0.45; }
-  .kb-ico {
-    width: 26px; height: 26px;
-    border-radius: 7px;
-    background: var(--border-light);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px;
-    flex-shrink: 0;
-  }
-  .kb-meta { flex: 1; min-width: 0; }
-  .kb-meta b {
-    display: block;
-    font-size: 11.5px;
-    font-weight: 600;
-    color: var(--text-primary);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .kb-meta i {
-    font-style: normal;
-    font-size: 9.5px;
-    color: var(--text-muted);
-  }
-  .kb-del {
-    display: none;
-    border: none; background: none;
-    color: var(--text-muted);
-    font-size: 11px;
-    padding: 2px 5px;
-    border-radius: 5px;
-    cursor: pointer;
-    flex-shrink: 0;
-    line-height: 1;
-  }
-  .kb-item:hover .kb-del { display: block; }
-  .kb-del:hover { color: #DC2626; background: rgba(220,38,38,0.1); }
-  .kb-item input[type="checkbox"] {
-    width: 14px; height: 14px;
-    accent-color: var(--dc-blue);
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-
-  /* ── FLAT, DOCUMENT-STYLE ANSWERS (Study 2) ──────────────────────── */
-  .bubble.ai {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    border-radius: 0;
-    padding: 2px 0 0;
-  }
-  .bubble.user {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-light);
-    font-weight: 500;
-    border-radius: 20px 20px 4px 20px;
-  }
-  [data-theme="dark"] .bubble.user { background: rgba(255,255,255,0.05); }
-
-  /* Centered document column + composer — .message-row/.message-time/
-     .msg-meta-wrap/.error-bubble are appended directly as #chat-area
-     children (no wrapping group element), so each is centered individually */
-  .message-row,
-  .message-time,
-  .error-bubble {
-    max-width: 720px;
-    width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  /* Keep its 42px indent (aligns under the bubble text, not the avatar) —
-     use padding instead of margin-left so centering math still works */
-  .msg-meta-wrap {
-    max-width: 720px;
-    width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 42px;
-  }
-  /* Popover positions from the wrapper's own edge, before the padding —
-     shift it to match the now-padded meta text it hangs off of */
-  .msg-meta-wrap .msg-stats-popover { left: 42px; }
-  .input-box {
-    max-width: 720px;
-    margin-left: auto;
-    margin-right: auto;
-    border-radius: 20px;
-    box-shadow: 0 10px 34px rgba(22,32,46,0.08);
-  }
-  [data-theme="dark"] .input-box { box-shadow: 0 10px 34px rgba(0,0,0,0.45); }
-  .input-tip, .legal-disclaimer-inner { max-width: 720px; margin-left: auto; margin-right: auto; }
-</style>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
+<svg class="bg-scene" aria-hidden="true" focusable="false" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <symbol id="bg-sparkle-shape" viewBox="-10 -10 20 20">
+      <path d="M0,-10 C1,-3 3,-1 10,0 C3,1 1,3 0,10 C-1,3 -3,1 -10,0 C-3,-1 -1,-3 0,-10 Z"/>
+    </symbol>
+  </defs>
+
+  <!-- Small circuit/constellation node-graph, echoing the hero art's
+       upper-right connected-dot cluster -->
+  <g class="bg-constellation" fill="none" stroke="var(--dc-accent)" stroke-width="1">
+    <line x1="1180" y1="20" x2="1180" y2="120"/>
+    <line x1="1180" y1="120" x2="1260" y2="180"/>
+    <line x1="1260" y1="180" x2="1340" y2="140"/>
+    <line x1="1260" y1="180" x2="1310" y2="260"/>
+    <line x1="1180" y1="120" x2="1100" y2="180"/>
+  </g>
+  <g class="bg-constellation" stroke="none">
+    <circle cx="1180" cy="20" r="2.5" fill="var(--dc-gold)"/>
+    <circle cx="1180" cy="120" r="2" fill="var(--dc-accent)"/>
+    <circle cx="1260" cy="180" r="2.5" fill="var(--dc-gold)"/>
+    <circle cx="1340" cy="140" r="2" fill="var(--dc-accent)"/>
+    <circle cx="1310" cy="260" r="2" fill="var(--dc-accent)"/>
+    <circle cx="1100" cy="180" r="2" fill="var(--dc-accent)"/>
+  </g>
+
+  <!-- Dust/ember particle field, scattered across the whole scene rather
+       than one corner, like the drifting motes around the hero art's
+       track and skyline -->
+  <g class="bg-particles">
+    <circle cx="1180" cy="90" r="3" fill="#fff"/>
+    <circle cx="1310" cy="80" r="2" fill="var(--dc-accent)"/>
+    <circle cx="1380" cy="200" r="3" fill="var(--dc-gold)"/>
+    <circle cx="1000" cy="180" r="2" fill="var(--dc-accent)"/>
+    <circle cx="120" cy="120" r="2" fill="#fff"/>
+    <circle cx="60" cy="300" r="2.5" fill="var(--dc-gold)"/>
+    <circle cx="700" cy="500" r="2" fill="var(--dc-gold)"/>
+    <circle cx="950" cy="620" r="2" fill="var(--dc-accent)"/>
+    <circle cx="300" cy="780" r="2.5" fill="var(--dc-orange)"/>
+    <circle cx="1050" cy="700" r="2" fill="var(--dc-violet)"/>
+  </g>
+
+  <!-- Four-point sparkle flourishes at a few focal points, echoing the
+       star in the "17✦" mark -->
+  <use class="bg-sparkle" href="#bg-sparkle-shape" x="1106" y="686" width="28" height="28" fill="var(--dc-gold)"/>
+  <use class="bg-sparkle" href="#bg-sparkle-shape" x="541" y="771" width="18" height="18" fill="var(--dc-accent)"/>
+  <use class="bg-sparkle" href="#bg-sparkle-shape" x="142" y="492" width="16" height="16" fill="var(--dc-violet)"/>
+</svg>
 
 <div class="sidebar-overlay" id="overlay"></div>
 
@@ -3879,7 +99,9 @@
 <aside class="sidebar" id="sidebar" data-tab="chats">
   <div class="sidebar-brand">
     <div class="logo-wrapper">
-      <div class="brand-logo">DC</div>
+      <div class="brand-text">
+        <img class="brand-wordmark" src="assets/logos/light_logo.png" alt="DEVCON — AI Sa Barangay">
+      </div>
       <div class="logo-tooltip">
         <div class="logo-tooltip-label">Powered by</div>
         <div class="logo-tooltip-brand">
@@ -3887,10 +109,6 @@
           Alibaba Cloud
         </div>
       </div>
-    </div>
-    <div class="brand-text">
-      <div class="brand-name">DEVCON BARANGAY AI</div>
-      <div class="brand-sub">AI Sa Barangay</div>
     </div>
     <button class="sidebar-collapse-btn" onclick="toggleSidebar()" title="Collapse sidebar">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
@@ -3956,7 +174,7 @@
     </button>
 
     <div class="header-title">
-      <h1 id="chat-title" contenteditable="true" spellcheck="false" title="Click to rename this conversation" onblur="commitTitleRename(this)" onkeydown="handleTitleKey(event, this)">DEVCON BARANGAY AI CODE CAMPS</h1>
+      <h1 id="chat-title" contenteditable="true" spellcheck="false" title="Click to rename this conversation" onblur="commitTitleRename(this)" onkeydown="handleTitleKey(event, this)">DEVCON</h1>
       <p id="header-subtitle">Qwen 2.5 3B · Local</p>
     </div>
 
@@ -3980,9 +198,9 @@
   <div class="chat-area" id="chat-area">
     <!-- Welcome screen -->
     <div class="welcome-screen" id="welcome-screen">
-      <div class="welcome-icon">DC</div>
+      <img class="welcome-icon" src="assets/logos/17_logo.png" alt="DEVCON 17">
       <div class="welcome-hero">
-        <div class="welcome-title">DEVCON BARANGAY AI</div>
+        <div class="welcome-title">DEVCON</div>
         <div class="welcome-greeting" id="welcome-greeting">Good to see you! 👋</div>
       </div>
       <div class="welcome-brief">Built by Filipino developers · 100% local, no cloud</div>
@@ -4032,9 +250,9 @@
           <span class="tools-dot" id="tools-dot"></span>
         </button>
         <div class="tools-dropdown" id="tools-dropdown">
-          <button class="tools-item" id="kb-chip" onclick="focusSources(); closeToolsDropdown();" title="Sources grounding your answers — click to manage" style="display:none">
-            <span class="tools-item-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>
-            <span class="tools-item-label" id="kb-chip-label">0 sources</span>
+          <button class="tools-item" id="kb-chip" onclick="addSourceClick(); closeToolsDropdown();" title="Add files — grounds answers in your own content">
+            <span class="tools-item-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></span>
+            <span class="tools-item-label">Add file</span>
           </button>
           <button class="tools-item" id="thinking-btn" onclick="toggleThinkingQuick()" aria-pressed="false" title="Deep thinking is OFF — click to enable">
             <span class="tools-item-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5c0 1.5.5 2.5 1 3.5.5 1 1 2 1 3.5h6c0-1.5.5-2.5 1-3.5.5-1 1-2 1-3.5a5 5 0 0 0-5-5z"/><path d="M9 21h6"/><path d="M10 18h4"/></svg></span>
@@ -4057,7 +275,7 @@
       ></textarea>
       <div class="input-actions">
         <button class="model-select-btn" id="model-select-btn" onclick="toggleModelDropdown()" title="Select model">
-          <svg class="model-dd-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M9 15h6"/></svg>
+          <span id="model-select-icon"><svg class="model-dd-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M9 15h6"/></svg></span>
           <span id="model-select-label">Select model</span>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
         </button>
@@ -4323,7 +541,9 @@ git commit -m "Make the AI mine"</code></div></div>
   <div class="modal-card onboarding-card" id="modal-card">
     <div class="modal-header">
       <div class="logo-wrapper">
-        <div class="modal-logo">DC</div>
+        <div class="modal-logo" style="background:var(--bg-panel);border:1px solid var(--border-light);padding:7px;box-sizing:border-box">
+          <img src="assets/logos/17_logo.png" alt="DEVCON 17" style="width:100%;height:100%;object-fit:contain">
+        </div>
         <div class="logo-tooltip">
           <div class="logo-tooltip-label">Powered by</div>
           <div class="logo-tooltip-brand">
@@ -4346,19 +566,40 @@ git commit -m "Make the AI mine"</code></div></div>
     <div id="onboard-step-1">
     <div class="modal-body">
 
-      <p class="modal-text" style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:6px">Let's build your own AI. 🚀</p>
-      <p class="modal-text">Name it, shape it, and put it live — free, open source, about 4 hours.</p>
+      <p class="modal-text" style="font-size:16px;font-weight:800;color:var(--text-primary);margin-bottom:8px;line-height:1.35">Today you're going to build your own AI.</p>
+      <p class="modal-text">Not use someone else's. Not pay for a subscription. Build one — name it, shape its personality, and deploy it live. In 4 hours.</p>
 
       <div class="modal-highlight" style="margin-top:10px">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span>Runs entirely on <strong>this computer</strong> — no cloud, no fees, nothing leaves the room.</span>
+        <span>The AI runs entirely on <strong>this computer</strong>. No cloud. No API fees. No data leaving this room. It's yours.</span>
       </div>
 
-      <div class="modal-highlight" style="margin-top:10px;background:none;border:1px dashed var(--border);color:var(--text-secondary)">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--dc-blue)"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-        <span>Want the full walkthrough? Open the <strong>Camp Guidebook</strong> anytime from the 📖 button.</span>
+      <img class="onboard-poster" src="assets/poster.png" alt="DEVCON Barangay AI — runs Qwen, Gemma, Llama, Phi, Mistral, Ollama, and Hugging Face models">
+      <p class="gp-page-sub" style="text-align:center;margin-top:-4px">This app connects to any open-source model out there, served through Ollama or any OpenAI-compatible endpoint, all running free and offline on this computer.</p>
+
+      <div class="modal-section-title">Why this matters</div>
+      <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:16px">
+        <div style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--text-secondary);line-height:1.55">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;color:var(--dc-blue)"><polyline points="20,6 9,17 4,12"/></svg>
+          <span>Most Filipinos <em>use</em> AI tools built elsewhere. Today you join the group that <strong style="color:var(--text-primary)">builds</strong> them.</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--text-secondary);line-height:1.55">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;color:var(--dc-blue)"><polyline points="20,6 9,17 4,12"/></svg>
+          <span>Everything here — the model, the code, the tools — is <strong style="color:var(--text-primary)">free and open source</strong>. No license. No per-token fees. Works on this school computer.</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--text-secondary);line-height:1.55">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;color:var(--dc-blue)"><polyline points="20,6 9,17 4,12"/></svg>
+          <span>By the end, you'll have a <strong style="color:var(--text-primary)">live URL</strong> and a <strong style="color:var(--text-primary)">GitHub contribution</strong> — things you can show to anyone.</span>
+        </div>
       </div>
 
+      <div class="modal-section-title">What you'll do today</div>
+      <div style="margin-bottom:4px">
+        <div class="gp-map-row"><b style="color:var(--text-primary)">Hour 1</b><span>Learn the concepts. Fork the repo on GitHub.</span></div>
+        <div class="gp-map-row"><b style="color:var(--text-primary)">Hour 2</b><span>Run the AI on this machine. Talk to it from the terminal.</span></div>
+        <div class="gp-map-row"><b style="color:var(--text-primary)">Hour 3</b><span>Name it. Give it a personality. Make it yours.</span></div>
+        <div class="gp-map-row"><b style="color:var(--text-primary)">Hour 4</b><span>Deploy it. Share the live URL. Open your first Pull Request.</span></div>
+      </div>
 
       <details style="margin-top:18px;margin-bottom:8px">
         <summary style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:6px;padding:4px 0">
@@ -4367,15 +608,15 @@ git commit -m "Make the AI mine"</code></div></div>
         </summary>
       <div style="margin-top:10px;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:4px">
         <div style="display:grid;grid-template-columns:auto 1fr;font-size:12.5px">
-          <div style="padding:9px 12px;border-bottom:1px solid var(--border-light);border-right:1px solid var(--border-light);font-weight:600;color:var(--dc-blue);white-space:nowrap">Ask questions</div>
+          <div style="padding:9px 12px;border-bottom:1px solid var(--border-light);border-right:1px solid var(--border-light);font-weight:600;color:var(--text-primary);white-space:nowrap">Ask questions</div>
           <div style="padding:9px 12px;border-bottom:1px solid var(--border-light);color:var(--text-secondary)">Raise your hand any time — there are no dumb questions here.</div>
-          <div style="padding:9px 12px;border-bottom:1px solid var(--border-light);border-right:1px solid var(--border-light);font-weight:600;color:var(--dc-blue);white-space:nowrap">Help each other</div>
+          <div style="padding:9px 12px;border-bottom:1px solid var(--border-light);border-right:1px solid var(--border-light);font-weight:600;color:var(--text-primary);white-space:nowrap">Help each other</div>
           <div style="padding:9px 12px;border-bottom:1px solid var(--border-light);color:var(--text-secondary)">If your neighbor is stuck and you're not, help them. That's how open source works.</div>
-          <div style="padding:9px 12px;border-bottom:1px solid var(--border-light);border-right:1px solid var(--border-light);font-weight:600;color:var(--dc-blue);white-space:nowrap">Break things</div>
+          <div style="padding:9px 12px;border-bottom:1px solid var(--border-light);border-right:1px solid var(--border-light);font-weight:600;color:var(--text-primary);white-space:nowrap">Break things</div>
           <div style="padding:9px 12px;border-bottom:1px solid var(--border-light);color:var(--text-secondary)">Edit the code. See what breaks. That's how you learn what it actually does.</div>
-          <div style="padding:9px 12px;border-bottom:1px solid var(--border-light);border-right:1px solid var(--border-light);font-weight:600;color:var(--dc-blue);white-space:nowrap">No experience needed</div>
+          <div style="padding:9px 12px;border-bottom:1px solid var(--border-light);border-right:1px solid var(--border-light);font-weight:600;color:var(--text-primary);white-space:nowrap">No experience needed</div>
           <div style="padding:9px 12px;border-bottom:1px solid var(--border-light);color:var(--text-secondary)">If you can type and read, you can do this. The code is already here — you're just making it yours.</div>
-          <div style="padding:9px 12px;border-right:1px solid var(--border-light);font-weight:600;color:var(--dc-blue);white-space:nowrap">GitHub account</div>
+          <div style="padding:9px 12px;border-right:1px solid var(--border-light);font-weight:600;color:var(--text-primary);white-space:nowrap">GitHub account</div>
           <div style="padding:9px 12px;color:var(--text-secondary)">You'll need one — it's free. Your PR at the end is your first open source contribution on record.</div>
         </div>
       </div>
@@ -4387,11 +628,11 @@ git commit -m "Make the AI mine"</code></div></div>
           Tech stack
         </summary>
         <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">
-          <a href="https://ollama.com/library/qwen2.5" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--dc-blue);font-weight:600;text-decoration:none">Qwen 2.5 3B</a>
-          <a href="https://ollama.com" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--dc-blue);font-weight:600;text-decoration:none">Ollama</a>
-          <a href="https://github.com/devcon-ph/barangay-ai" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--dc-blue);font-weight:600;text-decoration:none">GitHub</a>
-          <a href="https://vercel.com" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--dc-blue);font-weight:600;text-decoration:none">Vercel</a>
-          <span style="display:inline-flex;align-items:center;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--dc-blue);font-weight:600">HTML + JS</span>
+          <a href="https://ollama.com/library/qwen2.5" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--text-primary);font-weight:600;text-decoration:none">Qwen 2.5 3B</a>
+          <a href="https://ollama.com" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--text-primary);font-weight:600;text-decoration:none">Ollama</a>
+          <a href="https://github.com/devcon-ph/barangay-ai" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--text-primary);font-weight:600;text-decoration:none">GitHub</a>
+          <a href="https://vercel.com" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--text-primary);font-weight:600;text-decoration:none">Vercel</a>
+          <span style="display:inline-flex;align-items:center;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--text-primary);font-weight:600">HTML + JS</span>
         </div>
       </details>
 
@@ -4403,142 +644,142 @@ git commit -m "Make the AI mine"</code></div></div>
         <div style="margin-top:10px;display:flex;flex-direction:column;gap:0;border:1px solid var(--border-light);border-radius:10px;overflow:hidden">
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">AI</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">AI</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">A program that learns patterns from data and uses them to answer questions or generate text. <span style="color:var(--text-muted);font-style:italic">Like autocomplete, but really, really good.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">LLM</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">LLM</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">Large Language Model. The AI's brain — trained on billions of sentences to predict what word comes next. <span style="color:var(--text-muted);font-style:italic">Like a student who has read every book in the library.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Qwen</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Qwen</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">The specific AI model you're using today — made by Alibaba, free and open source, small enough to run on this computer. <span style="color:var(--text-muted);font-style:italic">Like a free, downloadable brain.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Ollama</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Ollama</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">Software that runs AI models on your own computer without needing the internet. <span style="color:var(--text-muted);font-style:italic">Like VLC for video — but for AI models.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">API</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">API</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">Application Programming Interface. A way for two programs to talk to each other. Your chat app sends a message to Ollama's API, Ollama asks Qwen, Qwen replies. <span style="color:var(--text-muted);font-style:italic">Like a waiter — you don't go to the kitchen, you order through the waiter.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Terminal</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Terminal</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">A text window where you type commands directly to the computer. No clicking — just typing instructions. <span style="color:var(--text-muted);font-style:italic">Like texting your computer instead of tapping buttons.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">GitHub</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">GitHub</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">A website where developers store and share code. Think of it as Google Drive for code — but with version history and collaboration tools. <span style="color:var(--text-muted);font-style:italic">Your code lives here. Anyone can see, fork, and build on it.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Fork</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Fork</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">Making your own copy of someone else's code on GitHub. You can change it however you want without affecting the original. <span style="color:var(--text-muted);font-style:italic">Like photocopying a recipe so you can add your own twist.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Pull Request</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Pull Request</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">A way to suggest your changes back to the original project. The project owners review it and decide whether to merge it in. <span style="color:var(--text-muted);font-style:italic">Like submitting a revised chapter to an editor.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Vercel</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Vercel</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">A free hosting service. Connect your GitHub repo and it automatically gives your app a live public URL anyone can visit. <span style="color:var(--text-muted);font-style:italic">Like publishing your website in 60 seconds.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Open Source</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Open Source</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">Code that anyone can read, use, and improve for free. No hidden parts, no fees. <span style="color:var(--text-muted);font-style:italic">Like a recipe published in a community cookbook — anyone can cook it, improve it, and share it.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Streaming</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Streaming</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">Why the AI types word-by-word instead of all at once. The response is sent live as it's generated. <span style="color:var(--text-muted);font-style:italic">Like watching someone type a reply in real time, not waiting for them to hit send.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">System Prompt</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">System Prompt</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">A hidden instruction you give the AI before the conversation starts. It shapes the AI's personality, role, and behavior. <span style="color:var(--text-muted);font-style:italic">Like a job description you give a new employee on their first day.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">localhost</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">localhost</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">A special address that means "this computer." When you visit localhost:11434, you're talking to a server running on your own machine, not the internet. <span style="color:var(--text-muted);font-style:italic">Like calling your own phone — you're not calling someone else.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">git push</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">git push</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">A command that uploads your local code changes to GitHub. After this, your code is online and Vercel can pick it up. <span style="color:var(--text-muted);font-style:italic">Like hitting "sync" to upload your work to the cloud.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Frontier AI</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Frontier AI</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">The most powerful, cutting-edge AI models in the world — like GPT-4 or Gemini Ultra. They require massive computers and cost millions to run. <span style="color:var(--text-muted);font-style:italic">Like a Formula 1 car — incredible, but you can't park it in your garage.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Lightweight</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Lightweight</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">A small AI model designed to run on regular hardware — like your laptop or school computer — without needing a powerful GPU. Qwen 2.5 3B is lightweight. <span style="color:var(--text-muted);font-style:italic">Like a motorcycle instead of a truck — less power, but you can actually own and drive it.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Hallucination</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Hallucination</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">When an AI confidently states something that is completely wrong or made up. It doesn't know it's lying — it's just predicting plausible-sounding words. <span style="color:var(--text-muted);font-style:italic">Like a student who didn't study but still writes a very convincing wrong answer.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Parameters</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Parameters</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">The numbers inside an AI model that were learned during training. More parameters usually means smarter — Qwen 2.5 3B has ~3 billion of them. <span style="color:var(--text-muted);font-style:italic">Like the billions of neural connections in a human brain.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Training</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Training</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">The process of teaching an AI by feeding it huge amounts of text and adjusting its parameters until it gets good at predicting language. Qwen was trained by Alibaba. <span style="color:var(--text-muted);font-style:italic">Like studying for years before you can do a job — we skip this part and use the already-trained model.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Inference</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Inference</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">When a trained AI model actually runs and answers questions. This is what happens when you send a message — the model is doing inference. <span style="color:var(--text-muted);font-style:italic">Training is studying. Inference is taking the exam.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Token</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Token</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">The basic unit an AI reads and writes — roughly a word or part of a word. AI models think in tokens, not letters or sentences. <span style="color:var(--text-muted);font-style:italic">Like how a song is made of notes, not just "music" as one thing.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Context Window</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Context Window</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">How much text an AI can "see" at once — its short-term memory for a conversation. Once the conversation is too long, early parts get forgotten. <span style="color:var(--text-muted);font-style:italic">Like a whiteboard — once it's full, you have to erase something to write more.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Quantization</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Quantization</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">A technique that shrinks an AI model's file size by storing its numbers less precisely — trading a tiny bit of quality for much lower memory use. <span style="color:var(--text-muted);font-style:italic">Like compressing a photo to JPEG — slightly lower quality, but 10x smaller file.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">GPU</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">GPU</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">Graphics Processing Unit. A chip originally built for games that turns out to be perfect for running AI — it can do millions of math operations in parallel. <span style="color:var(--text-muted);font-style:italic">Like using a 100-lane highway instead of a single road.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Prompt</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Prompt</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">The message or question you type to the AI. How you write it matters a lot — a well-written prompt gets a much better answer. <span style="color:var(--text-muted);font-style:italic">Like asking a question in class — "explain gravity" vs "explain gravity using a basketball analogy for a Grade 7 student" gets very different answers.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;border-bottom:1px solid var(--border-light);font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">RAG</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">RAG</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">Retrieval-Augmented Generation. A technique where you feed the AI extra documents before it answers, so it can give more accurate, specific responses. <span style="color:var(--text-muted);font-style:italic">Like an open-book exam — the AI can look things up before answering.</span></div>
           </div>
 
           <div style="display:grid;grid-template-columns:90px 1fr;font-size:12.5px">
-            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--dc-blue);display:flex;align-items:flex-start">Deployment</div>
+            <div style="padding:10px 12px;background:var(--dc-blue-light);font-weight:700;color:var(--text-primary);display:flex;align-items:flex-start">Deployment</div>
             <div style="padding:10px 12px;color:var(--text-secondary);line-height:1.6">Publishing your app so other people can use it — not just on your machine. Today you deploy to Vercel so anyone with the link can use your AI. <span style="color:var(--text-muted);font-style:italic">Like moving from cooking for yourself to opening a carinderia.</span></div>
           </div>
 
@@ -4582,9 +823,9 @@ git commit -m "Make the AI mine"</code></div></div>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-left:14px;opacity:0.9"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>
         </a>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-          <a href="https://devcon.ph" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:11.5px;color:var(--dc-blue);font-weight:600;text-decoration:none">devcon.ph</a>
-          <a href="https://github.com/devcon-ph" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:11.5px;color:var(--dc-blue);font-weight:600;text-decoration:none">github.com/devcon-ph</a>
-          <span style="display:inline-flex;align-items:center;gap:6px;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:11.5px;color:var(--dc-blue);font-weight:600">Fork this project <span style="background:var(--dc-blue);color:white;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:10px;letter-spacing:0.3px">Soon</span></span>
+          <a href="https://devcon.ph" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:11.5px;color:var(--text-primary);font-weight:600;text-decoration:none">devcon.ph</a>
+          <a href="https://github.com/devcon-ph" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:11.5px;color:var(--text-primary);font-weight:600;text-decoration:none">github.com/devcon-ph</a>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:11.5px;color:var(--text-primary);font-weight:600">Fork this project <span style="background:var(--dc-blue);color:white;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:10px;letter-spacing:0.3px">Soon</span></span>
         </div>
         <a href="https://devcon.ph/codecamps" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:10px 14px;text-decoration:none">
           <span style="font-size:12px;font-weight:600;color:var(--text-primary)">19,000+ geeks · 300 student-built projects deployed to production every year</span>
@@ -4599,7 +840,20 @@ git commit -m "Make the AI mine"</code></div></div>
     <div class="modal-body">
       <div class="modal-mabuhay" style="color:var(--dc-blue);font-size:12px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;margin-bottom:6px">Step 2 of 3 · Pick a model</div>
       <p class="modal-text" style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:4px">Which AI brain fits your PC? 🧠</p>
-      <p class="modal-text" style="margin-bottom:16px">Models come in sizes — bigger means smarter but heavier. Here's what we suggest, plus a quick checker for your machine.</p>
+      <p class="modal-text" style="margin-bottom:10px">Models come in sizes — bigger means smarter but heavier. Here's what we suggest, plus a quick checker for your machine.</p>
+
+      <div class="modal-section-title">Works with virtually any open-source model</div>
+      <div class="model-chip-grid">
+        <div class="model-chip"><img src="assets/logos/Qwen_logo.webp" alt=""><span><span class="model-chip-name">Qwen</span><br><span class="model-chip-by">by Alibaba</span></span></div>
+        <div class="model-chip"><img src="assets/logos/gemma_logo.png" alt=""><span><span class="model-chip-name">Gemma</span><br><span class="model-chip-by">by Google</span></span></div>
+        <div class="model-chip"><img src="assets/logos/Meta_logo.png" alt=""><span><span class="model-chip-name">Llama</span><br><span class="model-chip-by">by Meta</span></span></div>
+        <div class="model-chip"><img src="assets/logos/microsoft_logo.png" alt=""><span><span class="model-chip-name">Phi</span><br><span class="model-chip-by">by Microsoft</span></span></div>
+        <div class="model-chip"><img src="assets/logos/Mistral_logo.webp" alt=""><span><span class="model-chip-name">Mistral</span><br><span class="model-chip-by">open weights</span></span></div>
+        <div class="model-chip"><img src="assets/logos/IBM_granite_logo.webp" alt=""><span><span class="model-chip-name">Granite</span><br><span class="model-chip-by">by IBM</span></span></div>
+        <div class="model-chip"><img src="assets/logos/deepseek_logo.png" alt=""><span><span class="model-chip-name">DeepSeek</span><br><span class="model-chip-by">by DeepSeek AI</span></span></div>
+        <div class="model-chip"><img src="assets/logos/hugging_face.png" alt=""><span><span class="model-chip-name">Hugging Face</span><br><span class="model-chip-by">open model hub</span></span></div>
+        <div class="model-chip"><img src="assets/logos/ollama_logo.png" alt=""><span><span class="model-chip-name">Ollama</span><br><span class="model-chip-by">runs them all, locally</span></span></div>
+      </div>
 
       <!-- Installation requirements (collapsible) -->
       <details class="install-req">
@@ -4622,21 +876,21 @@ git commit -m "Make the AI mine"</code></div></div>
             <span class="rec-name">⭐ qwen2.5:1.5b <em>1.5B · ~1 GB download</em></span>
             <span class="rec-desc">Our top pick — light, fast, and runs on nearly any laptop.</span>
           </div>
-          <button class="rec-copy" onclick="copyPullCmd('qwen2.5:1.5b')" title="Copy install command">Copy</button>
+          <button class="rec-copy" data-pull-tag="qwen2.5:1.5b" onclick="pullModelOneClick('qwen2.5:1.5b')" title="Download and install this model via Ollama">Download</button>
         </div>
         <div class="rec-row">
           <div class="rec-info">
             <span class="rec-name">llama3.2:1b <em>1B · ~1.3 GB download</em></span>
             <span class="rec-desc">Meta's smallest — snappy even without a GPU.</span>
           </div>
-          <button class="rec-copy" onclick="copyPullCmd('llama3.2:1b')" title="Copy install command">Copy</button>
+          <button class="rec-copy" data-pull-tag="llama3.2:1b" onclick="pullModelOneClick('llama3.2:1b')" title="Download and install this model via Ollama">Download</button>
         </div>
         <div class="rec-row">
           <div class="rec-info">
             <span class="rec-name">gemma3:1b <em>1B · ~0.8 GB download</em></span>
             <span class="rec-desc">Google's lightweight model — tiny download, quick replies.</span>
           </div>
-          <button class="rec-copy" onclick="copyPullCmd('gemma3:1b')" title="Copy install command">Copy</button>
+          <button class="rec-copy" data-pull-tag="gemma3:1b" onclick="pullModelOneClick('gemma3:1b')" title="Download and install this model via Ollama">Download</button>
         </div>
       </div>
 
@@ -4656,9 +910,10 @@ git commit -m "Make the AI mine"</code></div></div>
         <p class="modal-text" style="font-size:12.5px;margin-bottom:10px">Tell us your PC's specs and we'll sort every model by fit. Tap the <b>i</b> if you don't know them.</p>
         <div class="rec-select-row">
           <label>System RAM
-            <select id="rec-ram" class="rec-select" onchange="renderOnboardRecs()">
+            <select id="rec-ram" class="rec-select" onchange="renderOnboardRecs()" required>
+              <option value="" selected disabled>Select RAM</option>
               <option value="4">4 GB or less</option>
-              <option value="8" selected>8 GB</option>
+              <option value="8">8 GB</option>
               <option value="16">16 GB</option>
               <option value="32">32 GB</option>
               <option value="64">64 GB</option>
@@ -4666,8 +921,9 @@ git commit -m "Make the AI mine"</code></div></div>
             </select>
           </label>
           <label>Graphics (GPU)
-            <select id="rec-gpu" class="rec-select" onchange="renderOnboardRecs()">
-              <option value="0" selected>No dedicated GPU / integrated</option>
+            <select id="rec-gpu" class="rec-select" onchange="renderOnboardRecs()" required>
+              <option value="" selected disabled>Select GPU</option>
+              <option value="0">No dedicated GPU / integrated</option>
               <option value="4">4 GB VRAM (GTX 1650, RX 570)</option>
               <option value="6">6 GB VRAM (RTX 2060, 3050)</option>
               <option value="8">8 GB VRAM (RTX 3060 Ti, 4060)</option>
@@ -4862,6 +1118,47 @@ git commit -m "Make the AI mine"</code></div></div>
   </div>
 </div>
 
+<!-- OLLAMA CHECK MODAL — shown when a one-click model download can't reach Ollama -->
+<div class="settings-modal" id="ollama-check-modal" onclick="handleOllamaCheckBackdrop(event)">
+  <div class="settings-card" id="ollama-check-card" style="max-width:400px">
+    <div class="settings-header">
+      <div class="settings-header-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div class="settings-header-text">
+        <h2>Ollama not detected</h2>
+        <p>We can't reach Ollama on this computer yet.</p>
+      </div>
+      <button class="modal-close" onclick="closeOllamaCheckModal()" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="settings-body">
+      <p class="modal-text" style="margin-bottom:10px">One-click downloads pull the model straight through Ollama, so it needs to be installed and running first.</p>
+      <p class="modal-text" style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">Already have it? Start it with <code>OLLAMA_ORIGINS=* ollama serve</code> so the browser is allowed to reach it, then retry below.</p>
+      <div id="ollama-check-note" class="rec-cpu-note" style="color:#EF4444" hidden></div>
+      <div class="endpoint-actions">
+        <button class="endpoint-btn ghost" style="flex:1" onclick="openOllamaDownloadPage()">Get Ollama ↗</button>
+        <button class="endpoint-btn solid" style="flex:1" id="ollama-check-retry-btn" onclick="retryOllamaCheck()">I've installed it — Retry</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PULL TERMINAL MODAL — mimics a terminal window showing the live "ollama pull" output -->
+<div class="settings-modal" id="pull-terminal-modal" onclick="handlePullTerminalBackdrop(event)">
+  <div class="settings-card pull-terminal-card" id="pull-terminal-card">
+    <div class="pull-terminal-titlebar">
+      <span class="pull-terminal-dots"><span></span><span></span><span></span></span>
+      <span class="pull-terminal-title" id="pull-terminal-title">Downloading…</span>
+      <button class="pull-terminal-close" onclick="closePullTerminal()" aria-label="Close">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <pre class="pull-terminal-log" id="pull-terminal-log"></pre>
+  </div>
+</div>
+
 <!-- SETTINGS MODAL -->
 <div class="settings-modal" id="settings-modal" onclick="handleSettingsBackdrop(event)">
   <div class="settings-card" id="settings-card">
@@ -4948,16 +1245,15 @@ git commit -m "Make the AI mine"</code></div></div>
         <label class="settings-label">Brand Color</label>
         <div class="color-row">
           <label class="color-pick-wrap">
-            <input type="color" id="settings-brand-color" value="#0057B8" oninput="previewColor('brand', this.value)">
-            <span class="color-pick-label" id="settings-brand-color-label">#0057B8</span>
+            <input type="color" id="settings-brand-color" value="#4F46E5" oninput="previewColor('brand', this.value)">
+            <span class="color-pick-label" id="settings-brand-color-label">#4F46E5</span>
           </label>
           <div class="color-swatch-row" id="brand-swatches">
-            <button class="color-swatch active" style="background:#0057B8" data-color="#0057B8" onclick="setSwatchColor('brand','#0057B8',this)" title="DEVCON Blue"></button>
-            <button class="color-swatch" style="background:#7C5CFF" data-color="#7C5CFF" onclick="setSwatchColor('brand','#7C5CFF',this)" title="Violet"></button>
-            <button class="color-swatch" style="background:#4F46E5" data-color="#4F46E5" onclick="setSwatchColor('brand','#4F46E5',this)" title="Indigo"></button>
-            <button class="color-swatch" style="background:#C026D3" data-color="#C026D3" onclick="setSwatchColor('brand','#C026D3',this)" title="Magenta"></button>
-            <button class="color-swatch" style="background:#FFC93C" data-color="#FFC93C" onclick="setSwatchColor('brand','#FFC93C',this)" title="Gold"></button>
-            <button class="color-swatch" style="background:#0891B2" data-color="#0891B2" onclick="setSwatchColor('brand','#0891B2',this)" title="Teal"></button>
+            <button class="color-swatch active" style="background:#4F46E5" data-color="#4F46E5" onclick="setSwatchColor('brand','#4F46E5',this)" title="Violet"></button>
+            <button class="color-swatch" style="background:#0057B8" data-color="#0057B8" onclick="setSwatchColor('brand','#0057B8',this)" title="Blue"></button>
+            <button class="color-swatch" style="background:#FFC93C" data-color="#FFC93C" onclick="setSwatchColor('brand','#FFC93C',this)" title="Yellow"></button>
+            <button class="color-swatch" style="background:#5FBF6B" data-color="#5FBF6B" onclick="setSwatchColor('brand','#5FBF6B',this)" title="Green"></button>
+            <button class="color-swatch" style="background:#FF8A3D" data-color="#FF8A3D" onclick="setSwatchColor('brand','#FF8A3D',this)" title="Orange"></button>
           </div>
         </div>
       </div>
@@ -5129,6 +1425,14 @@ git commit -m "Make the AI mine"</code></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
 <script src="db.js"></script>
 <script src="rag.js"></script>
-<script src="app.js"></script>
+<script src="app/config.js"></script>
+<script src="app/sessions.js"></script>
+<script src="app/settings.js"></script>
+<script src="app/training.js"></script>
+<script src="app/onboarding.js"></script>
+<script src="app/models.js"></script>
+<script src="app/chat.js"></script>
+<script src="app/thinking.js"></script>
+<script src="app/init.js"></script>
 </body>
 </html>

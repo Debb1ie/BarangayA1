@@ -33,7 +33,7 @@ Make sure Ollama is running — it serves an OpenAI-compatible API at `http://12
 
 ### 2. Open the app
 
-Because the app loads `db.js`, `rag.js`, and `app.js` as separate files, open it through a local web server rather than `file://` (browsers block module/script loading from `file://`):
+Because the app loads its CSS and JS as separate files (`styles.css`, `db.js`, `rag.js`, `app/*.js`), open it through a local web server rather than `file://` (browsers block script loading from `file://`):
 
 ```bash
 # from the project folder — pick whichever you have
@@ -52,7 +52,7 @@ Then open the served URL and **pick a model** when prompted. That's it.
 
 ## Configuration
 
-All defaults live in the **CONFIG block at the top of [`app.js`](app.js)** — edit it to customize your build:
+All defaults live in the **CONFIG block at the top of [`app/config.js`](app/config.js)** — edit it to customize your build:
 
 ```js
 const API_BASE     = 'http://127.0.0.1:11434/v1';  // your local model endpoint
@@ -60,7 +60,7 @@ const API_KEY      = 'ollama';                       // any value works for Olla
 const MODEL        = 'qwen2.5:3b';                   // default model id
 const AI_NAME      = 'DEVCON';                        // display name
 const AI_AVATAR    = 'DV';                            // avatar initials
-const BRAND_COLOR  = '#0057B8';
+const BRAND_COLOR  = '#4F46E5';
 const ACCENT_COLOR = '#00A8E8';
 const AI_TONE      = null;   // set a string to override the default system prompt
 const SUGGESTIONS  = null;   // set an array of suggestion cards to override defaults
@@ -83,14 +83,25 @@ Web search is off until you add a key. Get one from [Tavily](https://tavily.com)
 
 ```
 barangayAI/
-├── index.html   # all UI + CSS (single page)
-├── app.js       # all app logic — chat, sessions, settings, languages, web search
-├── db.js        # SQLite persistence layer (sql.js + IndexedDB)
-├── rag.js       # local knowledge retrieval — chunking + TF-IDF similarity, no embedding model
+├── index.html          # markup only
+├── styles.css          # all CSS
+├── app/                # app logic, split by feature — loaded in this order via <script> tags
+│   ├── config.js       # CONFIG block, tone presets, in-memory state
+│   ├── sessions.js     # session list — create/load/switch/persist
+│   ├── settings.js     # settings modal — personalization, personas, language picker
+│   ├── training.js     # training tab + sidebar sources panel (RAG knowledge sources)
+│   ├── onboarding.js   # welcome modal + Camp Guidebook
+│   ├── models.js       # model selector, endpoint manager, connectivity checks
+│   ├── chat.js         # send/stream, markdown rendering, message rendering, history
+│   ├── thinking.js     # deep-thinking toggle + display
+│   └── init.js         # welcome screen, chat actions, app bootstrap (window 'load')
+├── db.js               # SQLite persistence layer (sql.js + IndexedDB)
+├── rag.js              # local knowledge retrieval — chunking + TF-IDF similarity, no embedding model
+├── assets/logos/        # vendor + brand logos shown in the model picker and welcome screen
 └── README.md
 ```
 
-No build step. No framework. No bundler. The whole point is that you can read it, edit the CONFIG block, and ship it.
+No build step. No framework. No bundler. Just more files instead of one — open any of them, edit, refresh. Script tags load in dependency order (`config.js` first, `init.js` last); if you add a file, add its `<script>` tag in `index.html` in the right spot.
 
 ### External libraries (loaded from CDN)
 

@@ -10,6 +10,7 @@ yarn.lock
 
 # Editor / OS cruft
 .vscode/
+.claude/
 .idea/
 *.swp
 .DS_Store
