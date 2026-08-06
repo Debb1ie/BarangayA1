@@ -16,7 +16,10 @@ function toggleThinkingQuick() {
   s.thinking_enabled = next;
   saveSettings(s);
   syncThinkingUI();
-  showToast(next ? '🧠 Deep thinking enabled' : 'Thinking off — faster replies');
+  showToast(
+    next ? 'Deep thinking enabled' : 'Thinking off — faster replies',
+    next ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5c0 1.5.5 2.5 1 3.5.5 1 1 2 1 3.5h6c0-1.5.5-2.5 1-3.5.5-1 1-2 1-3.5a5 5 0 0 0-5-5z"/><path d="M9 21h6"/><path d="M10 18h4"/></svg>' : null
+  );
 }
 
 // Applies thinking on/off to the request payload for Qwen3-family models.
@@ -102,7 +105,7 @@ async function sendMessage() {
 
   appendTypingIndicator();
   updateThinkingStep('context', 'active', 'Building context...');
-  if (window._setEduCard) window._setEduCard('🧩', 'Assembling your conversation history and system instructions into a single prompt for the model...');
+  if (window._setEduCard) window._setEduCard('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>', 'Assembling your conversation history and system instructions into a single prompt for the model...');
 
   const _runtimeName      = window._AI_NAME_ACTIVE || AI_NAME;
   const _runtimeTone      = (window._AI_TONE_ACTIVE !== undefined ? window._AI_TONE_ACTIVE : AI_TONE);
@@ -148,7 +151,7 @@ async function sendMessage() {
     const noteLabel = _trainingNotes ? ' + notes' : '';
     const chunkLabel = _totalChunkCount ? ` · ${_retrievedCount}/${_totalChunkCount} chunks retrieved` : '';
     updateThinkingStep('files', 'done', `Knowledge base loaded · ${fileCount} file${fileCount !== 1 ? 's' : ''}${noteLabel}${chunkLabel}`);
-    if (window._setEduCard) window._setEduCard('📂', `${fileCount} knowledge file${fileCount !== 1 ? 's' : ''}${noteLabel} loaded — retrieved the ${_retrievedCount} most relevant chunk${_retrievedCount !== 1 ? 's' : ''} (of ${_totalChunkCount}) via keyword matching for this question.`);
+    if (window._setEduCard) window._setEduCard('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>', `${fileCount} knowledge file${fileCount !== 1 ? 's' : ''}${noteLabel} loaded — retrieved the ${_retrievedCount} most relevant chunk${_retrievedCount !== 1 ? 's' : ''} (of ${_totalChunkCount}) via keyword matching for this question.`);
   }
   updateThinkingStep('context', 'done', 'Context ready');
 
@@ -158,7 +161,7 @@ async function sendMessage() {
   if (window._WEB_SEARCH_ENABLED && (window._TAVILY_KEY || '').trim()) {
     window._thinkingLabelOverride = 'Searching the web';   // pin the rotating loading label
     updateThinkingStep('websearch', 'active', 'Searching the web…');
-    if (window._setEduCard) window._setEduCard('🌐', 'Web search is on — querying Tavily for fresh information, then feeding the top results to the model as context.');
+    if (window._setEduCard) window._setEduCard('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/></svg>', 'Web search is on — querying Tavily for fresh information, then feeding the top results to the model as context.');
     const sr = await performWebSearch(text);
     window._thinkingLabelOverride = null;   // back to the normal phrases for generation
     const webBlock = buildWebSearchBlock(sr);
@@ -175,10 +178,10 @@ async function sendMessage() {
 
   if (_modelWarm) {
     updateThinkingStep('model', 'active', `Sending to ${window.ACTIVE_MODEL}...`);
-    if (window._setEduCard) window._setEduCard('⚡', `${window.ACTIVE_MODEL} is already loaded in memory. Sending your prompt and streaming tokens back to the browser now...`);
+    if (window._setEduCard) window._setEduCard('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>', `${window.ACTIVE_MODEL} is already loaded in memory. Sending your prompt and streaming tokens back to the browser now...`);
   } else {
     updateThinkingStep('model', 'active', `Loading model from disk · ${window.ACTIVE_MODEL}...`);
-    if (window._setEduCard) window._setEduCard('📦', `First request — loading ${window.ACTIVE_MODEL} from disk into RAM. This takes a few seconds the first time. After this, all replies will be much faster.`);
+    if (window._setEduCard) window._setEduCard('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>', `First request — loading ${window.ACTIVE_MODEL} from disk into RAM. This takes a few seconds the first time. After this, all replies will be much faster.`);
   }
 
   // Apply prefix / suffix to the message sent to the model (history stays clean)

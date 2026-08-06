@@ -17,7 +17,7 @@ let _modelSeq = 0;
 // dead end. Purely illustrative: not installed, not selectable as an active
 // model, and gone the moment a real endpoint/model shows up in MODEL_LIST.
 const DEMO_SUGGESTED_MODELS = [
-  { model: 'qwen2.5:3b', badge: '⭐ Recommended', cls: 'rec' },
+  { model: 'qwen2.5:3b', badge: 'Recommended', cls: 'rec' },
   { model: 'gemma3:1b' },
   { model: 'llama3.2:1b' },
 ];
@@ -119,8 +119,8 @@ function pickDefaultModelForSpecs(rows) {
   return fits.length ? fits[fits.length - 1] : sized[0];
 }
 
-// Badges for the model picker: ⭐ Recommended (best spec fit), ⚡ Fastest
-// (smallest), 🧠 Smartest (biggest). One badge per model — Recommended wins.
+// Badges for the model picker: Recommended (best spec fit), Fastest
+// (smallest), Smartest (biggest). One badge per model — Recommended wins.
 function computeModelBadges(rows) {
   const badges = new Map();   // id -> {label, cls}
   const sized = rows.filter(m => modelParamsB(m.model) != null);
@@ -129,10 +129,10 @@ function computeModelBadges(rows) {
   const fastest = bySize[0];
   const smartest = bySize[bySize.length - 1];
   const recommended = pickDefaultModelForSpecs(sized) || fastest;
-  badges.set(recommended.id, { label: '⭐ Recommended', cls: 'rec' });
-  if (!badges.has(fastest.id)) badges.set(fastest.id, { label: '⚡ Fastest', cls: 'fast' });
+  badges.set(recommended.id, { label: 'Recommended', cls: 'rec' });
+  if (!badges.has(fastest.id)) badges.set(fastest.id, { label: 'Fastest', cls: 'fast' });
   if (smartest.id !== fastest.id && !badges.has(smartest.id)) {
-    badges.set(smartest.id, { label: '🧠 Smartest', cls: 'smart' });
+    badges.set(smartest.id, { label: 'Smartest', cls: 'smart' });
   }
   return badges;
 }
@@ -233,6 +233,10 @@ function selectModel(id, opts = {}) {
   if (labelEl) labelEl.textContent = m.model;
   const iconEl = document.getElementById('model-select-icon');
   if (iconEl) iconEl.innerHTML = modelIconHtml(m.model, 13);
+  const labelElMobile = document.getElementById('model-select-label-mobile');
+  if (labelElMobile) labelElMobile.textContent = m.model;
+  const iconElMobile = document.getElementById('model-select-icon-mobile');
+  if (iconElMobile) iconElMobile.innerHTML = modelIconHtml(m.model, 15);
 
   // Re-render picker rows to reflect active state
   renderModelList(document.getElementById('model-dd-search')?.value || '');
@@ -251,6 +255,10 @@ function deselectModel() {
   if (labelEl) labelEl.textContent = 'Select model';
   const iconEl = document.getElementById('model-select-icon');
   if (iconEl) iconEl.innerHTML = modelIcon.replace(/width="16" height="16"/, 'width="13" height="13"');
+  const labelElMobile = document.getElementById('model-select-label-mobile');
+  if (labelElMobile) labelElMobile.textContent = 'Select model';
+  const iconElMobile = document.getElementById('model-select-icon-mobile');
+  if (iconElMobile) iconElMobile.innerHTML = modelIcon.replace(/width="16" height="16"/, 'width="15" height="15"');
   const subtitle = document.getElementById('header-subtitle');
   if (subtitle) {
     subtitle.textContent = MODEL_LIST.some(m => m.enabled !== false)
@@ -421,7 +429,10 @@ function selectModelFromDropdown(id) {
 document.addEventListener('click', function(e) {
   const dd = document.getElementById('model-dropdown');
   const btn = document.getElementById('model-select-btn');
-  if (dd && btn && !dd.contains(e.target) && !btn.contains(e.target)) {
+  const mobileBtn = document.getElementById('model-select-mobile-btn');
+  if (!dd || !btn) return;
+  const clickedTrigger = btn.contains(e.target) || (mobileBtn && mobileBtn.contains(e.target));
+  if (!dd.contains(e.target) && !clickedTrigger) {
     dd.classList.remove('open');
     btn.classList.remove('open');
   }
@@ -600,6 +611,8 @@ async function initModelRegistry() {
       if (subtitle) subtitle.textContent = 'No model installed — pull one with Ollama';
       const labelEl = document.getElementById('model-select-label');
       if (labelEl) labelEl.textContent = 'Select model';
+      const labelElMobile = document.getElementById('model-select-label-mobile');
+      if (labelElMobile) labelElMobile.textContent = 'Select model';
     }
   }
 }

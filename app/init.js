@@ -12,34 +12,34 @@ function resetWelcomeScreen() {
   const ws = document.createElement('div');
   ws.className = 'welcome-screen';
   ws.id = 'welcome-screen';
-  const greetings = ['Good to see you! 👋', 'Mabuhay! 👋', 'Welcome back! 👋', 'Hello, developer! 👋'];
+  const greetings = ['Good to see you!', 'Mabuhay!', 'Welcome back!', 'Hello, developer!'];
   const greeting = window._GREETING_ACTIVE || greetings[Math.floor(Math.random() * greetings.length)];
   const _activeName = window._AI_NAME_ACTIVE || AI_NAME;
   ws.innerHTML = `
     <img class="welcome-icon" src="assets/logos/17_logo.png" alt="DEVCON 17">
     <div class="welcome-hero">
       <div class="welcome-title">${_activeName}</div>
-      <div class="welcome-greeting">${greeting}</div>
+      <div class="welcome-greeting">${greeting} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/><path d="M5 3v4"/><path d="M3 5h4"/><path d="M19 17v4"/><path d="M17 19h4"/></svg></div>
     </div>
     <div class="welcome-brief">Built by Filipino developers · 100% local, no cloud</div>
     <div class="suggestion-chips" id="suggestion-grid-welcome">
       <button class="suggestion-chip" onclick="suggest('What is DEVCON Barangay AI Code Camps? What will I learn and build today?')">
-        <span class="suggestion-chip-icon">🏕️</span> About Barangay AI
+        <span class="suggestion-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span> About Barangay AI
       </button>
       <button class="suggestion-chip" onclick="suggest('I am a beginner. Give me a simple first coding exercise — write a Python function to call a local Ollama API endpoint and print the response.')">
-        <span class="suggestion-chip-icon">💻</span> Start Coding
+        <span class="suggestion-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span> Start Coding
       </button>
       <button class="suggestion-chip" onclick="suggest('Please check my grammar and suggest improvements. Here is my text: [paste your text here]')">
-        <span class="suggestion-chip-icon">✍️</span> Grammar Check
+        <span class="suggestion-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg></span> Grammar Check
       </button>
       <button class="suggestion-chip" onclick="suggest('Please review my code, suggest improvements, and explain any issues you find. Here is my code: [paste your code here]')">
-        <span class="suggestion-chip-icon">🔍</span> Code Review
+        <span class="suggestion-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Code Review
       </button>
       <button class="suggestion-chip" onclick="suggest('How does a local AI model work? Explain what Ollama does and what Qwen is, using simple analogies a high school student would understand.')">
-        <span class="suggestion-chip-icon">🧠</span> How It Works
+        <span class="suggestion-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5c0 1.5.5 2.5 1 3.5.5 1 1 2 1 3.5h6c0-1.5.5-2.5 1-3.5.5-1 1-2 1-3.5a5 5 0 0 0-5-5z"/><path d="M9 21h6"/><path d="M10 18h4"/></svg></span> How It Works
       </button>
       <button class="suggestion-chip" onclick="suggest('How do I contribute to an open source project on GitHub as a complete beginner? Walk me through forking a repo and opening a pull request step by step.')">
-        <span class="suggestion-chip-icon">🤝</span> Contribute
+        <span class="suggestion-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg></span> Contribute
       </button>
     </div>`;
   chatArea.appendChild(ws);
@@ -111,8 +111,8 @@ window.addEventListener('load', async () => {
     }
   }
 
-  const greetings = ['Good to see you! 👋', 'Mabuhay! 👋', 'Welcome! 👋', 'Hello, developer! 👋'];
-  const el = document.getElementById('welcome-greeting');
+  const greetings = ['Good to see you!', 'Mabuhay!', 'Welcome!', 'Hello, developer!'];
+  const el = document.getElementById('welcome-greeting-text');
   if (el) el.textContent = window._GREETING_ACTIVE || greetings[Math.floor(Math.random() * greetings.length)];
 
   // Restore previous sessions if any, otherwise start fresh

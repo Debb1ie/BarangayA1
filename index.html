@@ -68,6 +68,14 @@
 
 <div class="sidebar-overlay" id="overlay"></div>
 
+<!-- MOBILE-ONLY sidebar trigger — the icon rail (the only other way to reach
+     the sidebar) is hidden below 640px, and the header itself is hidden on
+     the welcome screen, so this floating button is the sole entry point
+     while no conversation is active. -->
+<button class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleSidebar()" title="Open sidebar" aria-label="Open sidebar">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+</button>
+
 <!-- ICON RAIL -->
 <nav class="icon-rail" id="icon-rail">
   <button class="rail-btn rail-toggle-btn" onclick="toggleSidebar()" title="Toggle sidebar">
@@ -168,6 +176,9 @@
 <!-- MAIN -->
 <main class="main welcome-mode" id="main-area">
   <header class="header">
+    <button class="header-menu-btn" onclick="toggleSidebar()" title="Open sidebar" aria-label="Open sidebar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
     <button class="back-btn" id="hamburger" onclick="resetWelcomeScreen()" aria-label="Back to main screen">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       Back
@@ -201,27 +212,27 @@
       <img class="welcome-icon" src="assets/logos/17_logo.png" alt="DEVCON 17">
       <div class="welcome-hero">
         <div class="welcome-title">DEVCON</div>
-        <div class="welcome-greeting" id="welcome-greeting">Good to see you! 👋</div>
+        <div class="welcome-greeting" id="welcome-greeting"><span id="welcome-greeting-text">Good to see you!</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/><path d="M5 3v4"/><path d="M3 5h4"/><path d="M19 17v4"/><path d="M17 19h4"/></svg></div>
       </div>
       <div class="welcome-brief">Built by Filipino developers · 100% local, no cloud</div>
       <div class="suggestion-chips" id="suggestion-grid">
         <button class="suggestion-chip" onclick="suggest('What is DEVCON Barangay AI Code Camps? What will I learn and build today?')">
-          <span class="suggestion-chip-icon">🏕️</span> About Barangay AI
+          <span class="suggestion-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span> About Barangay AI
         </button>
         <button class="suggestion-chip" onclick="suggest('I am a beginner. Give me a simple first coding exercise — write a Python function to call a local Ollama API endpoint and print the response.')">
-          <span class="suggestion-chip-icon">💻</span> Start Coding
+          <span class="suggestion-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span> Start Coding
         </button>
         <button class="suggestion-chip" onclick="suggest('Please check my grammar and suggest improvements. Here is my text: [paste your text here]')">
-          <span class="suggestion-chip-icon">✍️</span> Grammar Check
+          <span class="suggestion-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg></span> Grammar Check
         </button>
         <button class="suggestion-chip" onclick="suggest('Please review my code, suggest improvements, and explain any issues you find. Here is my code: [paste your code here]')">
-          <span class="suggestion-chip-icon">🔍</span> Code Review
+          <span class="suggestion-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Code Review
         </button>
         <button class="suggestion-chip" onclick="suggest('How does a local AI model work? Explain what Ollama does and what Qwen is, using simple analogies a high school student would understand.')">
-          <span class="suggestion-chip-icon">🧠</span> How It Works
+          <span class="suggestion-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5c0 1.5.5 2.5 1 3.5.5 1 1 2 1 3.5h6c0-1.5.5-2.5 1-3.5.5-1 1-2 1-3.5a5 5 0 0 0-5-5z"/><path d="M9 21h6"/><path d="M10 18h4"/></svg></span> How It Works
         </button>
         <button class="suggestion-chip" onclick="suggest('How do I contribute to an open source project on GitHub as a complete beginner? Walk me through forking a repo and opening a pull request step by step.')">
-          <span class="suggestion-chip-icon">🤝</span> Contribute
+          <span class="suggestion-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg></span> Contribute
         </button>
       </div>
     </div>
@@ -250,6 +261,12 @@
           <span class="tools-dot" id="tools-dot"></span>
         </button>
         <div class="tools-dropdown" id="tools-dropdown">
+          <div class="tools-section-label tools-item-model">Model</div>
+          <button class="tools-item tools-item-model" id="model-select-mobile-btn" onclick="toggleModelDropdown(); closeToolsDropdown();" title="Select model">
+            <span class="tools-item-ico" id="model-select-icon-mobile"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M9 15h6"/></svg></span>
+            <span class="tools-item-label" id="model-select-label-mobile">Select model</span>
+          </button>
+          <div class="tools-section-divider tools-item-model"></div>
           <button class="tools-item" id="kb-chip" onclick="addSourceClick(); closeToolsDropdown();" title="Add files — grounds answers in your own content">
             <span class="tools-item-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></span>
             <span class="tools-item-label">Add file</span>
@@ -285,10 +302,12 @@
       </div>
     </div>
     <div class="input-tip">
-      To be pitched to target partners
-      <span class="tip-badge dc-brand-gradient">AWS Bedrock</span>
-      <span class="tip-badge dc-brand-gradient">Alibaba Cloud</span>
-      <span class="tip-badge dc-brand-gradient">Sui</span>
+      <span class="input-tip-label">To be pitched to target partners</span>
+      <span class="input-tip-badges">
+        <span class="tip-badge dc-brand-gradient">AWS Bedrock</span>
+        <span class="tip-badge dc-brand-gradient">Alibaba Cloud</span>
+        <span class="tip-badge dc-brand-gradient">Sui</span>
+      </span>
     </div>
     <div class="legal-disclaimer">
       <div class="legal-disclaimer-inner">
@@ -306,7 +325,7 @@
     <span class="gp-grip" title="Drag to move">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
     </span>
-    <span class="gp-head-icon">📖</span>
+    <span class="gp-head-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
     <span class="gp-title">Camp Guidebook</span>
     <span class="wip-pill">V1 · WIP</span>
     <span class="gp-head-spacer"></span>
@@ -334,7 +353,7 @@
     <!-- PAGE 0 — Overview -->
     <section class="gp-page">
       <div class="gp-page-h">Build your own AI</div>
-      <div class="gp-page-sub">The whole camp, one chapter at a time. 🇵🇭</div>
+      <div class="gp-page-sub">The whole camp, one chapter at a time.</div>
       <div class="wip-banner">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <span><strong>V1 draft — work in progress.</strong> Some steps may still change and it isn't final on Vercel yet. Follow your facilitator if anything looks off.</span>
@@ -353,7 +372,7 @@
     <!-- PAGE 1 — Models 101 (decode the model name & choose one) -->
     <section class="gp-page">
       <div class="gp-page-h"><span class="gp-chip pre">First</span> Choose your model</div>
-      <div class="gp-page-sub">Before you download anything, learn to read a model name — then <strong>you</strong> pick the one that fits your computer. 🧩</div>
+      <div class="gp-page-sub">Before you download anything, learn to read a model name — then <strong>you</strong> pick the one that fits your computer.</div>
 
       <div class="modal-highlight" style="margin-bottom:14px">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
@@ -369,7 +388,7 @@
       <div class="modal-section-title" style="margin-top:20px">1 · Size — what is "2B / 3B / 7B"?</div>
       <p class="modal-text"><strong>B = billions of parameters</strong> — the model's adjustable knobs. More knobs = more knowledge, but a bigger download and slower replies. Think engine size.</p>
       <div class="guide-step"><div class="guide-step-num">S</div><div class="guide-step-body">
-        <b>1B–3B</b><p>Small &amp; fast. Runs on almost any laptop. Safest pick for camp. ✅</p></div></div>
+        <b>1B–3B</b><p>Small &amp; fast. Runs on almost any laptop. Safest pick for camp.</p></div></div>
       <div class="guide-step"><div class="guide-step-num">M</div><div class="guide-step-body">
         <b>7B–8B</b><p>Smarter, needs a decent machine (~8GB+ RAM). The popular sweet spot.</p></div></div>
       <div class="guide-step"><div class="guide-step-num">L</div><div class="guide-step-body">
@@ -386,7 +405,7 @@
       <div class="modal-section-title" style="margin-top:20px">3 · Quantization — "Q2 / Q4 / Q8"</div>
       <p class="modal-text">Quantization <strong>shrinks the model</strong> so it fits &amp; runs on normal computers. The number is roughly the bits per knob: <strong>lower = smaller &amp; faster, but a little less accurate.</strong> Like saving a photo as JPG — smaller file, slightly less detail.</p>
       <div class="gp-map-row"><b>Q2 / Q3</b><span>Tiniest &amp; fastest, but noticeably "dumber". Only if you're tight on space.</span></div>
-      <div class="gp-map-row"><b>Q4</b><span><strong>The sweet spot 👍</strong> — small &amp; fast, still smart. The usual default.</span></div>
+      <div class="gp-map-row"><b>Q4</b><span><strong>The sweet spot</strong> — small &amp; fast, still smart. The usual default.</span></div>
       <div class="gp-map-row"><b>Q5 / Q6</b><span>A bit bigger, a bit sharper. Nice if you have the room.</span></div>
       <div class="gp-map-row"><b>Q8</b><span>Almost identical to the full model. Largest of the quantized set.</span></div>
       <p class="gp-page-sub" style="margin-top:6px">The extra letters (<strong>K_M</strong>, <strong>K_S</strong>) are just smarter compression recipes — <em>M</em> = medium, <em>S</em> = small. Don't overthink them.</p>
@@ -397,7 +416,7 @@
       <code class="guide-cmd">a 1B–3B · instruct · Q4 model</code>
       <div class="modal-highlight" style="margin-top:14px">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5.9 1.2 1 1.9h6c.1-.7.4-1.4 1-1.9A7 7 0 0 0 12 2z"/></svg>
-        <span><strong>Not sure?</strong> <code>qwen2.5:3b</code> is a great default for today — but <code>llama3.2:3b</code>, <code>gemma2:2b</code> or <code>phi3:mini</code> work too. Your camp, your call. 🎉</span>
+        <span><strong>Not sure?</strong> <code>qwen2.5:3b</code> is a great default for today — but <code>llama3.2:3b</code>, <code>gemma2:2b</code> or <code>phi3:mini</code> work too. Your camp, your call.</span>
       </div>
     </section>
 
@@ -452,13 +471,13 @@
       <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
         <b>Open the app</b><p>Open <strong>index.html</strong> in your browser. Check the top-right chip says <strong>Ollama</strong> with a green dot — that means connected.</p></div></div>
       <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body">
-        <b>Send your first message</b><p>Pick the model, type "Kumusta!" and watch it reply word-by-word. 🎉</p></div></div>
+        <b>Send your first message</b><p>Pick the model, type "Kumusta!" and watch it reply word-by-word.</p></div></div>
     </section>
 
     <!-- PAGE — Connect a Model -->
     <section class="gp-page">
       <div class="gp-page-h">Connect a Model</div>
-      <div class="gp-page-sub">Add a cloud endpoint + model so your AI can reply — anywhere, even on your live site. Open the model picker at the bottom of the chat and click <strong>Add Models</strong> (or ⚙️ → Model). 🔌</div>
+      <div class="gp-page-sub">Add a cloud endpoint + model so your AI can reply — anywhere, even on your live site. Open the model picker at the bottom of the chat and click <strong>Add Models</strong> (or <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> → Model).</div>
 
       <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body">
         <b>Understand the two cards</b><p>The dialog has a <strong>LOCAL</strong> card (for Ollama on your machine) and an <strong>API</strong> card (for a cloud provider). For a live site you want the <strong>API</strong> card.</p>
@@ -469,7 +488,7 @@
         <code class="guide-cmd">https://api.deepseek.com/v1</code></div></div>
 
       <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
-        <b>Paste your API key</b><p>Get a key from the provider's dashboard and paste it in the <strong>API key</strong> field. The key is stored only in <em>this browser</em> — it never gets committed to your repo. 🔒</p></div></div>
+        <b>Paste your API key</b><p>Get a key from the provider's dashboard and paste it in the <strong>API key</strong> field. The key is stored only in <em>this browser</em> — it never gets committed to your repo.</p></div></div>
 
       <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body">
         <b>Test, then Add</b><p>Click <strong>Test</strong> to confirm the endpoint is reachable (it pings <em>/models</em>). Then click <strong>Add</strong> — the app auto-discovers every model the endpoint offers and lists them. If a provider hides its model list, it falls back to a sensible default (e.g. <em>deepseek-chat</em>, <em>gpt-4o-mini</em>).</p></div></div>
@@ -486,7 +505,7 @@
       <div class="gp-page-h"><span class="gp-chip">Hour 3</span> Customize</div>
       <div class="gp-page-sub">Make it yours in Settings — do this <strong>before</strong> you publish.</div>
       <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body">
-        <b>Open Settings</b><p>Click the ⚙️ gear (top-right). Everything updates the live preview as you type — no code.</p></div></div>
+        <b>Open Settings</b><p>Click the gear icon (top-right). Everything updates the live preview as you type — no code.</p></div></div>
       <div class="guide-step"><div class="guide-step-num">2</div><div class="guide-step-body">
         <b>Name your AI</b><p><em>Bayani, Isko, Barangay AI…</em> It shows in the header, welcome screen &amp; avatars.</p></div></div>
       <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
@@ -517,13 +536,13 @@ git commit -m "Make the AI mine"</code></div></div>
       <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
         <b>Import into Vercel</b><p>On Vercel: <strong>Add New → Project</strong>, pick your repo, click <strong>Deploy</strong>. No config needed.</p></div></div>
       <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body">
-        <b>Get your live URL 🚀</b><p>In ~1 minute you get a public link like <em>your-ai.vercel.app</em>. Share it!</p></div></div>
+        <b>Get your live URL</b><p>In ~1 minute you get a public link like <em>your-ai.vercel.app</em>. Share it!</p></div></div>
       <div class="guide-step"><div class="guide-step-num">5</div><div class="guide-step-body">
-        <b>Connect a hosted model</b><p>Local Ollama only runs on <em>your</em> PC, so a Vercel visitor can't reach it. To make the live AI reply, add a <strong>cloud endpoint</strong> + key. See the <strong>Connect a Model</strong> tab above for the full walkthrough. 👆</p></div></div>
+        <b>Connect a hosted model</b><p>Local Ollama only runs on <em>your</em> PC, so a Vercel visitor can't reach it. To make the live AI reply, add a <strong>cloud endpoint</strong> + key. See the <strong>Connect a Model</strong> tab above for the full walkthrough.</p></div></div>
 
       <div class="guide-step"><div class="guide-step-num">6</div><div class="guide-step-body">
-        <b>Open your first Pull Request</b><p>On GitHub, open a PR from your fork. Your first open-source contribution — on record forever. 🎓</p></div></div>
-      <p class="gp-page-sub" style="text-align:center;margin:14px 0 0">Stuck? Raise your hand — no dumb questions here. 💙</p>
+        <b>Open your first Pull Request</b><p>On GitHub, open a PR from your fork. Your first open-source contribution — on record forever.</p></div></div>
+      <p class="gp-page-sub" style="text-align:center;margin:14px 0 0">Stuck? Raise your hand — no dumb questions here.</p>
     </section>
 
   </div>
@@ -552,7 +571,7 @@ git commit -m "Make the AI mine"</code></div></div>
         </div>
       </div>
       <div class="modal-header-text">
-        <div class="modal-mabuhay">Mabuhay! 🇵🇭</div>
+        <div class="modal-mabuhay">Mabuhay!</div>
         <h2>DEVCON BARANGAY AI</h2>
         <p>Free, Open-source, Community-owned Build Your Barangay's AI</p>
       </div>
@@ -838,7 +857,7 @@ git commit -m "Make the AI mine"</code></div></div>
     <div id="onboard-step-2" style="display:none">
     <div class="modal-body">
       <div class="modal-mabuhay" style="color:var(--dc-blue);font-size:12px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;margin-bottom:6px">Step 2 of 3 · Pick a model</div>
-      <p class="modal-text" style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:4px">Which AI brain fits your PC? 🧠</p>
+      <p class="modal-text" style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:4px">Which AI brain fits your PC?</p>
       <p class="modal-text" style="margin-bottom:10px">Models come in sizes — bigger means smarter but heavier. Here's what we suggest, plus a quick checker for your machine.</p>
 
       <div class="modal-section-title">Works with virtually any open-source model</div>
@@ -857,7 +876,7 @@ git commit -m "Make the AI mine"</code></div></div>
 
       <!-- Installation requirements (collapsible) -->
       <details class="install-req">
-        <summary>📋 View installation requirements</summary>
+        <summary><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>View installation requirements</summary>
         <div class="install-req-body">
           <div class="install-req-row"><b>OS</b><span>Windows 10/11, macOS 12+, or Linux</span></div>
           <div class="install-req-row"><b>Ollama</b><span>Installed and running — <code>OLLAMA_ORIGINS=* ollama serve</code> (free at ollama.com)</span></div>
@@ -874,7 +893,7 @@ git commit -m "Make the AI mine"</code></div></div>
         <div class="rec-row">
           <img class="rec-logo" src="assets/logos/Qwen_logo.webp" alt="">
           <div class="rec-info">
-            <span class="rec-name">⭐ qwen2.5:1.5b <em>1.5B · ~1 GB download</em></span>
+            <span class="rec-name"><svg width="11" height="11" viewBox="0 0 24 24" fill="var(--dc-gold)" stroke="var(--dc-gold)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>qwen2.5:1.5b <em>1.5B · ~1 GB download</em></span>
             <span class="rec-desc">Our top pick — light, fast, and runs on nearly any laptop.</span>
           </div>
           <button class="rec-copy" data-pull-tag="qwen2.5:1.5b" onclick="pullModelOneClick('qwen2.5:1.5b')" title="Download and install this model via Ollama">Download</button>
@@ -945,12 +964,12 @@ git commit -m "Make the AI mine"</code></div></div>
     <div id="onboard-step-3" style="display:none">
     <div class="modal-body">
       <div class="modal-mabuhay" style="color:var(--dc-blue);font-size:12px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;margin-bottom:6px">Step 3 of 3 · Set up your AI</div>
-      <p class="modal-text" style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:4px">Let's get it ready 🛠️</p>
+      <p class="modal-text" style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:4px">Let's get it ready</p>
       <p class="modal-text" style="margin-bottom:16px">Three quick things — name it, connect a model so it can reply, then make it yours. You can change any of these later.</p>
 
       <!-- 1 · Name -->
       <div class="onboard-setup-block">
-        <div class="onboard-setup-head"><span class="onboard-setup-num">1</span> Give it a name ✨</div>
+        <div class="onboard-setup-head"><span class="onboard-setup-num">1</span> Give it a name</div>
         <div style="display:flex;gap:8px;align-items:stretch">
           <input id="onboarding-ai-name" type="text" maxlength="40" placeholder="e.g. Bayani, Isko, Barangay AI…"
             onkeydown="if(event.key==='Enter')saveOnboardingName()"
@@ -1084,7 +1103,7 @@ git commit -m "Make the AI mine"</code></div></div>
             </div>
           </div>
 
-          <p class="qs-tip">💡 Tip: bigger models (<code>llama3.1:8b</code>, <code>qwen2.5:7b</code>) are smarter but need more RAM. Start small and scale up.</p>
+          <p class="qs-tip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5.9 1.2 1 1.9h6c.1-.7.4-1.4 1-1.9A7 7 0 0 0 12 2z"/></svg>Tip: bigger models (<code>llama3.1:8b</code>, <code>qwen2.5:7b</code>) are smarter but need more RAM. Start small and scale up.</p>
         </div>
       </div>
 
@@ -1190,7 +1209,7 @@ git commit -m "Make the AI mine"</code></div></div>
       <div class="settings-preview-card">
         <div class="preview-avatar" id="preview-avatar">BA</div>
         <div class="preview-info">
-          <div class="preview-greeting" id="preview-greeting">Good to see you! 👋</div>
+          <div class="preview-greeting" id="preview-greeting">Good to see you!</div>
           <div class="preview-name" id="preview-name">Barangay AI</div>
         </div>
         <span class="preview-label">Preview</span>
@@ -1273,7 +1292,7 @@ git commit -m "Make the AI mine"</code></div></div>
       <!-- Welcome Greeting -->
       <div class="settings-field">
         <label class="settings-label" for="settings-greeting">Welcome Greeting</label>
-        <input class="settings-input" id="settings-greeting" type="text" placeholder="e.g. Mabuhay! 👋  or  Kumusta ka? 👋" maxlength="60" oninput="updateSettingsPreview()">
+        <input class="settings-input" id="settings-greeting" type="text" placeholder="e.g. Mabuhay!  or  Kumusta ka?" maxlength="60" oninput="updateSettingsPreview()">
         <span class="settings-hint">The greeting line shown above the AI name on the welcome screen. Leave blank to use a random greeting.</span>
       </div>
 
@@ -1282,14 +1301,14 @@ git commit -m "Make the AI mine"</code></div></div>
         <label class="settings-label" for="settings-ai-tone">Personality &amp; System Prompt</label>
         <div class="tone-presets">
           <button class="tone-preset-chip active" data-preset="default" onclick="setTonePreset('default', this)">Default</button>
-          <button class="tone-preset-chip" data-preset="friendly" onclick="setTonePreset('friendly', this)">Friendly 😊</button>
+          <button class="tone-preset-chip" data-preset="friendly" onclick="setTonePreset('friendly', this)">Friendly</button>
           <button class="tone-preset-chip" data-preset="formal" onclick="setTonePreset('formal', this)">Formal</button>
-          <button class="tone-preset-chip" data-preset="teacher" onclick="setTonePreset('teacher', this)">Teacher 📚</button>
+          <button class="tone-preset-chip" data-preset="teacher" onclick="setTonePreset('teacher', this)">Teacher</button>
           <button class="tone-preset-chip" data-preset="strict" onclick="setTonePreset('strict', this)">Strict</button>
         </div>
         <div class="persona-prompt-wrap">
           <textarea class="settings-input settings-textarea" id="settings-ai-tone" placeholder="Write rough notes and click Expand, or write a full system prompt…" style="min-height:120px; padding-bottom:38px;" oninput="commitPersonaDraft(); detectActivePreset(this.value)"></textarea>
-          <button type="button" class="persona-expand-btn" id="persona-expand-btn" onclick="expandPersonaPrompt()">✦ Expand</button>
+          <button type="button" class="persona-expand-btn" id="persona-expand-btn" onclick="expandPersonaPrompt()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>Expand</button>
         </div>
         <span class="settings-hint">Pick a preset, jot rough notes and hit Expand, or write your own — the hidden instruction that shapes how the AI thinks, speaks, and responds.</span>
         <button type="button" class="persona-delete-btn" id="persona-delete-btn" onclick="deletePersona()" style="display:none;">Delete this persona</button>
@@ -1349,7 +1368,7 @@ git commit -m "Make the AI mine"</code></div></div>
           <label class="settings-label">Web Search</label>
           <button type="button" class="ep-toggle" id="settings-web-search" onclick="toggleWebSearchSetting(this)" aria-label="Toggle web search"></button>
         </div>
-        <span class="settings-hint">When on, the AI searches the web for your question and uses the top results as context for its answer. You can also flip this with the 🌐 button beside Send.</span>
+        <span class="settings-hint">When on, the AI searches the web for your question and uses the top results as context for its answer. You can also flip this with the web search button beside Send.</span>
         <input class="settings-input" id="settings-tavily-key" type="password" placeholder="Tavily API key (tvly-…)" autocomplete="off" style="margin-top:10px;">
         <span class="settings-hint">Required for web search. Get a free key at <a href="https://app.tavily.com" target="_blank" rel="noopener" style="color:var(--dc-blue)">tavily.com</a> — the free tier covers ~1,000 searches/month. Stored locally on this device only.</span>
       </div>

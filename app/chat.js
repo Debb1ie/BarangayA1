@@ -331,7 +331,7 @@ function appendTypingIndicator() {
       <div class="thinking-collapsible" id="thinking-collapsible">
         <div class="thinking-edu-card" id="thinking-edu-card">
           <div class="thinking-edu-body">
-            <span class="thinking-edu-icon" id="thinking-edu-icon">⚙️</span>
+            <span class="thinking-edu-icon" id="thinking-edu-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
             <span class="thinking-edu-text" id="thinking-edu-text">Preparing your message...</span>
           </div>
           <div class="thinking-edu-footer">
@@ -371,7 +371,7 @@ function appendTypingIndicator() {
   window._setEduCard = (icon, text) => {
     eduCard.style.opacity = '0';
     setTimeout(() => {
-      eduIconEl.textContent = icon;
+      eduIconEl.innerHTML = icon;
       eduTextEl.textContent = text;
       eduCard.style.opacity = '1';
     }, 200);
@@ -784,7 +784,10 @@ function toggleWebSearchQuick() {
   s.web_search_enabled = next;
   saveSettings(s);
   syncWebSearchUI();
-  showToast(next ? '🌐 Web search enabled' : 'Web search disabled');
+  showToast(
+    next ? 'Web search enabled' : 'Web search disabled',
+    next ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/></svg>' : null
+  );
 }
 
 // Settings-modal toggle (draft only — committed on Save).

@@ -106,7 +106,7 @@ function renderTrainingFilesList() {
     const row = document.createElement('div');
     row.className = 'training-file-item';
     row.innerHTML = `
-      <span style="font-size:14px;">📄</span>
+      <span style="display:flex;color:var(--text-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>
       <span class="tf-name" title="${escapeAttr(f.name)}">${escapeHtml(f.name)}</span>
       <span class="tf-size">${formatBytes(f.size)}</span>
       <button class="tf-remove" title="Remove" aria-label="Remove">✕</button>
@@ -203,14 +203,10 @@ function seedDefaultSourcesIfNeeded(settings) {
   }));
   return true;
 }
-function kbEmoji(name) {
-  const ext = (String(name).split('.').pop() || '').toLowerCase();
-  if (ext === 'pdf') return '📕';
-  if (ext === 'md' || ext === 'markdown') return '📘';
-  if (ext === 'csv') return '📗';
-  if (ext === 'doc' || ext === 'docx') return '📙';
-  if (ext === 'json' || ext === 'log') return '📒';
-  return '📄';
+// One shared file glyph — the extension is already visible in the file
+// name text, so the icon just needs to read as "a file", not decode the type.
+function kbFileIconHtml() {
+  return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
 }
 
 function sidebarTab(tab) {
@@ -280,7 +276,7 @@ function renderSourcesPanel() {
 
     const icon = document.createElement('span');
     icon.className = 'kb-ico';
-    icon.textContent = kbEmoji(f.name);
+    icon.innerHTML = kbFileIconHtml();
 
     const meta = document.createElement('span');
     meta.className = 'kb-meta';
@@ -321,10 +317,11 @@ function renderSourcesPanel() {
   syncToolsIndicator();
 }
 
-function showToast(msg) {
+function showToast(msg, icon) {
   const t = document.createElement('div');
   t.className = 'settings-toast';
-  t.textContent = msg;
+  if (icon) t.innerHTML = `<span class="toast-icon">${icon}</span><span>${escHtml(msg)}</span>`;
+  else t.textContent = msg;
   document.body.appendChild(t);
   requestAnimationFrame(() => t.classList.add('visible'));
   setTimeout(() => { t.classList.remove('visible'); setTimeout(() => t.remove(), 300); }, 2200);

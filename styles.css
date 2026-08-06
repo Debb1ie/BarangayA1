@@ -662,11 +662,16 @@
   }
 
   .welcome-greeting {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     font-size: 13px;
     color: var(--text-muted);
     font-weight: 500;
     letter-spacing: 0.1px;
   }
+  .welcome-greeting svg { flex-shrink: 0; color: var(--dc-gold); }
 
   .welcome-title {
     font-size: 28px;
@@ -1049,10 +1054,10 @@
     padding: 9px 11px 8px;
   }
   .thinking-edu-icon {
-    font-size: 14px;
+    display: flex;
     flex-shrink: 0;
     margin-top: 1px;
-    line-height: 1.4;
+    color: var(--text-secondary);
   }
   .thinking-edu-text {
     font-size: 11.5px;
@@ -1406,6 +1411,13 @@
     letter-spacing: 0.1px;
   }
   .input-tip-dot { opacity: 0.5; }
+  .input-tip-badges {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
   .tip-badge {
     display: inline-flex;
     align-items: center;
@@ -1471,11 +1483,20 @@
     transition: all 0.15s;
     position: relative;
   }
-  .tools-btn:hover, .tools-btn.open {
+  /* Hover-only on devices with a real pointer — on touchscreens (no true
+     hover), :hover applies on tap and then sticks until something else is
+     tapped, leaving the "+" looking permanently lit. The .open highlight
+     below still applies everywhere, since that's driven by a class, not
+     a pseudo-state. */
+  @media (hover: hover) {
+    .tools-btn:hover { background: var(--dc-blue-light); color: var(--dc-blue); }
+    [data-theme="dark"] .tools-btn:hover { background: var(--dc-accent-light); color: var(--dc-accent); }
+  }
+  .tools-btn.open {
     background: var(--dc-blue-light);
     color: var(--dc-blue);
   }
-  [data-theme="dark"] .tools-btn:hover, [data-theme="dark"] .tools-btn.open {
+  [data-theme="dark"] .tools-btn.open {
     background: var(--dc-accent-light);
     color: var(--dc-accent);
   }
@@ -1534,6 +1555,26 @@
   .tools-item.active .tools-item-check { opacity: 1; }
   [data-theme="dark"] .tools-item.active { background: var(--dc-accent-light); color: var(--dc-accent); }
   [data-theme="dark"] .tools-item.active .tools-item-check { color: var(--dc-accent); }
+
+  /* Model picker — only needed inside the "+" menu on mobile, where the
+     model-select pill next to the textarea is hidden for space. */
+  .tools-item-model { display: none; }
+  .tools-section-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+    padding: 2px 9px;
+  }
+  .tools-section-divider {
+    height: 1px;
+    margin: 4px 2px 6px;
+    background: var(--border);
+  }
+  @media (max-width: 640px) {
+    .tools-item-model { display: flex; }
+  }
 
   /* Web sources card — shown under answers that used web search */
   .web-sources {
@@ -2041,11 +2082,36 @@
     .suggestion-grid { grid-template-columns: 1fr; max-width: 100%; }
     .welcome-title { font-size: 18px; }
     .chat-area { padding: 14px 12px; }
-    .input-area { padding: 8px 10px 12px; }
+    .input-area { padding: 8px 10px 12px; display: flex; flex-direction: column; }
+
+    /* Partner badges are the least important line here — push them below
+       the legal disclaimer instead of sandwiching them right under the box. */
+    .input-box { order: 1; }
+    .legal-disclaimer { order: 2; }
+    .input-tip { order: 3; }
 
     .status-chip { display: none; }
 
     .bubble { max-width: calc(100% - 38px); }
+
+    .header { padding: 0 12px; gap: 6px; }
+    .back-btn { font-size: 0; gap: 0; padding: 7px; }
+    /* The subtitle pill (model name + Local/API) refuses to shrink and was
+       squeezing the conversation title down to a couple of letters — it's
+       redundant now that the model also shows in the "+" tools menu. */
+    .header-title p { display: none; }
+    .header-actions { gap: 4px; }
+    .icon-btn { width: 30px; height: 30px; }
+
+    /* The model-select pill (name + chevron) doesn't fit next to the
+       textarea on narrow screens — it moves into the "+" tools menu instead. */
+    .model-select-btn { display: none; }
+
+    /* Partner badges: force the label onto its own line so the 3 badges
+       always wrap together as one centered group below it, instead of
+       splitting lopsidedly (e.g. 2 + 1) mid-sentence with the label text. */
+    .input-tip { flex-direction: column; }
+    .input-tip-badges { flex-wrap: nowrap; }
   }
 
   /* CONTEXT NOTIFICATION */
@@ -2865,7 +2931,7 @@
   .guide-panel.docked .gp-head { cursor: default; }
   .gp-grip { display: flex; color: var(--text-muted); }
   .guide-panel.docked .gp-grip { display: none; }
-  .gp-head-icon { font-size: 15px; line-height: 1; }
+  .gp-head-icon { display: flex; align-items: center; color: var(--text-secondary); }
   .gp-title { font-size: 13px; font-weight: 800; color: var(--text-primary); white-space: nowrap; }
   .gp-head-spacer { flex: 1; }
   .gp-btn {
@@ -3572,6 +3638,9 @@
     padding: 8px 18px;
     font-size: 12.5px;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 7px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.2);
     opacity: 0;
     transition: opacity 0.2s, transform 0.2s;
@@ -3580,6 +3649,7 @@
     white-space: nowrap;
   }
   .settings-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast-icon { display: flex; flex-shrink: 0; opacity: 0.9; }
 
   /* SETTINGS PREVIEW CARD */
   .settings-preview-card {
@@ -3724,6 +3794,46 @@
   .rail-dot.ok { background: #22C55E; box-shadow: 0 0 0 4px rgba(34,197,94,0.15); }
   .rail-dot.err { background: #EF4444; box-shadow: 0 0 0 4px rgba(239,68,68,0.15); }
   @media (max-width: 640px) { .icon-rail { display: none; } }
+
+  /* ── MOBILE SIDEBAR TRIGGERS — stand in for the icon rail, which is
+     hidden below 640px. One floats over the welcome screen (which has no
+     header at all); the other lives inside the header once a chat starts. */
+  .mobile-menu-btn, .header-menu-btn { display: none; }
+  @media (max-width: 640px) {
+    .mobile-menu-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      top: 12px; left: 12px;
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg-panel);
+      color: var(--text-secondary);
+      z-index: 90;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      cursor: pointer;
+    }
+    /* Hide it once a conversation's header (with its own trigger) is showing,
+       or while the drawer is already open. */
+    body:has(.main:not(.welcome-mode)) .mobile-menu-btn,
+    body:has(.sidebar.open) .mobile-menu-btn { display: none; }
+
+    .header-menu-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      border: none;
+      background: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .header-menu-btn:hover { background: var(--border-light); color: var(--text-primary); }
+  }
 
   /* Rail replaces these header buttons on desktop */
   @media (min-width: 641px) {

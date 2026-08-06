@@ -50,7 +50,7 @@ function saveOnboardingName() {
   window._BASE_NAME_DRAFT = name;
   const settingsInput = document.getElementById('settings-ai-name');
   if (settingsInput && !getActivePersonaDraft()) settingsInput.value = name;
-  showToast(`Your AI is now "${name}"! ✨`);
+  showToast(`Your AI is now "${name}"!`, '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/><path d="M5 3v4"/><path d="M3 5h4"/><path d="M19 17v4"/><path d="M17 19h4"/></svg>');
 }
 function handleBackdropClick(e) {
   if (e.target === document.getElementById('modal-backdrop')) closeModal();
@@ -126,7 +126,7 @@ const FAMILY_LOGO = {
 };
 
 function _recRowHtml(m, starred, dim) {
-  const star = starred ? '⭐ ' : '';
+  const star = starred ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="var(--dc-gold)" stroke="var(--dc-gold)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>' : '';
   const tag = escapeHtml(m.tag);
   const logo = FAMILY_LOGO[m.family];
   const downloadBtn = dim ? '' :

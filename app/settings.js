@@ -98,7 +98,7 @@ function detectActivePreset(currentTone) {
 function updateSettingsPreview() {
   const name    = document.getElementById('settings-ai-name').value.trim() || AI_NAME;
   const brand   = document.getElementById('settings-brand-color').value;
-  const greeting = document.getElementById('settings-greeting').value.trim() || 'Good to see you! 👋';
+  const greeting = document.getElementById('settings-greeting').value.trim() || 'Good to see you!';
   const prevAvatar  = document.getElementById('preview-avatar');
   const prevName    = document.getElementById('preview-name');
   const prevGreeting = document.getElementById('preview-greeting');
