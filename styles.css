@@ -1418,8 +1418,6 @@
     white-space: nowrap;
     line-height: 1.6;
   }
-  .tip-badge.aws { background: #FF9900; }
-  .tip-badge.alibaba { background: linear-gradient(135deg, #FF6A00, #FF9A00); }
 
   /* MODEL SELECT BUTTON (inside input box — Gemini Flash style) */
   .model-select-btn {
@@ -2314,6 +2312,14 @@
   .modal-card::-webkit-scrollbar { width: 3px; }
   .modal-card::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
+  /* Onboarding copy reads too dim on the dark theme's muted/secondary
+     grays — every var(--text-secondary)/var(--text-muted) use in here
+     (classes and inline styles alike) resolves to near-white instead. */
+  [data-theme="dark"] .onboarding-card {
+    --text-secondary: var(--text-primary);
+    --text-muted: var(--text-primary);
+  }
+
   .modal-header {
     padding: 22px 22px 0;
     display: flex;
@@ -2353,7 +2359,7 @@
     letter-spacing: 0.3px;
     margin-bottom: 4px;
   }
-  [data-theme="dark"] .modal-mabuhay { color: var(--dc-accent); }
+  [data-theme="dark"] .modal-mabuhay { color: var(--text-primary); }
 
   .lang-toggle-soon {
     display: flex;
@@ -2463,7 +2469,7 @@
     gap: 9px;
     align-items: flex-start;
   }
-  [data-theme="dark"] .modal-highlight { color: var(--dc-accent); background: color-mix(in srgb, var(--dc-blue) 10%, transparent); border-color: color-mix(in srgb, var(--dc-blue) 20%, transparent); }
+  [data-theme="dark"] .modal-highlight { color: var(--text-primary); background: color-mix(in srgb, var(--dc-blue) 10%, transparent); border-color: color-mix(in srgb, var(--dc-blue) 20%, transparent); }
   .modal-highlight svg { flex-shrink: 0; margin-top: 2px; }
 
   .stack-grid {
@@ -2702,6 +2708,7 @@
     background: var(--bg-secondary); margin-bottom: 6px;
   }
   .rec-row.dim { opacity: 0.55; }
+  .rec-logo { width: 20px; height: 20px; object-fit: contain; border-radius: 5px; flex-shrink: 0; }
   .rec-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
   .rec-name { font-size: 12.5px; font-weight: 700; color: var(--text-primary); font-family: var(--font-mono); }
   .rec-name em { font-style: normal; font-weight: 600; font-size: 11px; color: var(--text-muted); margin-left: 6px; }
@@ -3770,6 +3777,7 @@
     color: var(--text-primary);
     box-shadow: 0 1px 4px rgba(22,32,46,0.1);
   }
+  [data-theme="dark"] .seg-tabs button.on { background: var(--bg-primary); }
   #sidebar[data-tab="sources"] .sidebar-section,
   #sidebar[data-tab="sources"] .history-list { display: none; }
   #sidebar[data-tab="chats"] #kb-panel { display: none; }

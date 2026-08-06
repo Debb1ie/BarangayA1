@@ -227,8 +227,6 @@ async function sendMessage() {
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    removeTypingIndicator();
-
     const chatArea = document.getElementById('chat-area');
     const row = document.createElement('div');
     row.className = 'message-row';
@@ -240,8 +238,19 @@ async function sendMessage() {
     bubble.id = 'ai-bubble-latest';
     row.appendChild(avatarDiv);
     row.appendChild(bubble);
-    chatArea.appendChild(row);
-    scrollToBottom();
+
+    // Headers arriving doesn't mean the model has produced anything yet — for a big
+    // model, prompt-eval + first-token latency can be several seconds. Keep the
+    // "Thinking…" indicator up until the first real token streams in, instead of
+    // swapping to an empty bubble that just looks like the app went quiet.
+    let _revealed = false;
+    const revealBubble = () => {
+      if (_revealed) return;
+      _revealed = true;
+      removeTypingIndicator();
+      chatArea.appendChild(row);
+      scrollToBottom();
+    };
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -249,8 +258,11 @@ async function sendMessage() {
     let firstTokenAt = null;   // timestamp of first streamed token → prep/TTFT
     let completionTokens = null;
     let promptTokens = null;
+    let finishReason = null;
     let _usingReasoningField = false; // true if model sends reasoning_content separately
     let _dbgChunk = 0;
+    let _lastRenderAt = 0;
+    const RENDER_THROTTLE_MS = 60; // cap re-render rate so long streams don't reparse markdown on every token
 
     let cancelled = false;
     try {
@@ -269,6 +281,7 @@ async function sendMessage() {
             completionTokens = parsed.usage.completion_tokens ?? completionTokens;
             promptTokens = parsed.usage.prompt_tokens ?? promptTokens;
           }
+          if (parsed.choices?.[0]?.finish_reason) finishReason = parsed.choices[0].finish_reason;
           const rc = parsed.choices?.[0]?.delta?.reasoning_content;
           const cc = parsed.choices?.[0]?.delta?.content;
           let delta = '';
@@ -284,15 +297,22 @@ async function sendMessage() {
             delta = cc;
           }
           if (delta) {
-            if (firstTokenAt === null) firstTokenAt = Date.now();
+            if (firstTokenAt === null) { firstTokenAt = Date.now(); revealBubble(); }
             fullText += delta;
-            const tp = parseThinkDisplay(fullText);
-            if (tp.think) {
-              renderThinkInBubble(bubble, tp.think, tp.display, tp.partial ?? true);
-            } else {
-              bubble.innerHTML = formatContent(fullText);
+            // Full markdown re-parse is O(current length) — reformatting on every single
+            // token turns a long stream into O(n^2) work and stalls the main thread until
+            // the whole reply "dumps" at once. Cap how often we actually repaint.
+            const now = Date.now();
+            if (now - _lastRenderAt >= RENDER_THROTTLE_MS) {
+              _lastRenderAt = now;
+              const tp = parseThinkDisplay(fullText);
+              if (tp.think) {
+                renderThinkInBubble(bubble, tp.think, tp.display, tp.partial ?? true);
+              } else {
+                bubble.innerHTML = formatContent(fullText);
+              }
+              scrollToBottom();
             }
-            scrollToBottom();
           }
         } catch (e) { if (_dbgChunk++ < 6) console.error('[stream parse error]', e.message, data?.slice(0, 120)); }
       }
@@ -303,18 +323,44 @@ async function sendMessage() {
       else throw readErr;
     }
 
+    // Guarantee the indicator is cleared and the bubble is on-screen even if the
+    // model never emitted a single token (empty response, or cancelled that early).
+    revealBubble();
+
     // If model used reasoning_content but never closed <think>, force-close so the block renders
     if (fullText.includes('<think>') && !fullText.includes('</think>')) {
       fullText += '</think>';
-      const tp = parseThinkDisplay(fullText);
-      renderThinkInBubble(bubble, tp.think, tp.display, false);
     }
+
+    // Render is throttled during streaming, so the last chunk (and the think-closed
+    // state) may not have painted yet — always do one final unthrottled render here.
+    if (fullText) {
+      const tpFinal = parseThinkDisplay(fullText);
+      if (tpFinal.think) {
+        renderThinkInBubble(bubble, tpFinal.think, tpFinal.display, false);
+      } else {
+        bubble.innerHTML = formatContent(fullText);
+      }
+    }
+
+    // True when the model spent its whole turn on reasoning_content and never emitted
+    // any real content — e.g. a reasoning model whose max_tokens cap ran out mid-think.
+    const thinkOnly = fullText.includes('<think>') && !parseThinkDisplay(fullText).display;
 
     if (!fullText && !cancelled) {
       bubble.innerHTML = '<em style="color:var(--text-muted)">No response received.</em>';
       // Remove the user message so this failed turn doesn't poison history
       messages.pop();
       if (session && session.displayMessages.length) session.displayMessages.pop();
+    } else if (thinkOnly && !cancelled) {
+      // Popping the answerless turn happens below (savedContent is empty, so the
+      // existing "model only generated thinking" branch at the bottom handles it).
+      const note = document.createElement('div');
+      note.style.cssText = 'color:var(--text-muted);font-style:italic;margin-top:6px;font-size:13px';
+      note.textContent = (finishReason === 'length')
+        ? `The model used its entire${window._MAX_TOKENS_ACTIVE ? ` ${window._MAX_TOKENS_ACTIVE}-token` : ''} limit thinking and didn't get to answer. Try raising the token limit or setting it to "No limit".`
+        : "The model finished thinking but didn't produce an answer.";
+      bubble.appendChild(note);
     }
 
     // Show the cancellation note (after any partial answer the model managed to stream).

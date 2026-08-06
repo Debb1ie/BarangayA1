@@ -27,8 +27,6 @@ function applySettings(s) {
   document.getElementById('chat-title').textContent = name;
   const wt = document.querySelector('.welcome-title');
   if (wt) wt.textContent = name;
-  const mh = document.querySelector('.modal-header-text h2');
-  if (mh) mh.textContent = name.toUpperCase();
   if (_activePersona) {
     window._AI_TONE_ACTIVE = _activePersona.systemPrompt || '';
   } else if (s.ai_tone !== undefined) {
@@ -142,6 +140,8 @@ function openSettings() {
   brandInput.value     = s.brand_color      || BRAND_COLOR;
   greetInput.value     = s.welcome_greeting || '';
   if (knowledgeInput) knowledgeInput.value = s.ai_knowledge || '';
+  const creatorInput = document.getElementById('settings-creator-name');
+  if (creatorInput) creatorInput.value = s.creator_name || '';
 
   // Model controls (prefix / suffix / temperature / max tokens)
   const prefixInput = document.getElementById('settings-prompt-prefix');
@@ -232,6 +232,8 @@ function resetSettingsForm() {
   document.getElementById('settings-greeting').value = '';
   const ki = document.getElementById('settings-ai-knowledge');
   if (ki) ki.value = '';
+  const ci = document.getElementById('settings-creator-name');
+  if (ci) ci.value = '';
   const tn = document.getElementById('settings-training-notes');
   if (tn) tn.value = '';
   const pf = document.getElementById('settings-prompt-prefix');
@@ -272,6 +274,7 @@ function applyAndSaveSettings() {
     ai_tone:          (window._BASE_TONE_DRAFT || '').trim(),
     welcome_greeting: document.getElementById('settings-greeting').value.trim(),
     ai_knowledge:     (document.getElementById('settings-ai-knowledge')?.value.trim() || ''),
+    creator_name:     (document.getElementById('settings-creator-name')?.value.trim() || ''),
     training_files:   (window._TRAINING_FILES_DRAFT || []),
     training_notes:   (document.getElementById('settings-training-notes')?.value.trim() || ''),
     reply_language:   (document.querySelector('#lang-picker .lang-chip.active')?.dataset.lang || 'english'),

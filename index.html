@@ -268,7 +268,7 @@
       </div>
       <textarea
         id="message-input"
-        placeholder="Ask the DEVCON Barangay AI anything…"
+        placeholder="What's on your mind?"
         rows="1"
         onkeydown="handleKey(event)"
         oninput="autoResize(this)"
@@ -285,11 +285,10 @@
       </div>
     </div>
     <div class="input-tip">
-      AI Sa Barangay · Ollama + Qwen · Open Source
-      <span class="input-tip-dot">·</span>
       To be pitched to target partners
-      <span class="tip-badge aws">AWS Bedrock</span>
-      <span class="tip-badge alibaba">Alibaba Cloud</span>
+      <span class="tip-badge dc-brand-gradient">AWS Bedrock</span>
+      <span class="tip-badge dc-brand-gradient">Alibaba Cloud</span>
+      <span class="tip-badge dc-brand-gradient">Sui</span>
     </div>
     <div class="legal-disclaimer">
       <div class="legal-disclaimer-inner">
@@ -555,7 +554,7 @@ git commit -m "Make the AI mine"</code></div></div>
       <div class="modal-header-text">
         <div class="modal-mabuhay">Mabuhay! 🇵🇭</div>
         <h2>DEVCON BARANGAY AI</h2>
-        <p>AI Sa Barangay</p>
+        <p>Free, Open-source, Community-owned Build Your Barangay's AI</p>
       </div>
       <button class="modal-close" onclick="closeModal()" aria-label="Close">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -851,6 +850,7 @@ git commit -m "Make the AI mine"</code></div></div>
         <div class="model-chip"><img src="assets/logos/Mistral_logo.webp" alt=""><span><span class="model-chip-name">Mistral</span><br><span class="model-chip-by">open weights</span></span></div>
         <div class="model-chip"><img src="assets/logos/IBM_granite_logo.webp" alt=""><span><span class="model-chip-name">Granite</span><br><span class="model-chip-by">by IBM</span></span></div>
         <div class="model-chip"><img src="assets/logos/deepseek_logo.png" alt=""><span><span class="model-chip-name">DeepSeek</span><br><span class="model-chip-by">by DeepSeek AI</span></span></div>
+        <div class="model-chip"><img src="assets/logos/open-ai_logo.png" alt=""><span><span class="model-chip-name">GPT-OSS</span><br><span class="model-chip-by">by OpenAI</span></span></div>
         <div class="model-chip"><img src="assets/logos/hugging_face.png" alt=""><span><span class="model-chip-name">Hugging Face</span><br><span class="model-chip-by">open model hub</span></span></div>
         <div class="model-chip"><img src="assets/logos/ollama_logo.png" alt=""><span><span class="model-chip-name">Ollama</span><br><span class="model-chip-by">runs them all, locally</span></span></div>
       </div>
@@ -872,6 +872,7 @@ git commit -m "Make the AI mine"</code></div></div>
       <div style="font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);margin-bottom:6px">Our recommendation</div>
       <div class="rec-group" style="margin-bottom:16px">
         <div class="rec-row">
+          <img class="rec-logo" src="assets/logos/Qwen_logo.webp" alt="">
           <div class="rec-info">
             <span class="rec-name">⭐ qwen2.5:1.5b <em>1.5B · ~1 GB download</em></span>
             <span class="rec-desc">Our top pick — light, fast, and runs on nearly any laptop.</span>
@@ -879,6 +880,7 @@ git commit -m "Make the AI mine"</code></div></div>
           <button class="rec-copy" data-pull-tag="qwen2.5:1.5b" onclick="pullModelOneClick('qwen2.5:1.5b')" title="Download and install this model via Ollama">Download</button>
         </div>
         <div class="rec-row">
+          <img class="rec-logo" src="assets/logos/Meta_logo.png" alt="">
           <div class="rec-info">
             <span class="rec-name">llama3.2:1b <em>1B · ~1.3 GB download</em></span>
             <span class="rec-desc">Meta's smallest — snappy even without a GPU.</span>
@@ -886,6 +888,7 @@ git commit -m "Make the AI mine"</code></div></div>
           <button class="rec-copy" data-pull-tag="llama3.2:1b" onclick="pullModelOneClick('llama3.2:1b')" title="Download and install this model via Ollama">Download</button>
         </div>
         <div class="rec-row">
+          <img class="rec-logo" src="assets/logos/gemma_logo.png" alt="">
           <div class="rec-info">
             <span class="rec-name">gemma3:1b <em>1B · ~0.8 GB download</em></span>
             <span class="rec-desc">Google's lightweight model — tiny download, quick replies.</span>
@@ -1209,9 +1212,16 @@ git commit -m "Make the AI mine"</code></div></div>
 
       <!-- Name (per persona) -->
       <div class="settings-field">
-        <label class="settings-label" for="settings-ai-name">Name</label>
+        <label class="settings-label" for="settings-ai-name">Your Barangay Name</label>
         <input class="settings-input" id="settings-ai-name" type="text" placeholder="e.g. Barangay AI, Bayani, Isko…" maxlength="40" oninput="commitPersonaDraft(); updateSettingsPreview()">
         <span class="settings-hint">The AI's name — appears in the header, welcome screen, and chat avatars.</span>
+      </div>
+
+      <!-- Creator name -->
+      <div class="settings-field">
+        <label class="settings-label" for="settings-creator-name">Creator Name</label>
+        <input class="settings-input" id="settings-creator-name" type="text" placeholder="e.g. Juan Dela Cruz" maxlength="60">
+        <span class="settings-hint">Your name — credited as the builder of this AI.</span>
       </div>
 
       <hr class="settings-divider">

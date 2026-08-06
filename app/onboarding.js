@@ -119,12 +119,20 @@ function recommendModels(ramGB, vramGB) {
   return { best, runnable, notRecommended, cpuOnly: !vramGB };
 }
 
+const FAMILY_LOGO = {
+  Qwen: 'assets/logos/Qwen_logo.webp',
+  Gemma: 'assets/logos/gemma_logo.png',
+  Llama: 'assets/logos/Meta_logo.png',
+};
+
 function _recRowHtml(m, starred, dim) {
   const star = starred ? '⭐ ' : '';
   const tag = escapeHtml(m.tag);
+  const logo = FAMILY_LOGO[m.family];
   const downloadBtn = dim ? '' :
     `<button class="rec-copy" data-pull-tag="${tag}" onclick="pullModelOneClick('${tag}')" title="Download and install this model via Ollama">Download</button>`;
   return `<div class="rec-row${dim ? ' dim' : ''}">
+    ${logo ? `<img class="rec-logo" src="${logo}" alt="">` : ''}
     <div class="rec-info">
       <span class="rec-name">${star}${tag} <em>${escapeHtml(m.params)} · needs ~${m.needGB} GB</em></span>
       <span class="rec-desc">${escapeHtml(m.desc)}</span>

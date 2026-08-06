@@ -639,12 +639,15 @@ async function addEndpoint(kind) {
 
 // ── CONNECTIVITY CHECK ────────────────────────────────────────────────
 async function checkConnectivity() {
+  const base = window.ACTIVE_BASE || API_BASE;
+  const key  = window.ACTIVE_KEY  || API_KEY;
+
   try {
     const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), 6000);
-    await fetch(`${API_BASE}/models`, {
+    await fetch(`${base}/models`, {
       method: 'GET',
-      headers: { 'Authorization': `Bearer ${API_KEY}` },
+      headers: { 'Authorization': `Bearer ${key}` },
       signal: ctrl.signal
     });
     clearTimeout(timeout);
@@ -653,14 +656,14 @@ async function checkConnectivity() {
   } catch {}
 
   // Only probe chat completions if a model is actually selected (otherwise the
-  // GET /models check above is what tells us whether Ollama is reachable).
+  // GET /models check above is what tells us whether the endpoint is reachable).
   if (window.ACTIVE_MODEL) {
     try {
       const ctrl2 = new AbortController();
       const timeout2 = setTimeout(() => ctrl2.abort(), 8000);
-      await fetch(`${API_BASE}/chat/completions`, {
+      await fetch(`${base}/chat/completions`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
+        headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: window.ACTIVE_MODEL, messages: [{ role: 'user', content: 'hi' }], max_tokens: 1, stream: false }),
         signal: ctrl2.signal
       });
@@ -676,25 +679,27 @@ async function checkConnectivity() {
 function setConnected(ok) {
   isConnected = ok;
 
+  const label = window.ACTIVE_MODEL || 'Ollama';
+
   const chip = document.getElementById('header-status-chip');
   const text = document.getElementById('header-status-text');
   chip.classList.toggle('disconnected', !ok);
-  text.textContent = ok ? 'Ollama' : 'Offline';
+  text.textContent = ok ? label : 'Offline';
 
   const card = document.getElementById('sidebar-wifi');
   const status = document.getElementById('sidebar-wifi-status');
   const statusText = document.getElementById('sidebar-wifi-text');
   card.className = 'sidebar-wifi ' + (ok ? 'connected' : 'disconnected');
   status.className = 'sidebar-wifi-status ' + (ok ? 'ok' : 'err');
-  statusText.textContent = ok ? 'Connected · Model online' : 'Ollama not detected';
+  statusText.textContent = ok ? 'Connected · Model online' : `${label} not detected`;
 
   const railDot = document.getElementById('rail-dot');
   if (railDot) railDot.className = 'rail-dot ' + (ok ? 'ok' : 'err');
 
   document.getElementById('send-btn').disabled = false;
   document.getElementById('message-input').placeholder = ok
-    ? 'Ask anything — local, private, free…'
-    : 'Ollama not detected — is it running?';
+    ? 'What\'s on your mind?'
+    : `${label} not detected — is it running?`;
 }
 
 checkConnectivity();
