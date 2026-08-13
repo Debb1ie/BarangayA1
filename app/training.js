@@ -149,60 +149,82 @@ function persistKBMaster() {
 
 // ── DEFAULT (SEEDED) SOURCE ────────────────────────────────────────────
 // Ships one source out of the box so every fork/clone already has grounded
-// answers without anyone uploading a file first. PLACEHOLDER content until
-// a real PDF is dropped in — swap PLACEHOLDER_SOURCE.content for real
-// extracted text (see extractPdfText) when the actual document is ready.
-const PLACEHOLDER_SOURCE = {
-  name: 'devcon-barangay-ai-overview.pdf',
-  content: `DEVCON Barangay AI — Overview
-
-DEVCON Barangay AI is a learning project that teaches people how to run a
-local, private AI assistant on their own computer using Ollama — no cloud
-account, no API bill, and no internet connection required once a model is
-downloaded.
-
-What it does
-The app is a chat interface, similar to ChatGPT, that talks to a small
-open-source language model (such as Qwen, Llama, or Gemma) running on the
-user's own machine. Conversations, settings, and uploaded sources are all
-stored locally in the browser — nothing is sent to a third party unless the
-user explicitly adds a cloud API endpoint.
-
-Sources & grounding
-Users can upload their own reference files (text, markdown, JSON, CSV, PDF,
-or Word documents) as "Sources." The app chunks each file and retrieves the
-most relevant passages for every question, so the AI's answers can be
-grounded in that material instead of relying only on what the model
-memorized during training.
-
-This entry is a placeholder shipped with the project so the Sources panel
-isn't empty on first run — replace it with a real PDF for your own content.`,
+// answers without anyone uploading a file first. The text is fetched from
+// the file in assets/ rather than inlined here, so the markdown stays the
+// single source of truth — edit the .md, reload, and the seed follows.
+// Requires the app to be served over http:// (see README "Quick start");
+// fetch() is blocked at the file:// origin, so opening index.html straight
+// off disk leaves the Sources panel empty.
+const SEED_SOURCE = {
+  name: 'DEVCON-17-Brand-Kit-Aug-6-2026.md',
+  path: 'assets/DEVCON-17-Brand-Kit-Aug-6-2026.md',
 };
 
-// Seeds the placeholder source only on a genuinely fresh install, gated by
-// its own `sources_seeded` flag rather than an empty training_files array —
+// The placeholder that shipped before the brand kit existed. Installs that
+// still carry it untouched get upgraded in place; anyone who deleted it
+// keeps their empty library.
+const LEGACY_SEED_NAME = 'devcon-barangay-ai-overview.pdf';
+
+async function loadSeedText() {
+  const res = await fetch(SEED_SOURCE.path, { cache: 'no-cache' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  let text = (await res.text()).trim();
+  if (!text) throw new Error('file is empty');
+  // Same cap uploads get, for the same reason: protect the context window.
+  if (text.length > TRAINING_EXTRACTED_CAP) text = text.slice(0, TRAINING_EXTRACTED_CAP) + '\n…[truncated]';
+  return text;
+}
+
+// Seeds the default source only on a genuinely fresh install, gated by its
+// own `sources_seeded` flag rather than an empty training_files array —
 // dbLoadSettings() always returns training_files as [] when the table is
 // empty, so an empty-array check can't tell "never seeded" apart from "user
 // deleted the seed". The flag can, and this only ever fires once per DB.
 // Also skips anyone who already has real sources saved (pre-dates this
 // flag) so an update never injects a surprise file into an existing library.
-function seedDefaultSourcesIfNeeded(settings) {
-  if (settings.sources_seeded || !window.BarangayDB) return false;
-  if (Array.isArray(settings.training_files) && settings.training_files.length) return false;
-  const content = PLACEHOLDER_SOURCE.content;
-  window._TRAINING_FILES_MASTER = [{
-    name: PLACEHOLDER_SOURCE.name,
+// Returns the seeded file list when it seeded, otherwise null. The caller
+// must use the returned list rather than re-reading settings: when the DB
+// can't persist (no IndexedDB — e.g. the page was opened over file://),
+// dbSaveSettings is a silent no-op, and a re-read would hand back an empty
+// library that overwrites the seed we just put in memory.
+async function seedDefaultSourcesIfNeeded(settings) {
+  if (!window.BarangayDB) return null;
+
+  const existing = Array.isArray(settings.training_files) ? settings.training_files : [];
+  const onlyLegacySeed = existing.length === 1 && existing[0]?.name === LEGACY_SEED_NAME;
+
+  if (settings.sources_seeded && !onlyLegacySeed) return null;
+  if (!settings.sources_seeded && existing.length && !onlyLegacySeed) return null;
+
+  let content;
+  try {
+    content = await loadSeedText();
+  } catch (err) {
+    // Loud on purpose: a silent skip here looks identical to "the feature
+    // isn't there". Leave `sources_seeded` unset so a later load (once the
+    // file is restored, or the copy regenerated) still gets a chance.
+    console.error(
+      `[Barangay AI] Default source NOT loaded — could not read ${SEED_SOURCE.path} (${err.message || err}).\n` +
+      `If the address bar starts with file://, serve the folder instead: python -m http.server 8000`
+    );
+    return null;
+  }
+
+  const seeded = [{
+    name: SEED_SOURCE.name,
     size: content.length,
     content,
     chunks: window.BarangayRAG ? window.BarangayRAG.chunkText(content) : [],
     addedAt: Date.now(),
   }];
+  window._TRAINING_FILES_MASTER = seeded;
   window.BarangayDB.dbSaveSettings(Object.assign({}, settings, {
-    training_files: window._TRAINING_FILES_MASTER,
+    training_files: seeded,
     sources_seeded: true,
   }));
-  return true;
+  return seeded;
 }
+
 // One shared file glyph — the extension is already visible in the file
 // name text, so the icon just needs to read as "a file", not decode the type.
 function kbFileIconHtml() {

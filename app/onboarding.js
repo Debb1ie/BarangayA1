@@ -369,7 +369,7 @@ async function retryOllamaCheck() {
     closeOllamaCheckModal();
     if (tag) runModelPull(tag);
   } else if (note) {
-    note.textContent = `Still can't reach Ollama at ${ollamaRoot()}. Make sure it's running (ollama serve) with OLLAMA_ORIGINS=* set.`;
+    note.textContent = `Still can't reach Ollama at ${ollamaRoot()}. Start it with: ${OLLAMA_START_CMD}`;
     note.hidden = false;
   }
 }

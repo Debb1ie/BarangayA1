@@ -10,6 +10,42 @@ const AI_TONE     = null;   // set a string here to override the default system 
 const SUGGESTIONS = null;   // set an array of { icon, label, desc, prompt } to override suggestion cards
 const CONTEXT_WINDOW = 32768; // model context window (tokens) — used for the "context used" stat
 // ─────────────────────────────────────────────────────────────────────
+
+// ── OLLAMA COMMANDS (OS-aware) ────────────────────────────────────────
+// Every "start Ollama" hint in the app comes from here so the user is
+// never shown a command their shell can't run. `OLLAMA_ORIGINS=* cmd` is
+// bash syntax and silently fails in PowerShell (Windows' default shell),
+// which is the single most common setup dead-end at camps.
+// OLLAMA_ORIGINS is what lets the browser talk to Ollama at all — without
+// it the model rejects the page's requests as cross-origin.
+const IS_WINDOWS = /win/i.test(navigator.userAgentData?.platform || navigator.platform || '');
+
+const OLLAMA_START_CMD = IS_WINDOWS
+  ? '$env:OLLAMA_ORIGINS="*"; ollama serve'
+  : 'OLLAMA_ORIGINS=* ollama serve';
+
+// Frees port 11434 when a stale/background Ollama is already holding it —
+// the usual cause of "address already in use" when starting the server.
+const OLLAMA_STOP_CMD = IS_WINDOWS
+  ? 'Stop-Process -Name "ollama*" -Force'
+  : 'pkill -f ollama';
+
+// The bundled helper script that does stop-then-start for you. PowerShell
+// won't run a script in the current folder without the leading `.\` — it
+// only searches PATH otherwise.
+const OLLAMA_SCRIPT_CMD = IS_WINDOWS ? '.\\start-ollama.cmd' : './start-ollama.sh';
+
+// Stop-then-start, for when the port is occupied: the copy-paste one-liner.
+const OLLAMA_RESTART_CMD = IS_WINDOWS
+  ? 'Stop-Process -Name "ollama*" -Force -ErrorAction SilentlyContinue; $env:OLLAMA_ORIGINS="*"; ollama serve'
+  : 'pkill -f ollama; OLLAMA_ORIGINS=* ollama serve';
+
+// Sets OLLAMA_ORIGINS permanently so the normal Ollama app (tray/menu bar)
+// is browser-reachable on every boot — after this, no manual serve at all.
+const OLLAMA_PERSIST_CMD = IS_WINDOWS
+  ? '[Environment]::SetEnvironmentVariable("OLLAMA_ORIGINS","*","User")'
+  : 'echo \'export OLLAMA_ORIGINS="*"\' >> ~/.zshrc';
+
 window.ACTIVE_MODEL = null;       // no model is selected by default — the user must pick one
 window.ACTIVE_BASE  = API_BASE;   // default endpoint used for discovery; switched when a model is selected
 window.ACTIVE_KEY   = API_KEY;

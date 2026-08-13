@@ -77,6 +77,25 @@ function newChat() {
   }
 }
 
+// Rewrites every hardcoded Ollama command in the markup to the one this
+// user's shell can actually run. The HTML ships the bash form as readable
+// fallback text; on Windows these become PowerShell. Keeping the commands
+// in config.js means the guide, the modals, and the error bubbles can
+// never drift apart.
+function applyOllamaCmdHints() {
+  const byKind = {
+    start:   OLLAMA_START_CMD,
+    stop:    OLLAMA_STOP_CMD,
+    restart: OLLAMA_RESTART_CMD,
+    persist: OLLAMA_PERSIST_CMD,
+    script:  OLLAMA_SCRIPT_CMD,
+  };
+  document.querySelectorAll('[data-ollama-cmd]').forEach(el => {
+    const cmd = byKind[el.dataset.ollamaCmd];
+    if (cmd) el.textContent = cmd;
+  });
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
   // The inline head script already resolved data-theme before first paint;
@@ -91,13 +110,19 @@ window.addEventListener('load', async () => {
   document.documentElement.style.setProperty('--dc-blue', BRAND_COLOR);
   document.documentElement.style.setProperty('--dc-accent', ACCENT_COLOR);
 
+  applyOllamaCmdHints();
+
   const titleEl = document.getElementById('chat-title');
   if (titleEl) titleEl.textContent = AI_NAME;
   const welcomeTitleEl = document.querySelector('.welcome-title');
   if (welcomeTitleEl) welcomeTitleEl.textContent = AI_NAME;
 
   let saved = loadSettings();
-  if (seedDefaultSourcesIfNeeded(saved)) saved = loadSettings();
+  // Carry the seeded list forward explicitly instead of re-reading settings —
+  // applySettings() rebuilds _TRAINING_FILES_MASTER from whatever it is handed,
+  // so a re-read that didn't persist would erase the seed before it renders.
+  const seeded = await seedDefaultSourcesIfNeeded(saved);
+  if (seeded) saved = Object.assign(loadSettings(), { training_files: seeded });
   if (Object.keys(saved).length) applySettings(saved);
   else renderSourcesPanel();
 

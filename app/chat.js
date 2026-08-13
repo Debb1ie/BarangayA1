@@ -727,7 +727,7 @@ const NO_MODEL_ERROR = {
   title: "No AI model is installed on this computer",
   desc: "An AI model is the “brain” that writes the replies — it lives as a file on your machine and has to be downloaded once before you can chat. Right now Ollama has none to load, so there is nothing to talk to yet.",
   steps: [
-    { text: 'Make sure Ollama (the program that runs models locally) is installed and running:', code: 'OLLAMA_ORIGINS=* ollama serve' },
+    { text: 'Make sure Ollama (the program that runs models locally) is installed and running:', code: OLLAMA_START_CMD },
     { text: 'Download a small, fast starter model — about 2 GB, one time only:', code: 'ollama pull qwen2.5:3b' },
     { text: 'Check what is installed any time with:', code: 'ollama list' },
     { text: 'Refresh this page — the model will appear in the picker at the bottom of the chat, then select it' },

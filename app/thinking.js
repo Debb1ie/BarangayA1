@@ -466,10 +466,10 @@ async function sendMessage() {
             title: "Ollama isn't allowing browser requests",
             desc: "The AI model is running but your browser can't reach it because of a security setting. This is a one-line fix.",
             steps: [
-              { text: "Stop Ollama if it's running — close the terminal or press Ctrl+C" },
-              { text: 'Restart it with this command:', code: 'OLLAMA_ORIGINS=* ollama serve' },
+              { text: 'In a terminal, from the project folder, run:', code: OLLAMA_SCRIPT_CMD },
+              { text: 'That stops and restarts Ollama correctly. Or do it by hand in one line:', code: OLLAMA_RESTART_CMD },
               { text: 'Wait a few seconds, then try sending your message again' },
-              { text: "If that doesn't work, ask your facilitator" }
+              { text: 'Tired of doing this? Set it once and forget it:', code: OLLAMA_PERSIST_CMD },
             ],
             cta: true,
             guidePage: 4,   // Run it locally — start Ollama + connect
@@ -481,7 +481,7 @@ async function sendMessage() {
           title: "Ollama rejected the connection",
           desc: "Authorization error. Restart Ollama with the correct settings.",
           steps: [
-            { text: 'Open a terminal and run:', code: 'OLLAMA_ORIGINS=* ollama serve' },
+            { text: 'Open a terminal and run:', code: OLLAMA_START_CMD },
             { text: 'Refresh this page and try again' }
           ],
           cta: true,
@@ -508,7 +508,7 @@ async function sendMessage() {
           steps: [
             { text: 'Wait 10–15 seconds and try again' },
             { text: 'Try the lighter model:', code: 'ollama run qwen3.5:0.8b' },
-            { text: 'Restart Ollama:', code: 'OLLAMA_ORIGINS=* ollama serve' }
+            { text: 'Restart Ollama:', code: OLLAMA_START_CMD }
           ],
           cta: true,
           guidePage: 1,   // Models 101 — pick a lighter model that fits
@@ -519,8 +519,10 @@ async function sendMessage() {
           title: "Ollama is not running",
           desc: "Nothing is listening at the AI address. Start Ollama first.",
           steps: [
-            { text: 'Open a terminal and run:', code: 'OLLAMA_ORIGINS=* ollama serve' },
-            { text: 'Leave that terminal open, then try again' }
+            { text: 'In a terminal, from the project folder, run:', code: OLLAMA_SCRIPT_CMD },
+            { text: 'Or start it by hand:', code: OLLAMA_START_CMD },
+            { text: 'Leave that window open, then try again' },
+            { text: 'If it says the port is already in use, free it first:', code: OLLAMA_STOP_CMD },
           ],
           cta: true,
           guidePage: 4,   // Run it locally — start Ollama + connect
@@ -531,7 +533,7 @@ async function sendMessage() {
           title: "Something went wrong",
           desc: "The AI couldn't be reached. Try these fixes one by one.",
           steps: [
-            { text: 'Make sure Ollama is running:', code: 'OLLAMA_ORIGINS=* ollama serve' },
+            { text: 'Make sure Ollama is running:', code: OLLAMA_START_CMD },
             { text: 'Check the model is installed:', code: 'ollama list' },
             { text: 'Try the API directly in your browser:', code: 'localhost:11434/v1/models' },
             { text: 'If nothing works, raise your hand — your facilitator can help' }

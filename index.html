@@ -431,22 +431,30 @@
         <b>Download the model you picked</b><p>Use the model you chose in <strong>Models 101</strong>. Run this once in your terminal — swap in your model name (example shown, ~2GB).</p>
         <code class="guide-cmd">ollama pull qwen2.5:3b</code></div></div>
       <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
+        <b>Let the browser talk to Ollama</b><p>Do this now and Hour 2 gets much easier. By default Ollama refuses requests coming from a web page, so the app would load but never reply. Run this once, then <strong>quit Ollama and reopen it</strong> — the permission sticks from then on, on every restart.</p>
+        <code class="guide-cmd" data-ollama-cmd="persist">echo 'export OLLAMA_ORIGINS="*"' &gt;&gt; ~/.zshrc</code>
+        <p>Skipping this is fine — Hour 2 has a script that handles it each time. This just means you never think about it again.</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body">
         <b>Install VS Code</b><p>To open and edit the project files. Free.</p>
         <p><a href="https://code.visualstudio.com" target="_blank" rel="noopener">code.visualstudio.com →</a></p></div></div>
-      <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body">
+      <div class="guide-step"><div class="guide-step-num">5</div><div class="guide-step-body">
+        <b>A way to serve the folder</b><p>The app has to be opened through a small local web server, not by double-clicking <em>index.html</em>. Any <strong>one</strong> of these works — check if you already have it:</p>
+        <code class="guide-cmd">python --version</code>
+        <p>No Python? Either <a href="https://python.org/downloads" target="_blank" rel="noopener">install it →</a>, use <code>npx serve .</code> if you have Node, or add the <strong>Live Server</strong> extension in VS Code (easiest — right-click <em>index.html</em> → <em>Open with Live Server</em>).</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">6</div><div class="guide-step-body">
         <b>Install Git</b><p>Uploads your code to GitHub later.</p>
         <p><a href="https://git-scm.com/downloads" target="_blank" rel="noopener">git-scm.com/downloads →</a></p></div></div>
-      <div class="guide-step"><div class="guide-step-num">5</div><div class="guide-step-body">
+      <div class="guide-step"><div class="guide-step-num">7</div><div class="guide-step-body">
         <b>Free GitHub account</b><p>Where your code lives online.</p>
         <p><a href="https://github.com/signup" target="_blank" rel="noopener">github.com/signup →</a></p></div></div>
-      <div class="guide-step"><div class="guide-step-num">6</div><div class="guide-step-body">
+      <div class="guide-step"><div class="guide-step-num">8</div><div class="guide-step-body">
         <b>Free Vercel account</b><p>Puts your AI online. Sign in <em>with GitHub</em> so they connect.</p>
         <p><a href="https://vercel.com/signup" target="_blank" rel="noopener">vercel.com/signup →</a></p></div></div>
-      <div class="guide-step"><div class="guide-step-num">7</div><div class="guide-step-body">
+      <div class="guide-step"><div class="guide-step-num">9</div><div class="guide-step-body">
         <b>Use Chrome or Edge</b><p>Recommended browser for this app.</p></div></div>
     </section>
 
-    <!-- PAGE 2 — Hour 1 Fork -->
+    <!-- PAGE 3 — Hour 1 Fork -->
     <section class="gp-page">
       <div class="gp-page-h"><span class="gp-chip">Hour 1</span> Understand &amp; fork</div>
       <div class="gp-page-sub">Learn the idea, then get your own copy of the code.</div>
@@ -456,25 +464,42 @@
         <b>Fork the project on GitHub</b><p>"Fork" = make your own copy. Click <strong>Fork</strong> on the repo so you have a version you can change freely.</p></div></div>
       <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
         <b>Get the code on your computer</b><p>Download the ZIP, or clone it with Git, then open the folder in VS Code.</p>
-        <code class="guide-cmd">git clone https://github.com/&lt;you&gt;/barangay-ai.git</code></div></div>
+        <code class="guide-cmd">git clone https://github.com/&lt;you&gt;/barangayAI.git</code></div></div>
     </section>
 
-    <!-- PAGE 3 — Hour 2 Run -->
+    <!-- PAGE 4 — Hour 2 Run -->
     <section class="gp-page">
       <div class="gp-page-h"><span class="gp-chip">Hour 2</span> Run it locally</div>
       <div class="gp-page-sub">Talk to your AI on your own machine — no internet needed.</div>
       <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body">
-        <b>Start Ollama</b><p>Open the Ollama app (it may already be running in the background).</p></div></div>
+        <b>Start Ollama the right way</b><p>Open a terminal in the project folder and run the bundled script. It clears anything stuck on the port and starts the server with browser access enabled. <em>Leave that terminal open.</em></p>
+        <code class="guide-cmd" data-ollama-cmd="script">./start-ollama.sh</code>
+        <p>(You can also just double-click the file.) Prefer typing it yourself? This is the same thing in one line:</p>
+        <code class="guide-cmd" data-ollama-cmd="restart">pkill -f ollama; OLLAMA_ORIGINS=* ollama serve</code></div></div>
       <div class="guide-step"><div class="guide-step-num">2</div><div class="guide-step-body">
-        <b>Test it in the terminal</b><p>Type a message, see it reply. Type <em>/bye</em> to exit. (Use your own model name in place of the example.)</p>
-        <code class="guide-cmd">ollama run qwen2.5:3b</code></div></div>
+        <b>Why that command and not just "ollama serve"</b><p>Opening the Ollama app alone is not enough. A browser refuses to talk to a server that hasn't said it's allowed — that permission is <code>OLLAMA_ORIGINS</code>. Without it the app loads fine but every message fails.</p></div></div>
       <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
-        <b>Open the app</b><p>Open <strong>index.html</strong> in your browser. Check the top-right chip says <strong>Ollama</strong> with a green dot — that means connected.</p></div></div>
+        <b>Skip this step forever (optional)</b><p>Did the <strong>Pre-install</strong> step for this? Then you can ignore the script entirely — opening the normal Ollama app is enough. If not, run this once and restart Ollama; the permission sticks from then on.</p>
+        <code class="guide-cmd" data-ollama-cmd="persist">echo 'export OLLAMA_ORIGINS="*"' &gt;&gt; ~/.zshrc</code></div></div>
       <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body">
+        <b>Test it in the terminal</b><p>In a <em>second</em> window, type a message and see it reply. Type <em>/bye</em> to exit. (Use your own model name in place of the example.)</p>
+        <code class="guide-cmd">ollama run qwen2.5:3b</code></div></div>
+      <div class="guide-step"><div class="guide-step-num">5</div><div class="guide-step-body">
+        <b>Serve the app</b><p>In a <em>third</em> terminal, from the project folder. Do <strong>not</strong> double-click <em>index.html</em> — opened that way the browser blocks parts of the app.</p>
+        <code class="guide-cmd">python -m http.server 8000</code>
+        <p>Then visit <code>http://localhost:8000</code>. (VS Code's <strong>Live Server</strong> extension does the same job with a right-click.)</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">6</div><div class="guide-step-body">
+        <b>Check you're connected</b><p>The chip at the top-right should say <strong>Ollama</strong> with a green dot. In the sidebar, <strong>Sources</strong> already has a document loaded — that's the reference material your AI can quote from.</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">7</div><div class="guide-step-body">
         <b>Send your first message</b><p>Pick the model, type "Kumusta!" and watch it reply word-by-word.</p></div></div>
+
+      <div class="guide-step"><div class="guide-step-num">!</div><div class="guide-step-body">
+        <b>Stuck? "Port already in use" / "address already in use"</b><p>Something is already sitting on port 11434 — almost always an Ollama that started quietly in the background <em>without</em> browser access. It must be stopped before a new one can take the port. Run this, then start again:</p>
+        <code class="guide-cmd" data-ollama-cmd="stop">pkill -f ollama</code>
+        <p>The same fix applies when the app says <em>"Ollama isn't allowing browser requests"</em> even though Ollama is clearly running — that's the stale one answering.</p></div></div>
     </section>
 
-    <!-- PAGE — Connect a Model -->
+    <!-- PAGE 5 — Connect a Model -->
     <section class="gp-page">
       <div class="gp-page-h">Connect a Model</div>
       <div class="gp-page-sub">Add a cloud endpoint + model so your AI can reply — anywhere, even on your live site. Open the model picker at the bottom of the chat and click <strong>Add Models</strong> (or <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> → Model).</div>
@@ -500,7 +525,7 @@
         <b>Adding a custom LOCAL endpoint</b><p>Running Ollama (or any OpenAI-compatible server) on another port or machine? Use the LOCAL card and paste its URL — e.g. <code class="guide-cmd">http://localhost:11434/v1</code> — add an optional key for protected servers, then <strong>Add</strong>. Same Test → Add flow.</p></div></div>
     </section>
 
-    <!-- PAGE 4 — Hour 3 Customize -->
+    <!-- PAGE 6 — Hour 3 Customize -->
     <section class="gp-page">
       <div class="gp-page-h"><span class="gp-chip">Hour 3</span> Customize</div>
       <div class="gp-page-sub">Make it yours in Settings — do this <strong>before</strong> you publish.</div>
@@ -515,10 +540,13 @@
       <div class="guide-step"><div class="guide-step-num">5</div><div class="guide-step-body">
         <b>Brand color &amp; greeting</b><p>Set a color and a welcome message + suggestion chips. Make it feel like <em>your</em> product.</p></div></div>
       <div class="guide-step"><div class="guide-step-num">6</div><div class="guide-step-body">
+        <b>Teach it your own material</b><p>Open <strong>Sources</strong> in the sidebar. One document is already loaded so the AI has something to quote from on day one — you can switch it off or delete it like any other. Drop in your own <em>.txt, .md, .pdf</em> or <em>.docx</em> and ask a question only that file could answer.</p>
+        <p>The app doesn't stuff the whole file into every message — it pulls just the passages that match your question. That's why a long document still works on a small model.</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">7</div><div class="guide-step-body">
         <b>Save</b><p>Hit <strong>Save</strong> — the whole app updates instantly. This is exactly what your visitors will see.</p></div></div>
     </section>
 
-    <!-- PAGE 5 — Hour 4 Deploy -->
+    <!-- PAGE 7 — Hour 4 Deploy -->
     <section class="gp-page">
       <div class="gp-page-h"><span class="gp-chip">Hour 4</span> Deploy to Vercel</div>
       <div class="gp-page-sub">Put your AI on the internet with a live URL.</div>
@@ -879,7 +907,7 @@ git commit -m "Make the AI mine"</code></div></div>
         <summary><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>View installation requirements</summary>
         <div class="install-req-body">
           <div class="install-req-row"><b>OS</b><span>Windows 10/11, macOS 12+, or Linux</span></div>
-          <div class="install-req-row"><b>Ollama</b><span>Installed and running — <code>OLLAMA_ORIGINS=* ollama serve</code> (free at ollama.com)</span></div>
+          <div class="install-req-row"><b>Ollama</b><span>Installed and running — <code data-ollama-cmd="start">OLLAMA_ORIGINS=* ollama serve</code> (free at ollama.com)</span></div>
           <div class="install-req-row"><b>RAM</b><span>4 GB minimum (1B models) · 8 GB comfortable (3B) · 16 GB+ for 7B and up</span></div>
           <div class="install-req-row"><b>Disk</b><span>1–5 GB free per model — downloaded once, then it works offline</span></div>
           <div class="install-req-row"><b>GPU</b><span>Optional. It speeds up replies, but CPU-only runs small models fine</span></div>
@@ -1089,8 +1117,10 @@ git commit -m "Make the AI mine"</code></div></div>
             <span class="qs-num">3</span>
             <div class="qs-text">
               <strong>Start the server</strong>
-              <span>Leave this running while you chat:</span>
-              <code>ollama serve</code>
+              <span>Leave this running while you chat. <code>OLLAMA_ORIGINS</code> is what lets the browser reach it:</span>
+              <code data-ollama-cmd="start">OLLAMA_ORIGINS=* ollama serve</code>
+              <span>Or run the bundled script from the project folder, which also frees the port first:</span>
+              <code data-ollama-cmd="script">./start-ollama.sh</code>
             </div>
           </div>
 
@@ -1157,7 +1187,7 @@ git commit -m "Make the AI mine"</code></div></div>
     </div>
     <div class="settings-body">
       <p class="modal-text" style="margin-bottom:10px">One-click downloads pull the model straight through Ollama, so it needs to be installed and running first.</p>
-      <p class="modal-text" style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">Already have it? Start it with <code>OLLAMA_ORIGINS=* ollama serve</code> so the browser is allowed to reach it, then retry below.</p>
+      <p class="modal-text" style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">Already have it? Start it with <code data-ollama-cmd="start">OLLAMA_ORIGINS=* ollama serve</code> so the browser is allowed to reach it, then retry below. Already running but still unreachable? Stop it first with <code data-ollama-cmd="stop">pkill -f ollama</code>.</p>
       <div id="ollama-check-note" class="rec-cpu-note" style="color:#EF4444" hidden></div>
       <div class="endpoint-actions">
         <button class="endpoint-btn ghost" style="flex:1" onclick="openOllamaDownloadPage()">Get Ollama ↗</button>
