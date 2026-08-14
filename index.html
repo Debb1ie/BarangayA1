@@ -90,7 +90,7 @@
   <button class="rail-btn" data-railtab="sources" onclick="sidebarTab('sources')" title="Sources">
     <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
   </button>
-  <button class="rail-btn" onclick="openGuide()" title="Camp Guidebook">
+  <button class="rail-btn" data-owner-only onclick="openGuide()" title="Camp Guidebook">
     <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
   </button>
   <div class="rail-spacer"></div>
@@ -98,7 +98,7 @@
   <button class="rail-btn" onclick="toggleTheme()" title="Toggle theme">
     <svg id="rail-theme-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
   </button>
-  <button class="rail-btn" onclick="openSettings()" title="Settings">
+  <button class="rail-btn" data-owner-only onclick="openSettings()" title="Settings">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
   </button>
 </nav>
@@ -147,7 +147,7 @@
     <div class="kb-head">
       <span class="kb-title">Sources</span>
       <span class="kb-total" id="kb-total"></span>
-      <button class="kb-add" onclick="addSourceClick()" title="Add source files — grounds answers in your own content">+ Add</button>
+      <button class="kb-add" data-owner-only onclick="addSourceClick()" title="Add source files — grounds answers in your own content">+ Add</button>
     </div>
     <div class="kb-list" id="kb-list"></div>
   </div>
@@ -194,10 +194,10 @@
         <div class="status-dot" id="header-status-dot"></div>
         <span id="header-status-text">Ollama</span>
       </div>
-      <button class="icon-btn" onclick="openGuide()" title="Camp Guide — full step-by-step guidebook">
+      <button class="icon-btn" data-owner-only onclick="openGuide()" title="Camp Guide — full step-by-step guidebook">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
       </button>
-      <button class="icon-btn" onclick="openSettings()" title="Personalize AI">
+      <button class="icon-btn" data-owner-only onclick="openSettings()" title="Personalize AI">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
       <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
@@ -214,7 +214,7 @@
         <div class="welcome-title">DEVCON</div>
         <div class="welcome-greeting" id="welcome-greeting"><span id="welcome-greeting-text">Good to see you!</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/><path d="M5 3v4"/><path d="M3 5h4"/><path d="M19 17v4"/><path d="M17 19h4"/></svg></div>
       </div>
-      <div class="welcome-brief">Built by Filipino developers · 100% local, no cloud</div>
+      <div class="welcome-brief" id="welcome-brief">Built by Filipino developers · 100% local, no cloud</div>
       <div class="suggestion-chips" id="suggestion-grid">
         <button class="suggestion-chip" onclick="suggest('What is DEVCON Barangay AI Code Camps? What will I learn and build today?')">
           <span class="suggestion-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span> About Barangay AI
@@ -246,7 +246,7 @@
 
   <div class="input-area" id="input-area">
     <!-- Model picker (floats above input-box) -->
-    <div class="model-dropdown" id="model-dropdown">
+    <div class="model-dropdown" id="model-dropdown" data-owner-only>
       <div class="model-dd-search-row">
         <input type="text" class="model-dd-search" id="model-dd-search" placeholder="Search models…" oninput="filterModels(this.value)" autocomplete="off">
         <button class="model-dd-add" title="Add a model" onclick="openAddModels()">+</button>
@@ -255,7 +255,10 @@
       <div class="model-dd-list" id="model-dd-list"></div>
     </div>
     <div class="input-box">
-      <div class="tools-wrap">
+      <!-- The whole tools menu is owner-only: every item in it (add a source,
+           deep thinking, web search, swap the model) changes what the AI is
+           or spends the owner's quota. -->
+      <div class="tools-wrap" data-owner-only>
         <button class="tools-btn" id="tools-btn" onclick="toggleToolsDropdown()" title="Tools — sources, deep thinking, web search" aria-haspopup="true" aria-expanded="false">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           <span class="tools-dot" id="tools-dot"></span>
@@ -291,7 +294,7 @@
         oninput="autoResize(this)"
       ></textarea>
       <div class="input-actions">
-        <button class="model-select-btn" id="model-select-btn" onclick="toggleModelDropdown()" title="Select model">
+        <button class="model-select-btn" id="model-select-btn" data-owner-only onclick="toggleModelDropdown()" title="Select model">
           <span id="model-select-icon"><svg class="model-dd-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M9 15h6"/></svg></span>
           <span id="model-select-label">Select model</span>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
@@ -301,7 +304,7 @@
         </button>
       </div>
     </div>
-    <div class="input-tip">
+    <div class="input-tip" data-owner-only>
       <span class="input-tip-label">To be pitched to target partners</span>
       <span class="input-tip-badges">
         <span class="tip-badge dc-brand-gradient">AWS Bedrock</span>
@@ -319,7 +322,7 @@
 </main>
 
 <!-- CAMP GUIDEBOOK — floating + dockable book panel -->
-<aside class="guide-panel" id="guide-panel" hidden aria-label="Camp Guidebook">
+<aside class="guide-panel" id="guide-panel" data-owner-only hidden aria-label="Camp Guidebook">
   <div class="gp-resizer" id="gp-resizer" title="Drag to resize"></div>
   <div class="gp-head" id="gp-head">
     <span class="gp-grip" title="Drag to move">
@@ -327,7 +330,6 @@
     </span>
     <span class="gp-head-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
     <span class="gp-title">Camp Guidebook</span>
-    <span class="wip-pill">V1 · WIP</span>
     <span class="gp-head-spacer"></span>
     <button class="gp-btn" id="gp-dock-btn" onclick="toggleGuideDock()" title="Pin to the side (dock)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
@@ -345,7 +347,7 @@
     <button class="gp-tab" onclick="gpGoto(4)">Run</button>
     <button class="gp-tab" onclick="gpGoto(5)">Connect a Model</button>
     <button class="gp-tab" onclick="gpGoto(6)">Customize</button>
-    <button class="gp-tab" onclick="gpGoto(7)">Deploy</button>
+    <button class="gp-tab" onclick="gpGoto(7)">Publish</button>
   </div>
 
   <div class="gp-pages" id="gp-pages">
@@ -354,15 +356,11 @@
     <section class="gp-page">
       <div class="gp-page-h">Build your own AI</div>
       <div class="gp-page-sub">The whole camp, one chapter at a time.</div>
-      <div class="wip-banner">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        <span><strong>V1 draft — work in progress.</strong> Some steps may still change and it isn't final on Vercel yet. Follow your facilitator if anything looks off.</span>
-      </div>
       <div class="modal-section-title">Your 4-hour map</div>
       <div class="gp-map-row"><b>Hour 1</b><span>Understand the idea &amp; <strong>fork</strong> the code.</span></div>
       <div class="gp-map-row"><b>Hour 2</b><span><strong>Run</strong> the AI on this computer.</span></div>
       <div class="gp-map-row"><b>Hour 3</b><span><strong>Customize</strong> it in Settings — make it yours.</span></div>
-      <div class="gp-map-row"><b>Hour 4</b><span><strong>Deploy</strong> it live &amp; open your first Pull Request.</span></div>
+      <div class="gp-map-row"><b>Hour 4</b><span><strong>Publish</strong> it as a shareable link &amp; open your first Pull Request.</span></div>
       <div class="modal-highlight" style="margin-top:16px">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-5a7 7 0 0 0-14 0z"/><line x1="9" y1="22" x2="15" y2="22"/></svg>
         <span><strong>Tip:</strong> Hit the <strong>pin</strong> button (top-right of this panel) to dock the guidebook beside the chat — read along while you build. You can also drag it anywhere.</span>
@@ -502,7 +500,11 @@
     <!-- PAGE 5 — Connect a Model -->
     <section class="gp-page">
       <div class="gp-page-h">Connect a Model</div>
-      <div class="gp-page-sub">Add a cloud endpoint + model so your AI can reply — anywhere, even on your live site. Open the model picker at the bottom of the chat and click <strong>Add Models</strong> (or <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> → Model).</div>
+      <div class="gp-page-sub">Add another model to <em>this</em> app — a second local one, or a cloud provider. Open the model picker at the bottom of the chat and click <strong>Add Models</strong> (or <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> → Model).</div>
+      <div class="modal-highlight" style="margin-bottom:14px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span>Anything you add here is saved <strong>in this browser only</strong> — it makes <em>your</em> copy work, not your published one. The live site gets its model from a Vercel environment variable instead — see the <strong>Publish</strong> tab.</span>
+      </div>
 
       <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body">
         <b>Understand the two cards</b><p>The dialog has a <strong>LOCAL</strong> card (for Ollama on your machine) and an <strong>API</strong> card (for a cloud provider). For a live site you want the <strong>API</strong> card.</p>
@@ -548,28 +550,34 @@
 
     <!-- PAGE 7 — Hour 4 Deploy -->
     <section class="gp-page">
-      <div class="gp-page-h"><span class="gp-chip">Hour 4</span> Deploy to Vercel</div>
-      <div class="gp-page-sub">Put your AI on the internet with a live URL.</div>
+      <div class="gp-page-h"><span class="gp-chip">Hour 4</span> Share it with a link</div>
+      <div class="gp-page-sub">Your AI already works — free and private, on your own machine. This last hour just proves it to the world.</div>
       <div class="modal-highlight" style="margin-bottom:12px">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <span><strong>Finish customizing first</strong> — that's the version the world will see.</span>
       </div>
       <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body">
-        <b>Save changes with Git</b>
-        <code class="guide-cmd">git add .
-git commit -m "Make the AI mine"</code></div></div>
+        <b>Publish your AI</b><p>Everything you set up lives in <em>this browser</em> — that's why it's private, and why pushing your code alone would deploy the blank starter app instead of yours. <strong>Settings → Publish → Download my-ai.json</strong>, then drop that file into your project folder beside <em>index.html</em>.</p></div></div>
       <div class="guide-step"><div class="guide-step-num">2</div><div class="guide-step-body">
-        <b>Push to GitHub</b><p>Upload your code so Vercel can read it.</p>
-        <code class="guide-cmd">git push</code></div></div>
+        <b>Save &amp; upload with Git</b>
+        <code class="guide-cmd">git add .
+git commit -m "Publish my AI"
+git push</code></div></div>
       <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
         <b>Import into Vercel</b><p>On Vercel: <strong>Add New → Project</strong>, pick your repo, click <strong>Deploy</strong>. No config needed.</p></div></div>
       <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body">
-        <b>Get your live URL</b><p>In ~1 minute you get a public link like <em>your-ai.vercel.app</em>. Share it!</p></div></div>
+        <b>Get a free model key</b><p>Visitors can't reach the Ollama on <em>your</em> laptop — so the live copy borrows a hosted model. Get a free key at <a href="https://console.groq.com" target="_blank" rel="noopener">console.groq.com →</a> (no card needed). <em>Any OpenAI-compatible provider works if you already have one — but DeepSeek needs paid credits, so don't start there today.</em></p></div></div>
       <div class="guide-step"><div class="guide-step-num">5</div><div class="guide-step-body">
-        <b>Connect a hosted model</b><p>Local Ollama only runs on <em>your</em> PC, so a Vercel visitor can't reach it. To make the live AI reply, add a <strong>cloud endpoint</strong> + key. See the <strong>Connect a Model</strong> tab above for the full walkthrough.</p></div></div>
-
+        <b>Add the key to Vercel — not to your code</b><p>On your project: <strong>Settings → Environment Variables</strong> → add <code>MODEL_API_KEY</code> with your key → <strong>Redeploy</strong>. Never paste a key into a file you commit: your repo is public, and keys in public repos get found and drained within hours.</p></div></div>
       <div class="guide-step"><div class="guide-step-num">6</div><div class="guide-step-body">
+        <b>Open your URL and share it</b><p>You get a public link like <em>your-ai.vercel.app</em>. Anyone can chat with your AI — your name for it, your personality, your uploaded knowledge — and nobody but you can change what it is.</p></div></div>
+      <div class="guide-step"><div class="guide-step-num">7</div><div class="guide-step-body">
         <b>Open your first Pull Request</b><p>On GitHub, open a PR from your fork. Your first open-source contribution — on record forever.</p></div></div>
+
+      <div class="modal-highlight" style="margin-top:14px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span><strong>Remember which one is the real one.</strong> The shared link runs on somebody else's computer, using a hosted model. The AI on <em>your</em> machine is the one that's free, offline, and private — nobody can meter it, price it, or switch it off. That's the one you actually built today.</span>
+      </div>
       <p class="gp-page-sub" style="text-align:center;margin:14px 0 0">Stuck? Raise your hand — no dumb questions here.</p>
     </section>
 
@@ -577,13 +585,13 @@ git commit -m "Make the AI mine"</code></div></div>
 
   <div class="gp-foot">
     <button class="gp-nav" id="gp-prev" onclick="gpPrev()">‹ Back</button>
-    <span class="gp-progress" id="gp-progress">Page 1 of 6</span>
+    <span class="gp-progress" id="gp-progress">Page 1 of 8</span>
     <button class="gp-nav primary" id="gp-next" onclick="gpNext()">Next ›</button>
   </div>
 </aside>
 
 <!-- WELCOME MODAL -->
-<div class="modal-backdrop" id="modal-backdrop" onclick="handleBackdropClick(event)">
+<div class="modal-backdrop" id="modal-backdrop" data-owner-only onclick="handleBackdropClick(event)">
   <div class="modal-card onboarding-card" id="modal-card">
     <div class="modal-header">
       <div class="logo-wrapper">
@@ -644,7 +652,7 @@ git commit -m "Make the AI mine"</code></div></div>
         <div class="gp-map-row"><b style="color:var(--text-primary)">Hour 1</b><span>Learn the concepts. Fork the repo on GitHub.</span></div>
         <div class="gp-map-row"><b style="color:var(--text-primary)">Hour 2</b><span>Run the AI on this machine. Talk to it from the terminal.</span></div>
         <div class="gp-map-row"><b style="color:var(--text-primary)">Hour 3</b><span>Name it. Give it a personality. Make it yours.</span></div>
-        <div class="gp-map-row"><b style="color:var(--text-primary)">Hour 4</b><span>Deploy it. Share the live URL. Open your first Pull Request.</span></div>
+        <div class="gp-map-row"><b style="color:var(--text-primary)">Hour 4</b><span>Publish it. Share the live URL. Open your first Pull Request.</span></div>
       </div>
 
       <details style="margin-top:18px;margin-bottom:8px">
@@ -1058,7 +1066,7 @@ git commit -m "Make the AI mine"</code></div></div>
 </div>
 
 <!-- ADD MODELS MODAL -->
-<div class="settings-modal" id="add-models-modal" onclick="handleAddModelsBackdrop(event)">
+<div class="settings-modal" id="add-models-modal" data-owner-only onclick="handleAddModelsBackdrop(event)">
   <div class="settings-card" id="add-models-card" style="max-width:460px">
     <div class="settings-header">
       <div class="settings-header-icon">
@@ -1212,7 +1220,7 @@ git commit -m "Make the AI mine"</code></div></div>
 </div>
 
 <!-- SETTINGS MODAL -->
-<div class="settings-modal" id="settings-modal" onclick="handleSettingsBackdrop(event)">
+<div class="settings-modal" id="settings-modal" data-owner-only onclick="handleSettingsBackdrop(event)">
   <div class="settings-card" id="settings-card">
     <div class="settings-header">
       <div class="settings-header-icon">
@@ -1231,6 +1239,7 @@ git commit -m "Make the AI mine"</code></div></div>
       <button class="modal-tab active" data-settings-tab="personalize" onclick="switchSettingsTab('personalize', this)">Personalize</button>
       <button class="modal-tab" data-settings-tab="model" onclick="switchSettingsTab('model', this)">Model</button>
       <button class="modal-tab" data-settings-tab="training" onclick="switchSettingsTab('training', this)">Training</button>
+      <button class="modal-tab" data-settings-tab="publish" onclick="switchSettingsTab('publish', this); updatePublishSummary();">Publish</button>
     </div>
 
     <div class="settings-body" data-settings-pane="personalize">
@@ -1456,6 +1465,49 @@ git commit -m "Make the AI mine"</code></div></div>
 
     </div>
 
+    <!-- Publish Pane -->
+    <div class="settings-body" data-settings-pane="publish" style="display:none;">
+
+      <div class="settings-field">
+        <label class="settings-label">Share your AI with a link</label>
+        <span class="settings-hint" style="margin-bottom:10px;">
+          Your AI lives in this browser — which is why it's private, and why a plain <code>git push</code> would deploy the blank starter app instead of <em>yours</em>. Publishing writes everything you've customized into one file, <code>my-ai.json</code>, that ships with your code. Visitors get your AI exactly as you built it; only you can change what it is.
+        </span>
+      </div>
+
+      <div class="settings-field">
+        <label class="settings-label">What gets published</label>
+        <div id="publish-summary"></div>
+        <span class="settings-hint">API keys are never written to this file — it goes to GitHub, where anyone could read it. Your hosted model's key belongs in a Vercel environment variable instead (step 4 below).</span>
+      </div>
+
+      <button class="settings-btn-primary" onclick="exportPublishConfig()" style="width:100%; margin-bottom:6px;">Download my-ai.json</button>
+      <span class="settings-hint" style="display:block; margin-bottom:14px;">Publishes what you last saved. Changed something just now? Hit <strong>Apply &amp; Save</strong> first, then come back.</span>
+
+      <div class="settings-field">
+        <label class="settings-label">Then, to go live</label>
+        <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body">
+          <b>Drop the file into your project folder</b><p>Right beside <em>index.html</em>. That's it — no renaming, no editing.</p></div></div>
+        <div class="guide-step"><div class="guide-step-num">2</div><div class="guide-step-body">
+          <b>Commit and push</b>
+          <code class="guide-cmd">git add .
+git commit -m "Publish my AI"
+git push</code></div></div>
+        <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
+          <b>Import the repo on Vercel</b><p>Add New → Project → pick your fork → Deploy.</p></div></div>
+        <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body">
+          <b>Give it a model to think with</b><p>Your visitors can't reach the Ollama on <em>your</em> laptop, so the live copy needs a hosted one. Get a free key at <a href="https://console.groq.com" target="_blank" rel="noopener" style="color:var(--dc-blue)">console.groq.com</a> (no card), then on Vercel: Settings → Environment Variables → add <code>MODEL_API_KEY</code> → Redeploy.</p></div></div>
+      </div>
+
+      <div class="modal-highlight">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span>Your published copy answers using that hosted model — so it works for anyone, anywhere, but it isn't the private one. <strong>The offline AI on this computer stays the real one.</strong> The live link just proves you built it.</span>
+      </div>
+
+      <button class="settings-btn-secondary" onclick="previewAsVisitor()" style="width:100%; margin-top:12px;">Preview what visitors will see</button>
+      <span class="settings-hint" style="display:block; margin-top:6px;">Opens your own copy locked down, exactly as the world gets it. Needs <code>my-ai.json</code> in the folder already.</span>
+    </div>
+
     <div class="settings-footer">
       <button class="settings-btn-primary" onclick="applyAndSaveSettings()">Apply &amp; Save</button>
       <div class="settings-footer-row">
@@ -1492,6 +1544,7 @@ git commit -m "Make the AI mine"</code></div></div>
 <script src="app/models.js"></script>
 <script src="app/chat.js"></script>
 <script src="app/thinking.js"></script>
+<script src="app/publish.js"></script>
 <script src="app/init.js"></script>
 </body>
 </html>

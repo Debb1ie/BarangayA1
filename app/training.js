@@ -310,24 +310,31 @@ function renderSourcesPanel() {
     meta.appendChild(nm);
     meta.appendChild(sz);
 
-    const del = document.createElement('button');
-    del.className = 'kb-del';
-    del.title = 'Remove source';
-    del.textContent = '✕';
-    del.addEventListener('click', ev => { ev.stopPropagation(); removeSource(f.name); });
-
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = !off;
-    cb.title = off ? 'Excluded from the model’s context' : 'Included in the model’s context';
-    cb.addEventListener('click', ev => ev.stopPropagation());
-    cb.addEventListener('change', () => toggleSource(f.name, cb.checked));
-
     row.appendChild(icon);
     row.appendChild(meta);
-    row.appendChild(del);
-    row.appendChild(cb);
-    row.addEventListener('click', () => { cb.checked = !cb.checked; toggleSource(f.name, cb.checked); });
+
+    // Visitors see WHAT grounds the answers — that transparency is the
+    // point — but can't remove a source or switch one off. Those controls
+    // are built here in JS rather than in the markup, so they need their
+    // own guard; the [data-owner-only] sweep can't reach them.
+    if (!window.IS_VISITOR) {
+      const del = document.createElement('button');
+      del.className = 'kb-del';
+      del.title = 'Remove source';
+      del.textContent = '✕';
+      del.addEventListener('click', ev => { ev.stopPropagation(); removeSource(f.name); });
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !off;
+      cb.title = off ? 'Excluded from the model’s context' : 'Included in the model’s context';
+      cb.addEventListener('click', ev => ev.stopPropagation());
+      cb.addEventListener('change', () => toggleSource(f.name, cb.checked));
+
+      row.appendChild(del);
+      row.appendChild(cb);
+      row.addEventListener('click', () => { cb.checked = !cb.checked; toggleSource(f.name, cb.checked); });
+    }
     list.appendChild(row);
   });
 

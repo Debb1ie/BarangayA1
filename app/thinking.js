@@ -445,6 +445,37 @@ async function sendMessage() {
       const msg = fetchErr.message || '';
       let errorData = {};
 
+      // Every diagnosis below tells the reader to open a terminal and
+      // restart Ollama — correct for a student on their own machine, and
+      // useless to a visitor on someone's published link, who has neither.
+      // Visitors get one honest message aimed at the only person who can
+      // actually fix it: the owner.
+      if (window.IS_VISITOR) {
+        const unconfigured = msg.includes('model_not_configured') || msg.includes('503');
+        errorData = unconfigured
+          ? {
+              title: 'This AI has no model connected yet',
+              desc: 'Everything about this AI — its name, personality, and knowledge — is set up and ready. It just hasn\'t been given a model to think with, so it can\'t reply yet. Only its owner can finish that step.',
+              steps: [
+                { text: 'If this is your AI: on Vercel, open Settings → Environment Variables' },
+                { text: 'Add MODEL_API_KEY with a key from console.groq.com (free, no card), then redeploy' },
+                { text: 'If it isn\'t yours: let whoever shared the link know — it\'s a two-minute fix' },
+              ],
+            }
+          : {
+              title: 'The AI couldn\'t be reached',
+              desc: 'The request to this AI\'s model didn\'t come back. It may be briefly overloaded, or its owner\'s free quota may be used up for now.',
+              steps: [
+                { text: 'Wait a few seconds and send your message again' },
+                { text: 'If it keeps failing, let whoever shared this link know' },
+              ],
+            };
+        removeTypingIndicator();
+        renderErrorBubble(errorData);
+        setConnected(false);
+        return;
+      }
+
       if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('CORS') || msg.includes('Load failed')) {
         try {
           const xhrResult = await xhrFallback(payload);

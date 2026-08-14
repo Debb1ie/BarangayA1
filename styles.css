@@ -4063,3 +4063,57 @@
   }
   [data-theme="dark"] .input-box { box-shadow: 0 10px 34px rgba(0,0,0,0.45); }
   .input-tip, .legal-disclaimer-inner { max-width: 720px; margin-left: auto; margin-right: auto; }
+
+/* ── PUBLISHED / VISITOR MODE ─────────────────────────────────────────
+   A student's deployed AI: usable by anyone, editable by no one. The
+   owner-only chrome is REMOVED from the DOM by lockVisitorUI() (see
+   app/publish.js) — this rule is the safety net for anything rendered
+   after that sweep, e.g. the welcome screen, which re-renders on every
+   new conversation. */
+body.visitor-mode [data-owner-only] { display: none !important; }
+
+/* Credit + the honesty line. The camp teaches "free, private, no cloud";
+   this public copy answers through a hosted model, and saying so is the
+   difference between proving the lesson and contradicting it. */
+.published-credit {
+  max-width: 720px;
+  margin: 8px auto 0;
+  padding: 0 4px;
+  text-align: center;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+.published-credit-main {
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.published-credit-note { margin-top: 2px; }
+.published-credit-note a {
+  color: var(--dc-blue);
+  font-weight: 600;
+  text-decoration: none;
+}
+.published-credit-note a:hover { text-decoration: underline; }
+
+/* Read-only source rows — no remove button, no include/exclude checkbox */
+body.visitor-mode .kb-item { cursor: default; }
+
+/* ── PUBLISH TAB (owner side) ─────────────────────────────────────────── */
+.publish-row {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: 8px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--border-light);
+}
+.publish-row:last-child { border-bottom: none; }
+.publish-row b { font-weight: 700; color: var(--text-secondary); }
+.publish-row span { color: var(--text-primary); }
+#publish-summary {
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}

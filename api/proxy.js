@@ -1,0 +1,140 @@
+// ── HOSTED MODEL PROXY (Vercel serverless function) ──────────────────
+// Only used by PUBLISHED copies of the app. Locally the browser talks to
+// Ollama directly and this file never runs.
+//
+// Why it exists: a published site needs an API key to reach a hosted
+// model, and a key in the repo is a key on GitHub — scrapers find those
+// within hours. So the key lives in a Vercel environment variable, the
+// browser only ever calls same-origin /api, and the key stays server-side.
+// Same-origin also means no CORS setup for visitors, ever.
+//
+// Set on Vercel → Settings → Environment Variables:
+//   MODEL_API_KEY   (required)  your provider key, e.g. a free Groq key
+//   MODEL_API_BASE  (optional)  defaults to Groq
+//   MODEL_NAME      (optional)  defaults to a small fast Groq model
+// The one-variable path is the taught one: set MODEL_API_KEY, redeploy, done.
+// ─────────────────────────────────────────────────────────────────────
+
+const DEFAULT_BASE  = 'https://api.groq.com/openai/v1';
+const DEFAULT_MODEL = 'llama-3.1-8b-instant';
+
+// This endpoint is public and unauthenticated — anyone with the URL can
+// spend the owner's quota. These caps are what keep a shared link from
+// turning into a bill: the client cannot pick a pricier model, cannot ask
+// for a huge completion, and cannot send an enormous prompt.
+const MAX_TOKENS_CAP = 512;
+const MAX_BODY_BYTES = 128 * 1024;
+
+function config() {
+  return {
+    base: (process.env.MODEL_API_BASE || DEFAULT_BASE).replace(/\/+$/, ''),
+    key: process.env.MODEL_API_KEY || '',
+    model: process.env.MODEL_NAME || DEFAULT_MODEL,
+  };
+}
+
+// Reported to the app as an ordinary /v1/models response so the existing
+// discovery code (app/models.js) needs no special case, and the header
+// chip shows whatever model the owner actually configured.
+function sendModels(res, cfg) {
+  res.status(200).json({ object: 'list', data: [{ id: cfg.model, object: 'model', owned_by: 'published' }] });
+}
+
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    if (req.body) return resolve(req.body);   // already parsed by the runtime
+    let size = 0;
+    const parts = [];
+    req.on('data', c => {
+      size += c.length;
+      if (size > MAX_BODY_BYTES) { reject(new Error('body too large')); req.destroy(); return; }
+      parts.push(c);
+    });
+    req.on('end', () => {
+      try { resolve(JSON.parse(Buffer.concat(parts).toString('utf8') || '{}')); }
+      catch (e) { reject(e); }
+    });
+    req.on('error', reject);
+  });
+}
+
+module.exports = async function handler(req, res) {
+  const cfg = config();
+  const what = (req.query && req.query.p) || 'chat';
+
+  // Unconfigured is the single most likely state for a fresh deploy (the
+  // student pushed before adding the key), so it gets a message the app
+  // can show a human rather than a raw network failure.
+  if (!cfg.key) {
+    res.status(503).json({
+      error: {
+        message: 'This AI has no model connected yet. The owner needs to add a MODEL_API_KEY environment variable on Vercel and redeploy.',
+        code: 'model_not_configured',
+      },
+    });
+    return;
+  }
+
+  if (what === 'models') {
+    sendModels(res, cfg);
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: { message: 'Method not allowed' } });
+    return;
+  }
+
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    res.status(413).json({ error: { message: 'Request too large' } });
+    return;
+  }
+
+  const requested = Number(body.max_tokens);
+  const payload = {
+    ...body,
+    // Whatever the client asked for is advisory only — the owner's env var
+    // decides the model, and the cap decides the length.
+    model: cfg.model,
+    max_tokens: Number.isFinite(requested) ? Math.min(requested, MAX_TOKENS_CAP) : MAX_TOKENS_CAP,
+  };
+
+  try {
+    const upstream = await fetch(`${cfg.base}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${cfg.key}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    res.status(upstream.status);
+    const type = upstream.headers.get('content-type') || 'application/json';
+    res.setHeader('Content-Type', type);
+    res.setHeader('Cache-Control', 'no-store');
+
+    if (!upstream.body) {
+      res.end(await upstream.text());
+      return;
+    }
+
+    // Pass the SSE stream straight through, unbuffered, so replies appear
+    // word by word exactly as they do against a local Ollama — the client
+    // parser in app/chat.js sees the same shape either way.
+    const reader = upstream.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(Buffer.from(value));
+    }
+    res.end();
+  } catch (err) {
+    res.status(502).json({
+      error: { message: 'Could not reach the model provider. Check the key and try again.', detail: String(err && err.message || err) },
+    });
+  }
+};
