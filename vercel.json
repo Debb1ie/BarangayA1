@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/api/models", "destination": "/api/proxy?p=models" },
+    { "source": "/api/chat/completions", "destination": "/api/proxy?p=chat" }
+  ]
+}

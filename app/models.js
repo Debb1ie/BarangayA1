@@ -582,6 +582,30 @@ function addModelEntry({ model, base, key, kind, source = 'user' }) {
 // On startup: restore persisted user endpoints, then discover live local models.
 async function initModelRegistry() {
   loadModelPrefs();   // disabled models + removed endpoints
+
+  // Published site: there is exactly one model — whatever the owner's
+  // Vercel MODEL_NAME env var points at, served through the same-origin
+  // /api proxy so the key never reaches the browser. No local discovery
+  // (127.0.0.1 is the VISITOR's machine, which has no Ollama), no saved
+  // endpoints, no picker. Ask the proxy what it's serving rather than
+  // trusting a model name baked into my-ai.json, so swapping the env var
+  // is all it takes to change models.
+  if (window.IS_VISITOR) {
+    const ids = await discoverModels('/api', '');
+    const name = ids[0] || (window.PUBLISHED_CONFIG?.model?.label) || 'cloud model';
+    const entry = addModelEntry({ model: name, base: '/api', key: '', kind: 'api', source: 'published' });
+    selectModel(entry.id, { silent: true });
+    const subtitle = document.getElementById('header-subtitle');
+    if (subtitle) subtitle.textContent = `${name} · hosted`;
+    // The module-level checkConnectivity() already ran against the default
+    // local endpoint and failed (127.0.0.1 is the visitor's own machine),
+    // parking the header on "Offline". Re-check now that /api is selected,
+    // instead of letting a working site look broken until the 15s tick.
+    checkConnectivity();
+    refreshEndpointStatuses();
+    return;
+  }
+
   if (window.BarangayDB && window.BarangayDB.dbLoadModels) {
     for (const m of window.BarangayDB.dbLoadModels()) {
       if (_REMOVED_ENDPOINTS.has(m.base)) continue;
@@ -658,14 +682,17 @@ async function checkConnectivity() {
   try {
     const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), 6000);
-    await fetch(`${base}/models`, {
+    const res = await fetch(`${base}/models`, {
       method: 'GET',
       headers: { 'Authorization': `Bearer ${key}` },
       signal: ctrl.signal
     });
     clearTimeout(timeout);
-    setConnected(true);
-    return;
+    // A response is not the same as a working endpoint: a 404 (or the 503
+    // a published site returns before its key is set) used to read as
+    // "connected", so the header claimed the model was online while every
+    // message failed. Fall through to the chat probe instead.
+    if (res.ok) { setConnected(true); return; }
   } catch {}
 
   // Only probe chat completions if a model is actually selected (otherwise the
@@ -674,15 +701,14 @@ async function checkConnectivity() {
     try {
       const ctrl2 = new AbortController();
       const timeout2 = setTimeout(() => ctrl2.abort(), 8000);
-      await fetch(`${base}/chat/completions`, {
+      const res2 = await fetch(`${base}/chat/completions`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: window.ACTIVE_MODEL, messages: [{ role: 'user', content: 'hi' }], max_tokens: 1, stream: false }),
         signal: ctrl2.signal
       });
       clearTimeout(timeout2);
-      setConnected(true);
-      return;
+      if (res2.ok) { setConnected(true); return; }
     } catch {}
   }
 

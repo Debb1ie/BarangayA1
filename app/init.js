@@ -21,7 +21,7 @@ function resetWelcomeScreen() {
       <div class="welcome-title">${_activeName}</div>
       <div class="welcome-greeting">${greeting} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/><path d="M5 3v4"/><path d="M3 5h4"/><path d="M19 17v4"/><path d="M17 19h4"/></svg></div>
     </div>
-    <div class="welcome-brief">Built by Filipino developers · 100% local, no cloud</div>
+    <div class="welcome-brief" id="welcome-brief">${welcomeBriefText()}</div>
     <div class="suggestion-chips" id="suggestion-grid-welcome">
       <button class="suggestion-chip" onclick="suggest('What is DEVCON Barangay AI Code Camps? What will I learn and build today?')">
         <span class="suggestion-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span> About Barangay AI
@@ -106,6 +106,16 @@ window.addEventListener('load', async () => {
 
   if (window.BarangayDB) await window.BarangayDB.initDB();
   loadKBDisabled();
+
+  // Is this a published copy of somebody's AI? Decided before anything
+  // renders, because it changes what the UI is even allowed to show.
+  // Absent my-ai.json (every fresh clone, and every student mid-camp) this
+  // is null and the app behaves exactly as it always has.
+  const published = await loadPublishedConfig();
+  window.PUBLISHED_CONFIG = published;
+  window.IS_VISITOR = isVisitorMode(published);
+  if (window.IS_VISITOR) lockVisitorUI();
+
   initModelRegistry();   // restore saved endpoints + discover live local models
   document.documentElement.style.setProperty('--dc-blue', BRAND_COLOR);
   document.documentElement.style.setProperty('--dc-accent', ACCENT_COLOR);
@@ -117,14 +127,21 @@ window.addEventListener('load', async () => {
   const welcomeTitleEl = document.querySelector('.welcome-title');
   if (welcomeTitleEl) welcomeTitleEl.textContent = AI_NAME;
 
-  let saved = loadSettings();
-  // Carry the seeded list forward explicitly instead of re-reading settings —
-  // applySettings() rebuilds _TRAINING_FILES_MASTER from whatever it is handed,
-  // so a re-read that didn't persist would erase the seed before it renders.
-  const seeded = await seedDefaultSourcesIfNeeded(saved);
-  if (seeded) saved = Object.assign(loadSettings(), { training_files: seeded });
-  if (Object.keys(saved).length) applySettings(saved);
-  else renderSourcesPanel();
+  if (window.IS_VISITOR) {
+    // The owner's published file IS the configuration — their sources are
+    // the only ones, so the brand-kit seed is skipped (a visitor should
+    // never see a document the owner didn't choose to ship).
+    applySettings(hydratePublishedSettings(published));
+  } else {
+    let saved = loadSettings();
+    // Carry the seeded list forward explicitly instead of re-reading settings —
+    // applySettings() rebuilds _TRAINING_FILES_MASTER from whatever it is handed,
+    // so a re-read that didn't persist would erase the seed before it renders.
+    const seeded = await seedDefaultSourcesIfNeeded(saved);
+    if (seeded) saved = Object.assign(loadSettings(), { training_files: seeded });
+    if (Object.keys(saved).length) applySettings(saved);
+    else renderSourcesPanel();
+  }
 
   if (SUGGESTIONS) {
     const grid = document.querySelector('.suggestion-chips');
@@ -155,6 +172,8 @@ window.addEventListener('load', async () => {
     createSession();
   }
 
-  openModal();
+  // The welcome/onboarding flow is camp material — a visitor came to use
+  // somebody's AI, not to be walked through building one.
+  if (!window.IS_VISITOR) openModal();
   document.getElementById('message-input').focus();
 });
