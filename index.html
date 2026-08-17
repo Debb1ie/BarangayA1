@@ -12,8 +12,7 @@
     if (saved !== 'light') document.documentElement.setAttribute('data-theme', 'dark');
   })();
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="vendor/fonts.css">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -35,9 +34,9 @@
     <line x1="1180" y1="120" x2="1100" y2="180"/>
   </g>
   <g class="bg-constellation" stroke="none">
-    <circle cx="1180" cy="20" r="2.5" fill="var(--dc-gold)"/>
+    <circle cx="1180" cy="20" r="2.5" fill="var(--scene-gold)"/>
     <circle cx="1180" cy="120" r="2" fill="var(--dc-accent)"/>
-    <circle cx="1260" cy="180" r="2.5" fill="var(--dc-gold)"/>
+    <circle cx="1260" cy="180" r="2.5" fill="var(--scene-gold)"/>
     <circle cx="1340" cy="140" r="2" fill="var(--dc-accent)"/>
     <circle cx="1310" cy="260" r="2" fill="var(--dc-accent)"/>
     <circle cx="1100" cy="180" r="2" fill="var(--dc-accent)"/>
@@ -47,13 +46,13 @@
        than one corner, like the drifting motes around the hero art's
        track and skyline -->
   <g class="bg-particles">
-    <circle cx="1180" cy="90" r="3" fill="#fff"/>
+    <circle cx="1180" cy="90" r="3" fill="var(--scene-dust)"/>
     <circle cx="1310" cy="80" r="2" fill="var(--dc-accent)"/>
-    <circle cx="1380" cy="200" r="3" fill="var(--dc-gold)"/>
+    <circle cx="1380" cy="200" r="3" fill="var(--scene-gold)"/>
     <circle cx="1000" cy="180" r="2" fill="var(--dc-accent)"/>
-    <circle cx="120" cy="120" r="2" fill="#fff"/>
-    <circle cx="60" cy="300" r="2.5" fill="var(--dc-gold)"/>
-    <circle cx="700" cy="500" r="2" fill="var(--dc-gold)"/>
+    <circle cx="120" cy="120" r="2" fill="var(--scene-dust)"/>
+    <circle cx="60" cy="300" r="2.5" fill="var(--scene-gold)"/>
+    <circle cx="700" cy="500" r="2" fill="var(--scene-gold)"/>
     <circle cx="950" cy="620" r="2" fill="var(--dc-accent)"/>
     <circle cx="300" cy="780" r="2.5" fill="var(--dc-orange)"/>
     <circle cx="1050" cy="700" r="2" fill="var(--dc-violet)"/>
@@ -61,7 +60,7 @@
 
   <!-- Four-point sparkle flourishes at a few focal points, echoing the
        star in the "17✦" mark -->
-  <use class="bg-sparkle" href="#bg-sparkle-shape" x="1106" y="686" width="28" height="28" fill="var(--dc-gold)"/>
+  <use class="bg-sparkle" href="#bg-sparkle-shape" x="1106" y="686" width="28" height="28" fill="var(--scene-gold)"/>
   <use class="bg-sparkle" href="#bg-sparkle-shape" x="541" y="771" width="18" height="18" fill="var(--dc-accent)"/>
   <use class="bg-sparkle" href="#bg-sparkle-shape" x="142" y="492" width="16" height="16" fill="var(--dc-violet)"/>
 </svg>
@@ -94,7 +93,7 @@
     <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
   </button>
   <div class="rail-spacer"></div>
-  <div class="rail-dot ok" id="rail-dot" title="Model connection"></div>
+  <div class="rail-dot checking" id="rail-dot" title="Model connection"></div>
   <button class="rail-btn" onclick="toggleTheme()" title="Toggle theme">
     <svg id="rail-theme-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
   </button>
@@ -156,7 +155,10 @@
     onchange="handleSourceFiles(this.files); this.value='';">
 
   <div class="sidebar-footer">
-    <div class="sidebar-wifi" id="sidebar-wifi">
+    <!-- Starts in the "checking" state, not "connected": nothing has been
+         probed yet at first paint, and a green chip that flips to red reads
+         as a dropout rather than as a check that hadn't finished. -->
+    <div class="sidebar-wifi checking" id="sidebar-wifi">
       <div class="sidebar-wifi-top">
         <div class="sidebar-wifi-icon">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -165,9 +167,9 @@
         </div>
         <div class="sidebar-wifi-ssid">Ollama · Qwen</div>
       </div>
-      <div class="sidebar-wifi-status ok" id="sidebar-wifi-status">
+      <div class="sidebar-wifi-status checking" id="sidebar-wifi-status">
         <div class="swifi-dot"></div>
-        <span id="sidebar-wifi-text">Connected · Model online</span>
+        <span id="sidebar-wifi-text">Checking connection…</span>
       </div>
     </div>
   </div>
@@ -185,14 +187,15 @@
     </button>
 
     <div class="header-title">
+      <!-- No model pill here: the status chip on the right already names the
+           active model, and the composer names it again. -->
       <h1 id="chat-title" contenteditable="true" spellcheck="false" title="Click to rename this conversation" onblur="commitTitleRename(this)" onkeydown="handleTitleKey(event, this)">DEVCON</h1>
-      <p id="header-subtitle">Qwen 2.5 3B · Local</p>
     </div>
 
     <div class="header-actions">
-      <div class="status-chip" id="header-status-chip">
+      <div class="status-chip checking" id="header-status-chip">
         <div class="status-dot" id="header-status-dot"></div>
-        <span id="header-status-text">Ollama</span>
+        <span id="header-status-text">Checking…</span>
       </div>
       <button class="icon-btn" data-owner-only onclick="openGuide()" title="Camp Guide — full step-by-step guidebook">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
@@ -238,8 +241,6 @@
     </div>
   </div>
 
-  <div class="chat-fade" id="chat-fade" aria-hidden="true"></div>
-
   <button class="scroll-bottom-btn" id="scroll-btn" onclick="scrollToBottom()">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
   </button>
@@ -255,56 +256,65 @@
       <div class="model-dd-list" id="model-dd-list"></div>
     </div>
     <div class="input-box">
-      <!-- The whole tools menu is owner-only: every item in it (add a source,
-           deep thinking, web search, swap the model) changes what the AI is
-           or spends the owner's quota. -->
-      <div class="tools-wrap" data-owner-only>
-        <button class="tools-btn" id="tools-btn" onclick="toggleToolsDropdown()" title="Tools — sources, deep thinking, web search" aria-haspopup="true" aria-expanded="false">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          <span class="tools-dot" id="tools-dot"></span>
-        </button>
-        <div class="tools-dropdown" id="tools-dropdown">
-          <div class="tools-section-label tools-item-model">Model</div>
-          <button class="tools-item tools-item-model" id="model-select-mobile-btn" onclick="toggleModelDropdown(); closeToolsDropdown();" title="Select model">
-            <span class="tools-item-ico" id="model-select-icon-mobile"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M9 15h6"/></svg></span>
-            <span class="tools-item-label" id="model-select-label-mobile">Select model</span>
+      <!-- Mirrors the textarea's typography off-screen. Once the draft is
+           wider than the slot left between the controls, the composer moves
+           the text onto its own full-width row above them — the textarea
+           itself can't report this, since it always fills the width it's
+           given. Kept inside .input-box so it inherits the same font. -->
+      <span class="composer-measure" id="composer-measure" aria-hidden="true"></span>
+
+      <div class="composer-controls" id="composer-controls">
+        <!-- The whole tools menu is owner-only: every item in it (add a source,
+             deep thinking, web search, swap the model) changes what the AI is
+             or spends the owner's quota. -->
+        <div class="tools-wrap" data-owner-only>
+          <button class="tools-btn" id="tools-btn" onclick="toggleToolsDropdown()" title="Tools — sources, deep thinking, web search" aria-haspopup="true" aria-expanded="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
-          <div class="tools-section-divider tools-item-model"></div>
-          <button class="tools-item" id="kb-chip" onclick="addSourceClick(); closeToolsDropdown();" title="Add files — grounds answers in your own content">
-            <span class="tools-item-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></span>
-            <span class="tools-item-label">Add file</span>
-          </button>
-          <button class="tools-item" id="thinking-btn" onclick="toggleThinkingQuick()" aria-pressed="false" title="Deep thinking is OFF — click to enable">
-            <span class="tools-item-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5c0 1.5.5 2.5 1 3.5.5 1 1 2 1 3.5h6c0-1.5.5-2.5 1-3.5.5-1 1-2 1-3.5a5 5 0 0 0-5-5z"/><path d="M9 21h6"/><path d="M10 18h4"/></svg></span>
-            <span class="tools-item-label">Deep thinking</span>
-            <span class="tools-item-check">✓</span>
-          </button>
-          <button class="tools-item" id="web-search-btn" onclick="toggleWebSearchQuick()" aria-pressed="false" title="Web search is OFF — click to enable">
-            <span class="tools-item-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/></svg></span>
-            <span class="tools-item-label">Web search</span>
-            <span class="tools-item-check">✓</span>
-          </button>
+          <div class="tools-dropdown" id="tools-dropdown">
+            <div class="tools-section-label tools-item-model">Model</div>
+            <button class="tools-item tools-item-model" id="model-select-mobile-btn" onclick="toggleModelDropdown(); closeToolsDropdown();" title="Select model">
+              <span class="tools-item-ico" id="model-select-icon-mobile"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M9 15h6"/></svg></span>
+              <span class="tools-item-label" id="model-select-label-mobile">Select model</span>
+            </button>
+            <div class="tools-section-divider tools-item-model"></div>
+            <button class="tools-item" id="kb-chip" onclick="addSourceClick(); closeToolsDropdown();" title="Add files — grounds answers in your own content">
+              <span class="tools-item-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></span>
+              <span class="tools-item-label">Add file</span>
+            </button>
+            <button class="tools-item" id="thinking-btn" onclick="toggleThinkingQuick()" aria-pressed="false" title="Deep thinking is OFF — click to enable">
+              <span class="tools-item-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5c0 1.5.5 2.5 1 3.5.5 1 1 2 1 3.5h6c0-1.5.5-2.5 1-3.5.5-1 1-2 1-3.5a5 5 0 0 0-5-5z"/><path d="M9 21h6"/><path d="M10 18h4"/></svg></span>
+              <span class="tools-item-label">Deep thinking</span>
+              <span class="tools-item-check">✓</span>
+            </button>
+            <button class="tools-item" id="web-search-btn" onclick="toggleWebSearchQuick()" aria-pressed="false" title="Web search is OFF — click to enable">
+              <span class="tools-item-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/></svg></span>
+              <span class="tools-item-label">Web search</span>
+              <span class="tools-item-check">✓</span>
+            </button>
+          </div>
         </div>
-      </div>
-      <textarea
-        id="message-input"
-        placeholder="What's on your mind?"
-        rows="1"
-        onkeydown="handleKey(event)"
-        oninput="autoResize(this)"
-      ></textarea>
-      <div class="input-actions">
+        <textarea
+          id="message-input"
+          placeholder="What's on your mind?"
+          rows="1"
+          onkeydown="handleKey(event)"
+          oninput="autoResize()"
+        ></textarea>
         <button class="model-select-btn" id="model-select-btn" data-owner-only onclick="toggleModelDropdown()" title="Select model">
           <span id="model-select-icon"><svg class="model-dd-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M9 15h6"/></svg></span>
           <span id="model-select-label">Select model</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
+          <svg class="model-select-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
         </button>
-        <button class="send-btn" id="send-btn" onclick="handleSendClick()" title="Send message">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9 22,2"/></svg>
+        <button class="send-btn idle" id="send-btn" onclick="handleSendClick()" title="Send message">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
         </button>
       </div>
     </div>
-    <div class="input-tip" data-owner-only>
+    <!-- Camp pitch material — owner-only, and stripped on ANY hosted copy by
+         hideOwnerPitchFooter() (app/publish.js), published or not. A visitor
+         gets the creator's credit line in its place. -->
+    <div class="input-tip" id="input-tip" data-owner-only>
       <span class="input-tip-label">To be pitched to target partners</span>
       <span class="input-tip-badges">
         <span class="tip-badge dc-brand-gradient">AWS Bedrock</span>
@@ -459,10 +469,12 @@
       <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body">
         <b>Read the welcome intro</b><p>The first pop-up explains what you're building. The glossary inside defines every word you'll hear today.</p></div></div>
       <div class="guide-step"><div class="guide-step-num">2</div><div class="guide-step-body">
-        <b>Fork the project on GitHub</b><p>"Fork" = make your own copy. Click <strong>Fork</strong> on the repo so you have a version you can change freely.</p></div></div>
+        <b>Fork the project on GitHub</b><p>"Fork" = make your own copy. Open the repo and click <strong>Fork</strong> (top-right) so you have a version you can change freely.</p>
+        <p><a href="https://github.com/Spod101/barangayAI" target="_blank" rel="noopener">github.com/Spod101/barangayAI →</a></p></div></div>
       <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body">
-        <b>Get the code on your computer</b><p>Download the ZIP, or clone it with Git, then open the folder in VS Code.</p>
-        <code class="guide-cmd">git clone https://github.com/&lt;you&gt;/barangayAI.git</code></div></div>
+        <b>Get the code on your computer</b><p>Download the ZIP, or clone it with Git, then open the folder in VS Code. Use <em>your own</em> GitHub username here — that's your fork, the copy you're allowed to push to.</p>
+        <code class="guide-cmd">git clone https://github.com/&lt;your-username&gt;/barangayAI.git</code>
+        <p>Just reading along and not forking? Clone the original instead: <code>git clone https://github.com/Spod101/barangayAI.git</code></p></div></div>
     </section>
 
     <!-- PAGE 4 — Hour 2 Run -->
@@ -684,7 +696,7 @@ git push</code></div></div>
         <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">
           <a href="https://ollama.com/library/qwen2.5" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--text-primary);font-weight:600;text-decoration:none">Qwen 2.5 3B</a>
           <a href="https://ollama.com" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--text-primary);font-weight:600;text-decoration:none">Ollama</a>
-          <a href="https://github.com/devcon-ph/barangay-ai" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--text-primary);font-weight:600;text-decoration:none">GitHub</a>
+          <a href="https://github.com/Spod101/barangayAI" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--text-primary);font-weight:600;text-decoration:none">GitHub</a>
           <a href="https://vercel.com" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--text-primary);font-weight:600;text-decoration:none">Vercel</a>
           <span style="display:inline-flex;align-items:center;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--text-primary);font-weight:600">HTML + JS</span>
         </div>
@@ -879,7 +891,7 @@ git push</code></div></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
           <a href="https://devcon.ph" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:11.5px;color:var(--text-primary);font-weight:600;text-decoration:none">devcon.ph</a>
           <a href="https://github.com/devcon-ph" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:11.5px;color:var(--text-primary);font-weight:600;text-decoration:none">github.com/devcon-ph</a>
-          <span style="display:inline-flex;align-items:center;gap:6px;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:11.5px;color:var(--text-primary);font-weight:600">Fork this project <span style="background:var(--dc-blue);color:white;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:10px;letter-spacing:0.3px">Soon</span></span>
+          <a href="https://github.com/Spod101/barangayAI/fork" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:var(--dc-blue-light);border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:11.5px;color:var(--text-primary);font-weight:600;text-decoration:none">Fork this project</a>
         </div>
         <a href="https://devcon.ph/codecamps" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:10px 14px;text-decoration:none">
           <span style="font-size:12px;font-weight:600;color:var(--text-primary)">19,000+ geeks · 300 student-built projects deployed to production every year</span>
@@ -1001,19 +1013,28 @@ git push</code></div></div>
     <div class="modal-body">
       <div class="modal-mabuhay" style="color:var(--dc-blue);font-size:12px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;margin-bottom:6px">Step 3 of 3 · Set up your AI</div>
       <p class="modal-text" style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:4px">Let's get it ready</p>
-      <p class="modal-text" style="margin-bottom:16px">Three quick things — name it, connect a model so it can reply, then make it yours. You can change any of these later.</p>
+      <p class="modal-text" style="margin-bottom:16px">Three quick things — name it and sign it, connect a model so it can reply, then make it yours. You can change any of these later.</p>
 
-      <!-- 1 · Name -->
+      <!-- 1 · Name it & sign it. Both required: the creator's name is what
+           gets credited on the published site, and an AI shipped as "built by
+           a student" is the one thing publishing shouldn't be allowed to do. -->
       <div class="onboard-setup-block">
-        <div class="onboard-setup-head"><span class="onboard-setup-num">1</span> Give it a name</div>
+        <div class="onboard-setup-head"><span class="onboard-setup-num">1</span> Name it &amp; sign it <span style="font-weight:500;color:var(--danger);text-transform:none;letter-spacing:0">(required)</span></div>
         <div style="display:flex;gap:8px;align-items:stretch">
-          <input id="onboarding-ai-name" type="text" maxlength="40" placeholder="e.g. Bayani, Isko, Barangay AI…"
+          <input id="onboarding-ai-name" type="text" maxlength="40" placeholder="Your AI's name — e.g. Bayani, Isko…"
+            oninput="clearOnboardingNameError()"
             onkeydown="if(event.key==='Enter')saveOnboardingName()"
             style="flex:1;min-width:0;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text-primary);font-family:var(--font-main);font-size:14px;font-weight:600;outline:none">
           <button onclick="saveOnboardingName()"
             style="flex-shrink:0;white-space:nowrap;background:var(--dc-blue);color:white;border:none;border-radius:10px;padding:11px 20px;font-family:var(--font-main);font-size:13.5px;font-weight:700;letter-spacing:0.2px;cursor:pointer;transition:background 0.2s"
-            onmouseover="this.style.background='var(--dc-blue-dark)'" onmouseout="this.style.background='var(--dc-blue)'">Name it</button>
+            onmouseover="this.style.background='var(--dc-blue-dark)'" onmouseout="this.style.background='var(--dc-blue)'">Save</button>
         </div>
+        <input id="onboarding-creator-name" type="text" maxlength="60" placeholder="Your name — e.g. Juan Dela Cruz"
+          oninput="clearOnboardingNameError()"
+          onkeydown="if(event.key==='Enter')saveOnboardingName()"
+          style="width:100%;box-sizing:border-box;margin-top:8px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text-primary);font-family:var(--font-main);font-size:14px;font-weight:600;outline:none">
+        <p class="modal-text" style="font-size:12px;margin:7px 0 0">Your name is credited as the builder when you publish this AI.</p>
+        <p id="onboarding-name-error" style="display:none;font-size:12px;font-weight:700;color:var(--danger);margin:7px 0 0"></p>
       </div>
 
       <!-- 2 · Connect a model -->
@@ -1040,7 +1061,7 @@ git push</code></div></div>
 
       <div class="modal-highlight" style="margin-top:4px">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H7l5-8v4h4l-5 8z"/></svg>
-        <span>In a hurry? Just connect a model and hit <strong>Enter chat</strong> — everything else can wait.</span>
+        <span>In a hurry? Fill in the two names above, then hit <strong>Enter chat</strong> — the model and the personality can wait.</span>
       </div>
     </div>
     </div><!-- /#onboard-step-3 -->
@@ -1277,9 +1298,9 @@ git push</code></div></div>
 
       <!-- Creator name -->
       <div class="settings-field">
-        <label class="settings-label" for="settings-creator-name">Creator Name</label>
-        <input class="settings-input" id="settings-creator-name" type="text" placeholder="e.g. Juan Dela Cruz" maxlength="60">
-        <span class="settings-hint">Your name — credited as the builder of this AI.</span>
+        <label class="settings-label" for="settings-creator-name">Creator Name <span style="color:var(--danger);font-weight:700">*</span></label>
+        <input class="settings-input" id="settings-creator-name" type="text" placeholder="e.g. Juan Dela Cruz" maxlength="60" required>
+        <span class="settings-hint">Your name — credited as the builder of this AI. Required before you can publish.</span>
       </div>
 
       <hr class="settings-divider">
@@ -1380,7 +1401,7 @@ git push</code></div></div>
              onclick="document.getElementById('training-file-input').click()"
              style="margin-top:8px; padding:18px; border:2px dashed var(--border); border-radius:10px; text-align:center; cursor:pointer; color:var(--text-muted); font-size:13px; transition:all 0.15s;">
           <div style="font-weight:600; color:var(--text-primary); margin-bottom:4px;">Drop files here or click to browse</div>
-          <div style="font-size:11.5px;">Accepts .txt, .md, .json, .csv, .pdf, .doc, .docx &nbsp;·&nbsp; up to 2 MB each</div>
+          <div style="font-size:11.5px;">Accepts .txt, .md, .json, .csv, .log, .pdf, .docx &nbsp;·&nbsp; up to 2 MB each</div>
           <input id="training-file-input" type="file" multiple accept=".txt,.md,.markdown,.json,.csv,.log,.pdf,.doc,.docx,text/plain,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                  style="display:none;" onchange="handleTrainingFiles(this.files); this.value='';">
         </div>
@@ -1410,6 +1431,17 @@ git push</code></div></div>
         <span class="settings-hint">When on, the AI searches the web for your question and uses the top results as context for its answer. You can also flip this with the web search button beside Send.</span>
         <input class="settings-input" id="settings-tavily-key" type="password" placeholder="Tavily API key (tvly-…)" autocomplete="off" style="margin-top:10px;">
         <span class="settings-hint">Required for web search. Get a free key at <a href="https://app.tavily.com" target="_blank" rel="noopener" style="color:var(--dc-blue)">tavily.com</a> — the free tier covers ~1,000 searches/month. Stored locally on this device only.</span>
+      </div>
+
+      <hr class="settings-divider">
+
+      <!-- Follow-up suggestions -->
+      <div class="settings-field">
+        <div class="slider-head" style="align-items:center;">
+          <label class="settings-label">Follow-up Suggestions</label>
+          <button type="button" class="ep-toggle" id="settings-followups" onclick="toggleFollowUpsSetting(this)" aria-label="Toggle follow-up suggestions"></button>
+        </div>
+        <span class="settings-hint">After each answer, the AI suggests two questions you could ask next. Off by default because it costs one extra short request per reply — that's free on your own machine, but if you publish this AI, every visitor's message will spend it against your hosting quota too.</span>
       </div>
 
       <hr class="settings-divider">
@@ -1518,22 +1550,25 @@ git push</code></div></div>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs" type="module"></script>
+<!-- Third-party libraries are served from vendor/ instead of a CDN. sql.js is
+     load-bearing: no WASM means no database means no app, so a cold cache with
+     no internet used to leave a blank page. See vendor/README.md. -->
+<script src="vendor/pdf.min.mjs" type="module"></script>
 <script type="module">
   // pdf.js worker — required for PDF parsing
   if (window.pdfjsLib || window['pdfjs-dist/build/pdf']) {
     const lib = window.pdfjsLib || window['pdfjs-dist/build/pdf'];
-    lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
+    lib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.mjs';
   } else {
     // Dynamic import fallback so the lib is reachable as window.pdfjsLib
-    import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs').then(mod => {
+    import('./vendor/pdf.min.mjs').then(mod => {
       window.pdfjsLib = mod;
-      mod.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
+      mod.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.mjs';
     });
   }
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
+<script src="vendor/mammoth.browser.min.js"></script>
+<script src="vendor/sql-wasm.js"></script>
 <script src="db.js"></script>
 <script src="rag.js"></script>
 <script src="app/config.js"></script>

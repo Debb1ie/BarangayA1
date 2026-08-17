@@ -6,7 +6,6 @@ function syncThinkingUI() {
   btn.classList.toggle('active', on);
   btn.setAttribute('aria-pressed', on ? 'true' : 'false');
   btn.title = on ? 'Deep thinking is ON — click to disable' : 'Deep thinking is OFF — click to enable';
-  syncToolsIndicator();
 }
 
 function toggleThinkingQuick() {
@@ -53,8 +52,10 @@ async function performWebSearch(query) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         api_key: key,
-        query,
-        max_results: 3,
+        // Only the top 3 are fed to the model (see buildWebSearchBlock) — the
+        // rest are fetched so the trace can honestly say how much was found and
+        // offer the remainder as links the student can follow themselves.
+        max_results: 10,
         search_depth: 'basic',
         include_answer: true
       })
@@ -85,6 +86,64 @@ function buildWebSearchBlock(sr) {
   return block;
 }
 
+// ── FOLLOW-UP SUGGESTIONS ─────────────────────────────────────────────
+// A second, deliberately tiny call to the same model, fired only after the
+// answer is already on screen so it never delays the reply. Anything the model
+// returns that doesn't parse cleanly just means no suggestions — a failure here
+// must never surface as an error to the student.
+const FOLLOWUP_SYSTEM = "You suggest what the user might ask next. Reply with exactly two short follow-up questions, one per line. No numbering, no bullets, no quotes, no preamble, no explanation. Each question must be under 12 words, written in the user's voice, and answerable from the same topic as the exchange below. Write them in the same language the assistant answered in.";
+
+async function generateFollowUps(question, answer) {
+  if (!window._FOLLOWUPS_ENABLED) return [];
+  if (!window.ACTIVE_BASE || !window.ACTIVE_MODEL) return [];
+  try {
+    const payload = {
+      model: window.ACTIVE_MODEL,
+      messages: [
+        { role: 'system', content: FOLLOWUP_SYSTEM },
+        { role: 'user', content: `Question: ${question}\n\nAnswer: ${answer.slice(0, 1200)}` }
+      ],
+      temperature: 0.6,
+      max_tokens: 96,
+      stream: false
+    };
+    // A reasoning model would burn the whole 96-token budget thinking and
+    // return nothing usable, so thinking is explicitly off for this call.
+    if (isOllamaEndpoint(window.ACTIVE_BASE, window.ACTIVE_KIND)) {
+      payload.chat_template_kwargs = { enable_thinking: false };
+      payload.messages[1].content += '\n\n/no_think';
+    }
+    const resp = await fetch(`${window.ACTIVE_BASE}/chat/completions`, {
+      method: 'POST',
+      mode: 'cors',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.ACTIVE_KEY}` },
+      body: JSON.stringify(payload)
+    });
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    const raw = (data.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '');
+    return raw
+      .split('\n')
+      .map(line => line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').replace(/^["'“”]+|["'“”]+$/g, '').trim())
+      .filter(line => line.length > 6 && line.length <= 120)
+      .slice(0, 2);
+  } catch (e) {
+    console.warn('[follow-ups] skipped:', e.message);
+    return [];
+  }
+}
+
+async function attachFollowUps(bubble, msgObj, question, answer) {
+  const items = await generateFollowUps(question, answer);
+  if (!items.length) return;
+  if (msgObj) msgObj.followUps = items;
+  // The user may have sent another message or switched sessions while this was
+  // in flight — only render if the bubble it belongs to is still on screen.
+  if (!bubble || !document.body.contains(bubble) || isStreaming) return;
+  const el = buildFollowUpsEl(items);
+  if (el) { bubble.appendChild(el); autoScroll(); }
+}
+
 async function sendMessage() {
   if (isStreaming) return;
   const input = document.getElementById('message-input');
@@ -95,7 +154,8 @@ async function sendMessage() {
   if (!ensureModelSelected()) return;
 
   input.value = '';
-  input.style.height = 'auto';
+  syncComposer();   // collapse back to the one-row layout and reset the height
+  clearFollowUps();   // suggestions from the previous turn are stale now
   _userCancelled = false;
   _streamAbort = new AbortController();
   setSendMode(true);   // button becomes a Stop button
@@ -111,7 +171,8 @@ async function sendMessage() {
   if (session) session.displayMessages.push({ role: 'user', content: text, time: userTime });
 
   appendTypingIndicator();
-  updateThinkingStep('context', 'active', 'Building context...');
+  const _tCtx = Date.now();
+  updateThinkingStep('context', 'active', 'Reading your message');
   if (window._setEduCard) window._setEduCard('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>', 'Assembling your conversation history and system instructions into a single prompt for the model...');
 
   const _runtimeName      = window._AI_NAME_ACTIVE || AI_NAME;
@@ -126,68 +187,139 @@ async function sendMessage() {
     ? `${_basePrompt}${_focusRule}${_languageRule}\n\n## Your Knowledge & Abilities\n${_runtimeKnowledge}`
     : `${_basePrompt}${_focusRule}${_languageRule}`;
 
+  // ── Prompt breakdown ────────────────────────────────────────────────
+  // Recorded as the prompt is assembled, so the inspector can explain a 7,000
+  // character prompt as a handful of labelled parts instead of a wall of text.
+  // Each part says where it came from in plain language, because the useful
+  // question a beginner has is not "what does this say" but "which switch of
+  // mine put it there".
+  const _promptParts = [];
+  // Takes the text itself, or a character count when the text is spread across
+  // several messages and there is nothing to hand over as one string.
+  const _part = (label, text, source) => {
+    const chars = (typeof text === 'number') ? text : (text || '').length;
+    if (chars > 0) _promptParts.push({ label, chars, source });
+  };
+  _part(`Who ${_runtimeName} is`, _basePrompt,
+    _runtimeTone ? 'your custom prompt — Settings › Personalize' : 'the built-in default personality');
+  _part('Answer rules', _focusRule, 'built in — keeps replies short and on-topic');
+  _part(`Reply language: ${_languageChoice.charAt(0).toUpperCase() + _languageChoice.slice(1)}`,
+    _languageRule, 'Settings › Personalize › Reply language');
+  _part('Extra knowledge you wrote', _runtimeKnowledge, 'Settings › Personalize › Knowledge');
+
   const _trainingFiles = Array.isArray(window._TRAINING_FILES_ACTIVE) ? window._TRAINING_FILES_ACTIVE : [];
   const _trainingNotes = window._TRAINING_NOTES_ACTIVE || '';
   let _retrievedCount = 0, _totalChunkCount = 0;
+  // What retrieval actually pulled, kept for the citation strip under the answer
+  // and stored with the message so reopening the chat shows the same provenance.
+  let _kbSources = [];
+  const _tKb = Date.now();
   if (_trainingFiles.length || _trainingNotes) {
+    updateThinkingStep('files', 'active', 'Searching your knowledge base');
     let trainingBlock = '\n\n## Training Reference Material\nThe user has provided the following reference material. Use it as authoritative background knowledge when relevant.\n';
     if (_trainingNotes) trainingBlock += `\n### Instructions\n${_trainingNotes}\n`;
 
     // Retrieval: score every chunk against the user's message via TF-IDF +
     // cosine similarity (plain JS, no embedding model/network call) and keep
     // only the top-K most relevant, instead of dumping whole files.
-    const allChunks = [];
-    for (const f of _trainingFiles) {
-      const fileChunks = (f.chunks && f.chunks.length) ? f.chunks : window.BarangayRAG.chunkText(f.content);
-      for (const chunkStr of fileChunks) allChunks.push({ file: f.name, text: chunkStr });
-    }
+    const allChunks = window.BarangayRAG.buildChunkIndex(_trainingFiles);
     _totalChunkCount = allChunks.length;
 
     if (allChunks.length) {
       const top = window.BarangayRAG.retrieveTopChunks(text, allChunks);
       _retrievedCount = top.length;
-      for (const c of top) {
-        trainingBlock += `\n### From: ${c.file}\n${c.text}\n`;
+      _kbSources = top.map((c, i) => ({
+        n: i + 1, file: c.file, index: c.index, total: c.total,
+        score: c.score, text: c.text,
+      }));
+      // Numbered [K1], [K2]… so a claim can point at the chunk it came from.
+      // Distinct from the web results' [1] on purpose — both can appear in one
+      // answer, and the chip renderers must not fight over the same marker.
+      for (const c of _kbSources) {
+        trainingBlock += `\n### [K${c.n}] From: ${c.file} (chunk ${c.index} of ${c.total})\n${c.text}\n`;
       }
+      trainingBlock += '\nWhen a statement comes from the reference material above, cite it inline with its marker, e.g. [K1]. Do not cite material you did not use.';
     }
     systemPrompt += trainingBlock;
+    _part(_retrievedCount ? `${_retrievedCount} matching chunk${_retrievedCount !== 1 ? 's' : ''} of your sources` : 'Your source instructions',
+      trainingBlock,
+      _retrievedCount ? `pulled from ${_totalChunkCount} chunks across your uploaded files` : 'Sources panel');
   }
 
   if (_trainingFiles.length || _trainingNotes) {
     const fileCount = _trainingFiles.length;
     const noteLabel = _trainingNotes ? ' + notes' : '';
-    const chunkLabel = _totalChunkCount ? ` · ${_retrievedCount}/${_totalChunkCount} chunks retrieved` : '';
-    updateThinkingStep('files', 'done', `Knowledge base loaded · ${fileCount} file${fileCount !== 1 ? 's' : ''}${noteLabel}${chunkLabel}`);
-    if (window._setEduCard) window._setEduCard('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>', `${fileCount} knowledge file${fileCount !== 1 ? 's' : ''}${noteLabel} loaded — retrieved the ${_retrievedCount} most relevant chunk${_retrievedCount !== 1 ? 's' : ''} (of ${_totalChunkCount}) via keyword matching for this question.`);
+    const chunkLabel = _totalChunkCount ? `${_retrievedCount}/${_totalChunkCount} chunks · ` : '';
+    updateThinkingStep('files', 'done', 'Knowledge base',
+      `${fileCount} file${fileCount !== 1 ? 's' : ''}${noteLabel} · ${chunkLabel}${fmtDur(Date.now() - _tKb)}`);
+    // Each retrieved chunk becomes its own trace row, with the score that earned
+    // it the slot — the trace already shows web results this way, and there is no
+    // reason the student's own documents should be the vaguer half of the record.
+    //
+    // When every chunk came out of the same file, the rows say "chunk 2 of 3"
+    // and name the file once above them. Repeating the filename on every row
+    // made three chunks of one PDF look like three separate documents.
+    const _kbFileNames = [...new Set(_kbSources.map(c => c.file))];
+    if (_kbFileNames.length === 1) {
+      addTraceRow('kb-file', 'srcfile', _kbFileNames[0],
+        { meta: `${_retrievedCount} of ${_kbSources[0].total} chunks used` });
+    }
+    _kbSources.forEach(c => addTraceRow(`kb-src-${c.n}`,
+      _kbFileNames.length === 1 ? 'chunk' : 'srcfile',
+      _kbFileNames.length === 1 ? `chunk ${c.index} of ${c.total}` : `${c.file} · chunk ${c.index}/${c.total}`,
+      { meta: `match ${c.score.toFixed(2)}` }));
+    if (_totalChunkCount && !_retrievedCount) {
+      addTraceRow('kb-none', 'more', 'nothing matched — answering without your sources');
+    }
+    if (window._setEduCard) window._setEduCard('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>', _retrievedCount
+      ? `${fileCount} knowledge file${fileCount !== 1 ? 's' : ''}${noteLabel} loaded — retrieved the ${_retrievedCount} most relevant chunk${_retrievedCount !== 1 ? 's' : ''} (of ${_totalChunkCount}) via keyword matching for this question.`
+      : `${fileCount} knowledge file${fileCount !== 1 ? 's' : ''}${noteLabel} loaded, but none of the ${_totalChunkCount} chunks share keywords with this question — the model is answering from its own knowledge.`);
   }
-  updateThinkingStep('context', 'done', 'Context ready');
+  // The size shown is what will actually be sent, estimated at the usual ~4
+  // characters per token — the exact count only comes back with the response.
+  const _promptChars = systemPrompt.length + messages.reduce((n, m) => n + (m.content || '').length, 0);
+  updateThinkingStep('context', 'done', 'Context ready',
+    `${messages.length} msg${messages.length !== 1 ? 's' : ''} · ~${fmtCount(Math.round(_promptChars / 4))} tok · ${fmtDur(Date.now() - _tCtx)}`);
 
   // ── Web search augmentation (Tavily) ─────────────────────────────────
   let _webSources = [];   // populated when a search returns results → rendered under the answer
   let _webContext = '';   // grounding block injected just before the user's question
   if (window._WEB_SEARCH_ENABLED && (window._TAVILY_KEY || '').trim()) {
     window._thinkingLabelOverride = 'Searching the web';   // pin the rotating loading label
-    updateThinkingStep('websearch', 'active', 'Searching the web…');
+    const _tWeb = Date.now();
+    updateThinkingStep('websearch', 'active', 'Searching the web');
+    // The query row goes up before the request leaves, so the student can read
+    // exactly what was asked on their behalf while the results are still coming.
+    addTraceRow('ws-query', 'query', text);
     if (window._setEduCard) window._setEduCard('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/></svg>', 'Web search is on — querying Tavily for fresh information, then feeding the top results to the model as context.');
     const sr = await performWebSearch(text);
     window._thinkingLabelOverride = null;   // back to the normal phrases for generation
     const webBlock = buildWebSearchBlock(sr);
+    const _webDur = fmtDur(Date.now() - _tWeb);
     if (webBlock) {
       _webContext = webBlock;
       _webSources = sr.results.slice(0, 3).map(r => ({ title: r.title, url: r.url }));
-      updateThinkingStep('websearch', 'done', `Web search · ${_webSources.length} source${_webSources.length !== 1 ? 's' : ''}`);
+      updateThinkingStep('websearch', 'done', 'Searched the web',
+        `${_webSources.length} of ${sr.results.length} used · ${_webDur}`);
+      _webSources.forEach((s, i) => addTraceRow(`ws-src-${i}`, 'source', s.title || s.url || 'Untitled', {
+        meta: hostOf(s.url), href: s.url
+      }));
+      // Everything Tavily returned past the three the model was given. They're
+      // real results, so they're offered rather than quietly dropped.
+      const extra = sr.results.length - _webSources.length;
+      if (extra > 0) addTraceRow('ws-more', 'more', `+${extra} more`);
     } else if (sr && sr.error) {
-      updateThinkingStep('websearch', 'error', sr.error === 'no-key' ? 'Web search skipped — no API key' : 'Web search failed — answering without it');
+      updateThinkingStep('websearch', 'error', sr.error === 'no-key' ? 'Web search skipped — no API key' : 'Web search failed — answering without it', _webDur);
     } else {
-      updateThinkingStep('websearch', 'done', 'Web search · no results');
+      updateThinkingStep('websearch', 'done', 'Searched the web', `no results · ${_webDur}`);
     }
   }
 
+  // The edu card explains the wait that's about to happen; the matching step is
+  // only claimed once the endpoint has actually answered, further down.
   if (_modelWarm) {
-    updateThinkingStep('model', 'active', `Sending to ${window.ACTIVE_MODEL}...`);
     if (window._setEduCard) window._setEduCard('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>', `${window.ACTIVE_MODEL} is already loaded in memory. Sending your prompt and streaming tokens back to the browser now...`);
   } else {
-    updateThinkingStep('model', 'active', `Loading model from disk · ${window.ACTIVE_MODEL}...`);
     if (window._setEduCard) window._setEduCard('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>', `First request — loading ${window.ACTIVE_MODEL} from disk into RAM. This takes a few seconds the first time. After this, all replies will be much faster.`);
   }
 
@@ -219,10 +351,41 @@ async function sendMessage() {
   }
   applyThinkingSwitch(payload);
 
+  // Snapshot for the prompt inspector, taken AFTER applyThinkingSwitch because
+  // that appends /think or /no_think to the last user turn. The inspector
+  // promises the exact bytes that go on the wire, so it has to be the last word.
+  // The parts above cover the system prompt; these cover the user turn, in the
+  // order they are actually concatenated. Recorded last so the tail of the list
+  // ends on the student's own words — which is the point being made: of
+  // everything the model just read, this small piece was yours.
+  _part('Live web results', _webContext, 'web search was on for this message');
+  _part('Text added before your message', _prefix, 'Settings › Personalize › Prompt prefix');
+  _part('What you typed', text, 'the message box');
+  _part('Text added after your message', _suffix, 'Settings › Personalize › Prompt suffix');
+  if (payload.messages.length > 2) {
+    // Everything except the system prompt and the current question.
+    const historyChars = payload.messages.slice(1, -1)
+      .reduce((n, m) => n + (m.content || '').length, 0);
+    _part('Earlier messages in this chat', historyChars,
+      `${payload.messages.length - 2} previous message${payload.messages.length - 2 !== 1 ? 's' : ''} — the model has no memory, so they are re-sent every time`);
+  }
+
+  const _promptSnapshot = {
+    model: payload.model,
+    temperature: payload.temperature,
+    maxTokens: payload.max_tokens ?? null,
+    typedChars: text.length,
+    parts: _promptParts,
+    messages: payload.messages.map(m => ({ role: m.role, content: m.content })),
+  };
+
   const startTime = Date.now();
+  const _endpointHost = hostOf(window.ACTIVE_BASE) || 'the model endpoint';
 
   // ── Streaming attempt ────────────────────────────────────────────────
   try {
+    updateThinkingStep('connect', 'active', `Contacting ${_endpointHost}`,
+      window.ACTIVE_KIND === 'api' ? 'cloud' : 'local');
     const response = await fetch(`${window.ACTIVE_BASE}/chat/completions`, {
       method: 'POST',
       mode: 'cors',
@@ -235,7 +398,22 @@ async function sendMessage() {
       signal: _streamAbort.signal
     });
 
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) {
+      updateThinkingStep('connect', 'error', `${_endpointHost} refused the request`, `HTTP ${response.status}`);
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    // The endpoint answered, so the trace is describing real work now — show it
+    // even if the header still said Offline when this message was sent (a probe
+    // can time out against a model that's busy loading and answer fine after).
+    if (window._revealThinkingSteps) window._revealThinkingSteps();
+
+    // Headers back. Whatever the server spent getting here — queueing, prompt
+    // eval, pulling weights off disk — is real elapsed time, so it's reported
+    // as one measured number rather than split into stages we can't observe.
+    updateThinkingStep('connect', 'done', `Connected to ${_endpointHost}`, fmtDur(Date.now() - startTime));
+    updateThinkingStep('model', 'active',
+      _modelWarm ? 'Waking the model' : 'Loading model from disk', window.ACTIVE_MODEL);
 
     const chatArea = document.getElementById('chat-area');
     const row = document.createElement('div');
@@ -245,7 +423,9 @@ async function sendMessage() {
     avatarDiv.textContent = getAIAvatar();
     const bubble = document.createElement('div');
     bubble.className = 'bubble ai';
-    bubble.id = 'ai-bubble-latest';
+    const msgBody = document.createElement('div');
+    msgBody.className = 'msg-body';
+    bubble.appendChild(msgBody);
     row.appendChild(avatarDiv);
     row.appendChild(bubble);
 
@@ -257,9 +437,11 @@ async function sendMessage() {
     const revealBubble = () => {
       if (_revealed) return;
       _revealed = true;
-      removeTypingIndicator();
+      // The trace moves into the answer rather than being thrown away — it keeps
+      // updating as the reply streams, then settles above it.
       chatArea.appendChild(row);
-      scrollToBottom();
+      promoteTrace(bubble);
+      autoScroll();
     };
 
     const reader = response.body.getReader();
@@ -272,7 +454,11 @@ async function sendMessage() {
     let _usingReasoningField = false; // true if model sends reasoning_content separately
     let _dbgChunk = 0;
     let _lastRenderAt = 0;
-    const RENDER_THROTTLE_MS = 60; // cap re-render rate so long streams don't reparse markdown on every token
+    // Floor on the repaint rate, not a pace. Only the trailing block is rebuilt
+    // (see streamRender), so a repaint is cheap and this can sit near a frame —
+    // text lands as good as the moment its token does. The cap only exists to
+    // stop a very fast endpoint from repainting several times per frame.
+    const RENDER_THROTTLE_MS = 16;
 
     let cancelled = false;
     try {
@@ -307,7 +493,13 @@ async function sendMessage() {
             delta = cc;
           }
           if (delta) {
-            if (firstTokenAt === null) { firstTokenAt = Date.now(); revealBubble(); }
+            if (firstTokenAt === null) {
+              firstTokenAt = Date.now();
+              revealBubble();
+              updateThinkingStep('model', 'done', 'Model ready',
+                `first token at ${fmtDur(firstTokenAt - startTime)}`);
+              updateThinkingStep('stream', 'active', 'Writing the answer');
+            }
             fullText += delta;
             // Full markdown re-parse is O(current length) — reformatting on every single
             // token turns a long stream into O(n^2) work and stalls the main thread until
@@ -319,9 +511,14 @@ async function sendMessage() {
               if (tp.think) {
                 renderThinkInBubble(bubble, tp.think, tp.display, tp.partial ?? true);
               } else {
-                bubble.innerHTML = formatContent(fullText);
+                streamRender(msgBody, fullText);
               }
-              scrollToBottom();
+              setStreamCaret(bubble, true);
+              // A live count, estimated from characters until the usage record
+              // arrives at the end of the stream and replaces it with the real one.
+              updateThinkingStep('stream', 'active', 'Writing the answer',
+                `~${fmtCount(Math.round(fullText.length / 4))} tok`);
+              autoScroll();
             }
           }
         } catch (e) { if (_dbgChunk++ < 6) console.error('[stream parse error]', e.message, data?.slice(0, 120)); }
@@ -346,19 +543,43 @@ async function sendMessage() {
     // state) may not have painted yet — always do one final unthrottled render here.
     if (fullText) {
       const tpFinal = parseThinkDisplay(fullText);
+      // `true` releases the trailing word held back mid-stream; the caret comes
+      // off now that nothing more is being written.
       if (tpFinal.think) {
         renderThinkInBubble(bubble, tpFinal.think, tpFinal.display, false);
       } else {
-        bubble.innerHTML = formatContent(fullText);
+        streamRender(msgBody, fullText);
       }
+      setStreamCaret(bubble, false);
     }
 
     // True when the model spent its whole turn on reasoning_content and never emitted
     // any real content — e.g. a reasoning model whose max_tokens cap ran out mid-think.
     const thinkOnly = fullText.includes('<think>') && !parseThinkDisplay(fullText).display;
 
+    // Close the last step on whatever actually happened. Token counts are exact
+    // when the endpoint sent a usage record and marked "~" when it didn't.
+    const _streamMs = (firstTokenAt != null) ? (Date.now() - firstTokenAt) : 0;
+    const _outTok = completionTokens ?? (fullText ? Math.round(fullText.length / 4) : 0);
+    const _speed = (_streamMs > 0 && _outTok) ? ` · ${(_outTok / (_streamMs / 1000)).toFixed(1)} tok/s` : '';
+    const _tokMeta = `${completionTokens == null ? '~' : ''}${fmtCount(_outTok)} tok${_speed}`;
+    if (firstTokenAt === null) {
+      // Not a single token arrived, so the model step never got its completion
+      // signal — leaving it ticked would claim work that never happened.
+      updateThinkingStep('model', 'error',
+        cancelled ? 'Stopped before the model replied' : 'Model returned nothing',
+        finishReason || '');
+    } else if (cancelled) {
+      updateThinkingStep('stream', 'error', 'Stopped by you', _tokMeta);
+    } else if (thinkOnly) {
+      updateThinkingStep('stream', 'error', 'Thought but never answered',
+        finishReason === 'length' ? 'hit the token limit' : _tokMeta);
+    } else {
+      updateThinkingStep('stream', 'done', 'Wrote the answer', _tokMeta);
+    }
+
     if (!fullText && !cancelled) {
-      bubble.innerHTML = '<em style="color:var(--text-muted)">No response received.</em>';
+      msgBody.innerHTML = '<em style="color:var(--text-muted)">No response received.</em>';
       // Remove the user message so this failed turn doesn't poison history
       messages.pop();
       if (session && session.displayMessages.length) session.displayMessages.pop();
@@ -376,11 +597,21 @@ async function sendMessage() {
     // Show the cancellation note (after any partial answer the model managed to stream).
     if (cancelled) bubble.appendChild(cancelledNoteEl());
 
-    // Attach the web-search source links under the answer (when this turn used search).
-    if (!cancelled && fullText && _webSources.length) {
-      const srcEl = buildSourcesEl(_webSources);
-      if (srcEl) bubble.appendChild(srcEl);
-    }
+    // Provenance: which of the student's own chunks were used (with the score
+    // that earned each its place), which web results, and the literal prompt.
+    // The inspector attaches even when the turn produced nothing — "what did it
+    // actually send?" is most worth answering on the turns that went wrong.
+    const _provenance = {
+      sources: _webSources.length ? _webSources : undefined,
+      kbSources: _kbSources.length ? _kbSources : undefined,
+      prompt: _promptSnapshot,
+    };
+    attachProvenance(bubble, fullText ? _provenance : { prompt: _promptSnapshot });
+
+    // Work is over: the header stops shimmering, states the total, and folds
+    // away. `traceData` is what gets stored so reopening this chat replays it.
+    const traceData = settleTrace(bubble);
+    if (traceData) traceData.model = window.ACTIVE_MODEL;
 
     const aiTime = getTime();
     const timeDiv = document.createElement('div');
@@ -394,10 +625,16 @@ async function sendMessage() {
     if (cancelled) {
       // Cancelled turns stay visible but are excluded from the model's context.
       messages.pop();   // remove the unanswered user turn we pushed at send start
-      if (session) session.displayMessages.push({ role: 'assistant', content: savedContent + CANCEL_MARK, time: aiTime, stats, cancelled: true });
+      if (session) session.displayMessages.push({ role: 'assistant', content: savedContent + CANCEL_MARK, time: aiTime, stats, cancelled: true, trace: traceData });
     } else if (savedContent) {
       messages.push({ role: 'assistant', content: savedContent });
-      if (session) session.displayMessages.push({ role: 'assistant', content: savedContent, time: aiTime, stats, sources: _webSources.length ? _webSources : undefined });
+      const msgObj = { role: 'assistant', content: savedContent, time: aiTime, stats,
+        sources: _provenance.sources, kbSources: _provenance.kbSources,
+        prompt: _promptSnapshot, trace: traceData };
+      if (session) session.displayMessages.push(msgObj);
+      // Fire-and-forget: the answer is already rendered, so this resolves in
+      // the background and appends underneath if it comes back in time.
+      attachFollowUps(bubble, msgObj, text, savedContent);
     } else if (fullText) {
       // model only generated thinking — pop the user message so history stays consistent
       messages.pop();
@@ -408,24 +645,45 @@ async function sendMessage() {
     _modelWarm = true;
 
   } catch (streamErr) {
+    // Say what went wrong in the trace before it's frozen — a turn that failed
+    // is exactly the one worth being able to reopen and read. Which step gets
+    // the blame depends on how far we actually got: a request that never came
+    // back has no streaming to fail.
+    const _aborted = _userCancelled || streamErr.name === 'AbortError';
+    if (traceStatus('model') !== null) {
+      updateThinkingStep('stream', 'error',
+        _aborted ? 'Stopped by you' : 'Streaming failed',
+        _aborted ? '' : (streamErr.message || 'connection error'));
+    } else if (traceStatus('connect') !== 'error') {
+      updateThinkingStep('connect', 'error', `Couldn't reach ${_endpointHost}`,
+        _aborted ? 'stopped' : (streamErr.message || 'connection error'));
+    }
     removeTypingIndicator();
+    const failTrace = captureTrace();
+    if (failTrace) failTrace.model = window.ACTIVE_MODEL;
 
     // User pressed Stop before any tokens streamed → show the note, skip fallback.
-    if (_userCancelled || streamErr.name === 'AbortError') {
+    if (_aborted) {
       const ca = document.getElementById('chat-area');
       const row = document.createElement('div');
       row.className = 'message-row';
       row.innerHTML = `<div class="avatar ai">${getAIAvatar()}</div><div class="bubble ai"></div>`;
-      row.querySelector('.bubble').appendChild(cancelledNoteEl());
+      const cancelBubble = row.querySelector('.bubble');
+      attachTrace(cancelBubble, failTrace);
+      cancelBubble.appendChild(cancelledNoteEl());
       ca.appendChild(row);
       messages.pop();   // drop the unanswered user turn from API context
-      if (session) session.displayMessages.push({ role: 'assistant', content: CANCEL_MARK, time: getTime(), cancelled: true });
-      scrollToBottom();
+      if (session) session.displayMessages.push({ role: 'assistant', content: CANCEL_MARK, time: getTime(), cancelled: true, trace: failTrace });
+      autoScroll();
       return;
     }
 
     // ── Non-streaming fallback ───────────────────────────────────────
     try {
+      // Reopen the same recorder so the retry appends to the failed attempt's
+      // history rather than pretending the turn started over.
+      _trace = { startMs: (failTrace ? failTrace.startMs : startTime), rows: (failTrace ? failTrace.rows : []) };
+      updateThinkingStep('fallback', 'active', 'Retrying without streaming');
       const res2 = await fetch(`${window.ACTIVE_BASE}/chat/completions`, {
         method: 'POST',
         mode: 'cors',
@@ -438,11 +696,24 @@ async function sendMessage() {
       const data = await res2.json();
       const aiText = data.choices?.[0]?.message?.content || 'No response.';
       const aiTime = getTime();
-      appendAIMessage(aiText);
       const fallbackTokens = data.usage?.completion_tokens ?? data.usage?.total_tokens ?? null;
+      updateThinkingStep('fallback', 'done', 'Answered without streaming',
+        `${fallbackTokens == null ? '~' : ''}${fmtCount(fallbackTokens ?? Math.round(aiText.length / 4))} tok · ${fmtDur(Date.now() - startTime)}`);
+      const okTrace = captureTrace();
+      if (okTrace) okTrace.model = window.ACTIVE_MODEL;
+      _trace = null;
+      const fallbackBubble = appendAIMessage(aiText, okTrace);
       const stats = appendMsgMeta(document.getElementById('chat-area'), Date.now() - startTime, fallbackTokens, aiText, data.usage?.prompt_tokens ?? null);
       messages.push({ role: 'assistant', content: aiText });
-      if (session) session.displayMessages.push({ role: 'assistant', content: aiText, time: aiTime, stats });
+      const msgObj = { role: 'assistant', content: aiText, time: aiTime, stats, trace: okTrace,
+        sources: _webSources.length ? _webSources : undefined,
+        kbSources: _kbSources.length ? _kbSources : undefined,
+        prompt: _promptSnapshot };
+      // Same answer, same provenance — a turn that fell back to non-streaming is
+      // no less entitled to show its sources than one that streamed cleanly.
+      attachProvenance(fallbackBubble, msgObj);
+      if (session) session.displayMessages.push(msgObj);
+      attachFollowUps(fallbackBubble, msgObj, text, aiText);
       updateHistory(text);
       setConnected(true);
       _modelWarm = true;
@@ -493,10 +764,15 @@ async function sendMessage() {
           const xhrResult = await xhrFallback(payload);
           removeTypingIndicator();
           const xhrTime = getTime();
-          appendAIMessage(xhrResult);
+          updateThinkingStep('fallback', 'done', 'Answered over XHR',
+            `fetch was blocked · ${fmtDur(Date.now() - startTime)}`);
+          const xhrTrace = captureTrace();
+          if (xhrTrace) xhrTrace.model = window.ACTIVE_MODEL;
+          _trace = null;
+          appendAIMessage(xhrResult, xhrTrace);
           const stats = appendMsgMeta(document.getElementById('chat-area'), Date.now() - startTime, null, xhrResult);
           messages.push({ role: 'assistant', content: xhrResult });
-          if (session) session.displayMessages.push({ role: 'assistant', content: xhrResult, time: xhrTime, stats });
+          if (session) session.displayMessages.push({ role: 'assistant', content: xhrResult, time: xhrTime, stats, trace: xhrTrace });
           updateHistory(text);
           setConnected(true);
           _modelWarm = true;
@@ -512,7 +788,6 @@ async function sendMessage() {
               { text: 'In a terminal, from the project folder, run:', code: OLLAMA_SCRIPT_CMD },
               { text: 'That stops and restarts Ollama correctly. Or do it by hand in one line:', code: OLLAMA_RESTART_CMD },
               { text: 'Wait a few seconds, then try sending your message again' },
-              { text: 'Tired of doing this? Set it once and forget it:', code: OLLAMA_PERSIST_CMD },
             ],
             cta: true,
             guidePage: 4,   // Run it locally — start Ollama + connect
@@ -594,6 +869,9 @@ async function sendMessage() {
       setConnected(false);
     }
   } finally {
+    // A setup card explains the failure better than a trace would, so the error
+    // paths drop theirs — but the recorder must not leak into the next turn.
+    _trace = null;
     isStreaming = false;
     _streamAbort = null;
     setSendMode(false);

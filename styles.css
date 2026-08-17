@@ -20,9 +20,20 @@
     --dc-gold: #FFC93C;
     --dc-orange: #FF8A3D;
     --dc-green: #5FBF6B;
-    --bg-primary: #F7F9FC;
+    /* Light mode sits a few steps below paper-white so the white panels/
+       bubbles laid on top of it read as raised surfaces instead of melting
+       into the page — the old #F7F9FC was bright enough to glare and left
+       cards with almost no edge. */
+    --bg-primary: #EBEFF9;
     --bg-panel: #FFFFFF;
-    --bg-sidebar: var(--dc-blue-deeper);
+    /* The sidebar/rail is a dark brand slab in both themes; a vertical
+       blue→violet gradient (rather than a flat fill) ties it to the poster
+       art and to the body glow behind it. */
+    --bg-sidebar:
+      linear-gradient(168deg,
+        color-mix(in srgb, var(--dc-blue) 60%, black) 0%,
+        color-mix(in srgb, var(--dc-blue) 42%, black) 52%,
+        color-mix(in srgb, var(--dc-violet) 34%, black) 100%);
     --text-primary: #0D1B2E;
     --text-secondary: #4A6280;
     --text-muted: #8AA0B8;
@@ -30,6 +41,14 @@
     --border-light: #E8EFF8;
     --user-bubble: var(--dc-blue);
     --ai-bubble: #FFFFFF;
+    /* Failure states used to be red end to end — surface, border, headings,
+       step numbers and buttons — which reads as alarm rather than as the
+       explanation it actually is. Red is now reserved for the one glyph that
+       has to say "something failed"; everything else sits on the normal
+       surface scale. The tints are derived so a theme swap carries them. */
+    --danger: #C2453F;
+    --danger-tint: color-mix(in srgb, var(--danger) 12%, transparent);
+    --danger-edge: color-mix(in srgb, var(--danger) 26%, transparent);
     --font-main: 'Plus Jakarta Sans', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
     --radius-sm: 8px;
@@ -39,6 +58,23 @@
     --header-h: 92px;
     --shadow-card: 0 2px 12px color-mix(in srgb, var(--dc-blue) 8%, transparent);
     --shadow-input: 0 2px 20px color-mix(in srgb, var(--dc-blue) 12%, transparent);
+
+    /* Sidebar ink — the panel is dark in BOTH themes, so its whites live in
+       their own scale rather than following --text-*. They were mixed down
+       far enough (section labels at 0.22, items at 0.55) that the nav read
+       as permanently disabled; these are the legible floor. */
+    --sb-text: rgba(255,255,255,0.78);
+    --sb-text-strong: #FFFFFF;
+    --sb-text-dim: rgba(255,255,255,0.55);
+    --sb-text-faint: rgba(255,255,255,0.42);
+    --sb-border: rgba(255,255,255,0.10);
+    --sb-hover-bg: rgba(255,255,255,0.10);
+
+    /* Ambient .bg-scene ink. Light mode can't use white dust (invisible on
+       a near-white page) or gold (too pale), so both swap to saturated
+       brand hues; dark mode keeps the original white/gold embers. */
+    --scene-dust: var(--dc-violet);
+    --scene-gold: var(--dc-orange);
   }
 
   /* DEVCON 17 dark theme — deep indigo/violet void (poster background) with
@@ -47,7 +83,9 @@
   [data-theme="dark"] {
     --bg-primary: #17132E;
     --bg-panel: #221C46;
-    --bg-sidebar: #120E26;
+    --bg-sidebar: linear-gradient(168deg, #1A1438 0%, #120E26 55%, #0D0A1F 100%);
+    --scene-dust: #FFFFFF;
+    --scene-gold: var(--dc-gold);
     --text-primary: #ECE9FA;
     --text-secondary: #9A93C2;
     --text-muted: #5C5484;
@@ -57,6 +95,15 @@
     --ai-bubble: #221C46;
     --dc-blue-light: color-mix(in srgb, var(--dc-blue) 25%, var(--bg-panel));
     --dc-accent-light: #241C4C;
+    /* Lifted well off the deep violet ground — the light-mode red goes muddy
+       against it, and the tints need more weight to stay visible. */
+    /* Lifted off the deep violet ground, but not washed out: the previous
+       #F08A85 sat at the same hue and simply lost saturation, which lands on
+       salmon and reads orange at glyph size. Saturation is what makes it read
+       as red here, not hue. */
+    --danger: #F0595B;
+    --danger-tint: color-mix(in srgb, var(--danger) 15%, transparent);
+    --danger-edge: color-mix(in srgb, var(--danger) 30%, transparent);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -73,17 +120,23 @@
       var(--bg-primary);
   }
 
-  /* Light mode gets the same layered-glow treatment, tuned to a whisper of
-     the logo's gold/orange/violet/green so white panels and text stay
-     crisp on top of it. */
+  /* Light mode gets the same layered-glow treatment. The stops used to sit
+     at 4–8% over a near-white base, which washed out to a flat glare; at
+     roughly double the strength — plus a violet→blue diagonal wash under
+     everything — the logo's gold/orange/violet/green actually read as
+     colour while white panels and near-black text stay crisp on top. */
   body {
     font-family: var(--font-main);
     background:
-      radial-gradient(1100px 750px at 12% -8%, color-mix(in srgb, var(--dc-violet) 8%, transparent), transparent 60%),
-      radial-gradient(950px 700px at 92% 8%, rgba(0,168,232,0.06), transparent 55%),
-      radial-gradient(850px 650px at 100% 55%, color-mix(in srgb, var(--dc-orange) 5%, transparent), transparent 55%),
-      radial-gradient(900px 800px at 45% 115%, color-mix(in srgb, var(--dc-green) 5%, transparent), transparent 60%),
-      radial-gradient(700px 600px at 0% 100%, color-mix(in srgb, var(--dc-gold) 4%, transparent), transparent 55%),
+      radial-gradient(1100px 750px at 12% -8%, color-mix(in srgb, var(--dc-violet) 20%, transparent), transparent 62%),
+      radial-gradient(950px 700px at 92% 8%, color-mix(in srgb, var(--dc-accent) 16%, transparent), transparent 58%),
+      radial-gradient(850px 650px at 100% 55%, color-mix(in srgb, var(--dc-orange) 12%, transparent), transparent 58%),
+      radial-gradient(900px 800px at 45% 115%, color-mix(in srgb, var(--dc-green) 11%, transparent), transparent 60%),
+      radial-gradient(700px 600px at 0% 100%, color-mix(in srgb, var(--dc-gold) 12%, transparent), transparent 58%),
+      linear-gradient(150deg,
+        color-mix(in srgb, var(--dc-violet) 9%, transparent) 0%,
+        transparent 45%,
+        color-mix(in srgb, var(--dc-blue) 8%, transparent) 100%),
       var(--bg-primary);
     color: var(--text-primary);
     height: 100dvh;
@@ -105,7 +158,9 @@
     z-index: -1;
     pointer-events: none;
   }
-  .bg-scene .bg-constellation { opacity: 0.18; }
+  /* Light mode needs MORE opacity than dark, not less: hairlines and 2px
+     dots on a pale page disappear well before they would on the void. */
+  .bg-scene .bg-constellation { opacity: 0.5; stroke-width: 1.4; }
   .bg-scene .bg-particles circle,
   .bg-scene .bg-sparkle {
     animation: bg-twinkle 9s ease-in-out infinite;
@@ -115,21 +170,21 @@
   .bg-scene .bg-particles circle:nth-child(5n) { animation-delay: -1.5s; animation-duration: 13s; }
   .bg-scene .bg-sparkle:nth-of-type(2n) { animation-delay: -4.5s; animation-duration: 12s; }
   .bg-scene .bg-sparkle:nth-of-type(3n) { animation-delay: -7s; animation-duration: 10s; }
-  [data-theme="dark"] .bg-scene .bg-constellation { opacity: 0.4; }
+  [data-theme="dark"] .bg-scene .bg-constellation { opacity: 0.4; stroke-width: 1; }
   [data-theme="dark"] .bg-scene .bg-particles circle,
   [data-theme="dark"] .bg-scene .bg-sparkle { animation-name: bg-twinkle-dark; }
   /* A gentle fade plus a few px of drift — enough to feel alive without
      reading as motion that competes with real content. */
   @keyframes bg-twinkle {
-    0%, 100% { opacity: 0.25; transform: translate(0, 0); }
-    50% { opacity: 0.5; transform: translate(2px, -5px); }
+    0%, 100% { opacity: 0.5; transform: translate(0, 0); }
+    50% { opacity: 0.85; transform: translate(2px, -5px); }
   }
   @keyframes bg-twinkle-dark {
     0%, 100% { opacity: 0.4; transform: translate(0, 0); }
     50% { opacity: 0.75; transform: translate(2px, -5px); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .bg-scene .bg-particles circle, .bg-scene .bg-sparkle { animation: none; opacity: 0.4; }
+    .bg-scene .bg-particles circle, .bg-scene .bg-sparkle { animation: none; opacity: 0.7; }
     [data-theme="dark"] .bg-scene .bg-particles circle,
     [data-theme="dark"] .bg-scene .bg-sparkle { opacity: 0.6; }
   }
@@ -142,7 +197,7 @@
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid var(--sb-border);
     border-left: none;
     border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
     margin: 10px 10px 10px 0;
@@ -182,7 +237,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
+    border-bottom: 1px solid var(--sb-border);
   }
 
   /* Every DEVCON avatar/CTA that uses the brand gradient — kept in one
@@ -227,7 +282,7 @@
     padding: 8px 12px 4px;
     font-size: 9.5px;
     font-weight: 700;
-    color: rgba(255,255,255,0.22);
+    color: var(--sb-text-faint);
     letter-spacing: 1.2px;
     text-transform: uppercase;
   }
@@ -238,7 +293,7 @@
     padding: 4px 8px 8px;
   }
   .history-list::-webkit-scrollbar { width: 3px; }
-  .history-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+  .history-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 2px; }
 
   .history-item {
     padding: 8px 10px;
@@ -247,7 +302,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: rgba(255,255,255,0.55);
+    color: var(--sb-text);
     font-size: 12.5px;
     font-weight: 400;
     transition: all 0.15s;
@@ -255,9 +310,9 @@
     overflow: hidden;
     user-select: none;
   }
-  .history-item:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.8); }
+  .history-item:hover { background: var(--sb-hover-bg); color: var(--sb-text-strong); }
   .history-item.active { background: color-mix(in srgb, var(--dc-blue) 20%, transparent); color: var(--dc-blue-tint); }
-  .history-item svg { flex-shrink: 0; opacity: 0.6; }
+  .history-item svg { flex-shrink: 0; opacity: 0.75; }
   .history-item-title {
     flex: 1;
     white-space: nowrap;
@@ -270,8 +325,8 @@
     flex-shrink: 0;
     font-size: 9.5px;
     font-weight: 700;
-    background: rgba(255,255,255,0.08);
-    color: rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.14);
+    color: var(--sb-text-dim);
     border-radius: 10px;
     padding: 1px 6px;
     min-width: 18px;
@@ -288,7 +343,7 @@
     border: none;
     padding: 2px 4px;
     cursor: pointer;
-    color: rgba(255,255,255,0.35);
+    color: var(--sb-text-dim);
     border-radius: 4px;
     line-height: 1;
     transition: color 0.15s, background 0.15s;
@@ -298,7 +353,7 @@
 
   .sidebar-footer {
     padding: 10px 12px;
-    border-top: 1px solid rgba(255,255,255,0.07);
+    border-top: 1px solid var(--sb-border);
   }
 
   .model-badge {
@@ -337,10 +392,18 @@
   /* HEADER — only shown once a conversation is active; the welcome/main
      screen stays clean with no header bar (and thus no Back button either,
      since it lives inside it). */
+  /* Separated by a rule, not by a fill. Any opaque or tinted bar is a flat
+     colour laid over the body's radial-gradient glow, so it reads as a block
+     cut into the background with a hard edge against the sidebar. A hairline
+     marks the boundary just as clearly and lets the glow run straight
+     through. Nothing scrolls behind the header either — .chat-area is its
+     flex sibling, not underneath it — so it needs no fill to stay legible. */
   .header {
-    height: var(--header-h);
-    background: var(--bg-panel);
-    border-bottom: 1px solid var(--border-light);
+    /* min-height, not height: while the title is being renamed the h1 wraps
+       onto extra lines and the bar grows downward with it. */
+    min-height: var(--header-h);
+    background: transparent;
+    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
     padding: 0 28px;
@@ -375,6 +438,8 @@
     gap: 12px;
   }
   .header-title h1 {
+    flex: 1 1 auto;
+    min-width: 0;              /* lets the flex item shrink so text can wrap */
     font-size: 21px;
     font-weight: 800;
     letter-spacing: -0.3px;
@@ -394,24 +459,19 @@
     transition: background 0.15s;
   }
   .header-title h1[contenteditable="true"]:hover { background: var(--border-light); }
+  /* While editing, a long name wraps downward inside the box instead of
+     running off the header as one line. overflow-wrap: anywhere is what
+     breaks an unbroken run of characters (a pasted URL, a name typed with
+     no spaces); white-space: normal alone would leave it as one long word.
+     Past ~3 lines the box scrolls rather than swallowing the screen. */
   .header-title h1[contenteditable="true"]:focus {
     background: var(--bg-primary);
     box-shadow: 0 0 0 2px var(--dc-blue);
     white-space: normal;
-    overflow: visible;
+    overflow-wrap: anywhere;
     text-overflow: clip;
-  }
-  .header-title p {
-    flex-shrink: 0;
-    font-size: 11.5px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 4px 11px;
-    white-space: nowrap;
-    margin-top: 0;
+    overflow-y: auto;
+    max-height: calc(3.6em + 8px);
   }
 
   .header-actions {
@@ -491,6 +551,28 @@
     animation: none;
   }
 
+  /* "Checking" is a genuine third state, not a flavour of offline: right after
+     you pick a model nothing is known about it yet. Amber + a spinner says
+     "still probing", where the red dot said "this model is dead" — which was
+     a lie for the second or two a cloud endpoint takes to answer. */
+  .status-chip.checking {
+    background: #FFF7ED;
+    border-color: #FED7AA;
+    color: #9A5B0B;
+  }
+  [data-theme="dark"] .status-chip.checking {
+    background: rgba(217,119,6,0.15);
+    border-color: rgba(217,119,6,0.35);
+    color: #FBBF24;
+  }
+  .status-chip.checking .status-dot {
+    width: 9px; height: 9px;
+    background: none;
+    border: 1.5px solid currentColor;
+    border-top-color: transparent;
+    animation: spin 0.7s linear infinite;
+  }
+
   /* WIFI BANNER */
   .wifi-banner {
     display: flex;
@@ -560,8 +642,8 @@
   /* SIDEBAR WIFI CARD */
   .sidebar-wifi {
     margin: 8px 10px 4px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--sb-border);
     border-radius: 10px;
     padding: 10px 12px;
     transition: all 0.4s;
@@ -578,7 +660,7 @@
     display: flex; align-items: center; justify-content: center;
     width: 26px; height: 26px;
     border-radius: 7px;
-    background: rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.12);
     flex-shrink: 0;
   }
   .sidebar-wifi-ssid {
@@ -604,6 +686,15 @@
   }
   .sidebar-wifi-status.ok .swifi-dot { background: #22C55E; animation: pulse 2s infinite; }
   .sidebar-wifi-status.err .swifi-dot { background: #EF4444; }
+  .sidebar-wifi.checking { border-color: rgba(217,119,6,0.3); background: rgba(217,119,6,0.07); }
+  .sidebar-wifi-status.checking { color: #FBBF24; }
+  .sidebar-wifi-status.checking .swifi-dot {
+    width: 8px; height: 8px;
+    background: none;
+    border: 1.5px solid currentColor;
+    border-top-color: transparent;
+    animation: spin 0.7s linear infinite;
+  }
 
   /* CHAT AREA */
   .chat-area {
@@ -616,22 +707,6 @@
   }
   .chat-area::-webkit-scrollbar { width: 4px; }
   .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-  /* Fade scrim sitting between the scroll area and the floating input bar —
-     messages dissolve into the background as they scroll under it instead
-     of ending in a hard seam right at the box's edge. */
-  .chat-fade {
-    display: none;
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 150px;
-    background: linear-gradient(to bottom, transparent, var(--bg-primary) 70%);
-    pointer-events: none;
-    z-index: 5;
-  }
-  .main:not(.welcome-mode) .chat-fade { display: block; }
 
   /* WELCOME */
   .welcome-screen {
@@ -936,88 +1011,182 @@
   }
   .message-time.user { text-align: right; }
 
-  /* THINKING INDICATOR */
+  /* THINKING INDICATOR — expandable agent trace.
+     The header is a quiet button; everything below it hangs off a single
+     hairline rail, so the trace reads as one thread of work rather than a
+     stack of boxes. Collapse uses the 1fr→0fr grid trick so the height
+     animates without measuring anything in JS. */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes shimmer-text { to { background-position: -200% 0; } }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
   .thinking-bubble {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 0;
-    padding: 10px 14px;
-    min-width: 220px;
+    padding: 9px 13px 11px;
+    min-width: 268px;
   }
   .thinking-top-row {
     display: flex;
     align-items: center;
-    gap: 9px;
-    width: 100%;
+    gap: 8px;
+    width: calc(100% + 12px);
+    margin: -3px -6px 0;
+    padding: 4px 6px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     user-select: none;
+    transition: background 0.1s ease;
+  }
+  .thinking-top-row:hover { background: var(--border-light); }
+  .thinking-sparkle {
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    display: flex;
   }
   .thinking-top-chevron {
-    font-size: 9px;
+    display: flex;
+    flex-shrink: 0;
     color: var(--text-muted);
-    margin-left: 4px;
-    transition: transform 0.2s;
-    flex-shrink: 0;
+    transform: rotate(180deg);   /* the trace starts expanded */
+    transition: transform 0.3s ease;
   }
-  .thinking-spinner {
-    width: 13px; height: 13px;
-    border-radius: 50%;
-    border: 2px solid var(--border-light);
-    border-top-color: var(--dc-blue);
-    animation: spin 0.75s linear infinite;
-    flex-shrink: 0;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .thinking-top-row.collapsed .thinking-top-chevron { transform: rotate(0deg); }
+  /* Shimmer sweeps across the label instead of the old trailing "...", so the
+     header stays one stable width while the model works. */
   .thinking-label {
-    font-size: 12.5px;
-    color: var(--text-secondary);
-    font-style: italic;
-  }
-  .thinking-model-tag {
-    font-size: 10px;
-    color: var(--text-muted);
-    margin-left: auto;
+    font-size: 13px;
+    font-weight: 500;
     font-style: normal;
     white-space: nowrap;
+    background-image: linear-gradient(90deg,
+      var(--text-muted) 35%, var(--text-primary) 50%, var(--text-muted) 65%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer-text 1.4s linear infinite;
   }
+  /* Work is over — the sweep stops and the label states the total. */
+  .thinking-label.settled {
+    background-image: none;
+    -webkit-background-clip: border-box;
+    background-clip: border-box;
+    color: var(--text-secondary);
+    animation: fade-in 350ms ease-out both;
+  }
+  .thinking-model-tag {
+    font-size: 10.5px;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    margin-left: auto;
+    padding-left: 10px;
+    font-style: normal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 45%;
+  }
+
   .thinking-collapsible {
-    margin-top: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
+    display: grid;
+    grid-template-rows: 1fr;
+    opacity: 1;
     width: 100%;
+    transition: grid-template-rows 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+                opacity 0.4s cubic-bezier(0.23, 1, 0.32, 1);
   }
-  .thinking-collapsible.hidden { display: none; }
-  .thinking-steps-section {
-    margin-top: 10px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border-light);
-    width: 100%;
+  .thinking-collapsible.hidden { grid-template-rows: 0fr; opacity: 0; }
+  .thinking-clip { overflow: hidden; }
+  /* The rail is positioned rather than measured — top/bottom insets let it
+     grow with the trace for free as steps stream in. */
+  .thinking-trace {
+    position: relative;
+    margin: 4px 0 0 5px;
+    padding-left: 16px;
   }
+  .thinking-trace::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: -4px;
+    bottom: 8px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .thinking-steps-section { margin-top: 8px; }
+  .thinking-steps-section.hidden { display: none; }
   .thinking-steps-label {
     font-size: 10px;
     font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.6px;
-    margin-bottom: 6px;
+    padding-left: 6px;
+    margin-bottom: 3px;
   }
   .thinking-steps-list {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    width: 100%;
+    gap: 1px;
   }
+  /* A row is icon → what happened → what it cost. The primary text truncates
+     so the measurement on the right is never the thing that gets cut off. */
   .thinking-step {
     display: flex;
     align-items: center;
-    gap: 7px;
-    font-size: 11.5px;
-    color: var(--text-secondary);
+    gap: 8px;
+    min-height: 26px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    line-height: 1.35;
+    color: var(--text-primary);
+    font-weight: 500;
+    text-decoration: none;
+    animation: fade-up 320ms cubic-bezier(0.23, 1, 0.32, 1) both;
   }
-  .thinking-step.step-active { color: var(--text-primary); font-weight: 500; }
-  .thinking-step.step-done { color: var(--text-muted); }
+  .thinking-step.step-done { color: var(--text-secondary); }
+  .thinking-step.step-error { color: var(--danger); }
+
+  /* Retrieved chunks of a single file: indented under the row naming that file,
+     with a quiet tick instead of a source dot. They are parts of one thing, and
+     giving each the same marker a whole source gets is what made three chunks of
+     one PDF read as three documents. */
+  .thinking-step.kind-chunk {
+    min-height: 22px;
+    padding-left: 22px;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+  .chunk-tick {
+    display: block;
+    width: 7px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--border);
+  }
+  .thinking-step.kind-chunk .step-meta { color: var(--text-muted); }
+  .step-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .step-meta {
+    flex-shrink: 0;
+    font-size: 11.5px;
+    font-weight: 400;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
   .step-icon {
     width: 14px;
     height: 14px;
@@ -1025,28 +1194,61 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 10px;
-    line-height: 1;
+    color: var(--text-muted);
   }
+  .thinking-step.step-error .step-icon { color: var(--danger); }
   .step-mini-spinner {
-    width: 10px; height: 10px;
+    width: 12px; height: 12px;
     border-radius: 50%;
-    border: 1.5px solid var(--border-light);
-    border-top-color: var(--dc-blue);
-    animation: spin 0.75s linear infinite;
+    border: 1.5px solid var(--border);
+    border-top-color: var(--text-secondary);
+    animation: spin 700ms linear infinite;
     display: inline-block;
   }
 
-  /* EDUCATIONAL CARD inside thinking bubble */
+  /* SEARCH ROWS — the query that was sent, then the pages it came back with.
+     Sources are real links: the trace is only worth showing if the student can
+     go read what the model was fed. */
+  .thinking-step.kind-query { color: var(--text-secondary); font-weight: 400; }
+  .thinking-step.kind-source {
+    color: var(--text-primary);
+    transition: background 0.15s ease;
+  }
+  .thinking-step.kind-source:hover { background: var(--border-light); }
+  .thinking-step.kind-source:hover .step-text { text-decoration: underline; }
+  /* Three near-identical rows of blue link text are unscannable — a coloured
+     dot per source gives the eye something to sort on. */
+  .src-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .thinking-step.kind-more {
+    display: block;
+    padding-left: 28px;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-muted);
+    min-height: 0;
+  }
+
+  /* EDUCATIONAL CARD inside thinking bubble — kept, but demoted to an inset
+     panel on the rail so it supports the trace instead of competing with it. */
   .thinking-edu-card {
-    background: var(--dc-blue-light);
+    background: color-mix(in srgb, var(--dc-blue) 5%, transparent);
     border: 1px solid var(--border-light);
-    border-radius: 8px;
+    border-radius: 10px;
     width: 100%;
     box-sizing: border-box;
     overflow: hidden;
     transition: opacity 0.25s ease;
   }
+  [data-theme="dark"] .thinking-edu-card { background: rgba(255,255,255,0.035); }
   .thinking-edu-body {
     display: flex;
     gap: 8px;
@@ -1057,17 +1259,17 @@
     display: flex;
     flex-shrink: 0;
     margin-top: 1px;
-    color: var(--text-secondary);
+    color: var(--text-muted);
   }
   .thinking-edu-text {
-    font-size: 11.5px;
+    font-size: 12px;
     color: var(--text-secondary);
-    line-height: 1.55;
+    line-height: 1.6;
     font-style: normal;
   }
   .thinking-edu-footer {
     border-top: 1px solid var(--border-light);
-    padding: 7px 11px 9px;
+    padding: 6px 7px 7px;
   }
   .thinking-edu-footer-label {
     display: block;
@@ -1076,77 +1278,94 @@
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.6px;
-    margin-bottom: 6px;
+    margin: 0 0 3px 4px;
   }
   .thinking-edu-links {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
+    gap: 1px;
   }
   .thinking-edu-links a {
-    font-size: 10.5px;
-    color: var(--dc-blue);
+    font-size: 11.5px;
+    color: var(--text-secondary);
     text-decoration: none;
-    background: var(--bg-primary, #fff);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 3px 9px;
-    font-weight: 600;
+    border-radius: 6px;
+    padding: 3px 6px;
+    font-weight: 500;
+    transition: background 0.12s ease, color 0.12s ease;
   }
-  .thinking-edu-links a:hover { text-decoration: underline; }
+  .thinking-edu-links a:hover { background: var(--border-light); color: var(--text-primary); }
 
-  /* THINK BLOCK (model reasoning output) */
-  .think-block {
-    border: 1px solid var(--border-light);
-    border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 10px;
+  /* SETTLED TRACE — the same trace, once the answer exists. It moves inside the
+     bubble and folds shut, so the record of the work sits with the work rather
+     than vanishing the moment it becomes checkable. */
+  .process-trace {
+    width: 100%;
+    margin-bottom: 8px;
   }
+  .process-trace .thinking-top-row {
+    width: calc(100% + 12px);
+    margin: -2px -6px 0;
+  }
+  .process-trace .thinking-trace { margin-top: 2px; }
+  .process-trace:not(.live) .thinking-steps-section.hidden { display: block; }
+
+  /* THINK BLOCK — the model's own reasoning. Same language as the trace above
+     it: sparkle, shimmer while it runs, settled label, prose on the rail. */
+  .think-block { margin-bottom: 10px; }
   .think-block-header {
     display: flex;
     align-items: center;
-    gap: 7px;
-    padding: 8px 12px;
+    gap: 8px;
+    width: calc(100% + 12px);
+    margin: 0 -6px;
+    padding: 4px 6px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    background: var(--dc-blue-light);
     user-select: none;
-    line-height: 1;
-    transition: background 0.15s;
+    transition: background 0.1s ease;
   }
   .think-block-header:hover { background: var(--border-light); }
-  .think-icon {
+  .think-header-label {
     font-size: 13px;
-    line-height: 1;
-    display: inline-block;
-    animation: spin 1.4s linear infinite;
+    font-weight: 500;
+    white-space: nowrap;
+    background-image: linear-gradient(90deg,
+      var(--text-muted) 35%, var(--text-primary) 50%, var(--text-muted) 65%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer-text 1.4s linear infinite;
   }
-  .think-icon.think-done { animation: none; }
+  .think-header-label.settled {
+    background-image: none;
+    -webkit-background-clip: border-box;
+    background-clip: border-box;
+    color: var(--text-secondary);
+    animation: fade-in 350ms ease-out both;
+  }
   .think-block-chevron {
+    display: flex;
+    flex-shrink: 0;
     margin-left: auto;
-    font-size: 13px;
-    font-weight: 400;
-    display: inline-block;
-    transition: transform 0.2s;
     color: var(--text-muted);
-    line-height: 1;
+    transition: transform 0.3s ease;
   }
-  .think-block-chevron.open { transform: rotate(90deg); }
+  .think-block-header.open .think-block-chevron { transform: rotate(180deg); }
+  /* The rail is a border, not a pseudo-element: this box scrolls, and an
+     absolutely-positioned rail would scroll away with the text. */
   .think-block-body {
-    padding: 11px 13px;
+    margin: 4px 0 0 5px;
+    padding: 2px 0 2px 16px;
+    border-left: 1px solid var(--border);
     font-size: 11.5px;
     color: var(--text-secondary);
-    font-family: var(--font-mono);
     white-space: pre-wrap;
     max-height: 240px;
     overflow-y: auto;
-    line-height: 1.65;
-    border-top: 1px solid var(--border-light);
-    background: var(--bg-primary);
+    line-height: 1.7;
   }
-  [data-theme="dark"] .think-block-body { background: rgba(0,0,0,0.18); }
   .think-block-body.hidden { display: none; }
 
   /* MESSAGE METADATA */
@@ -1306,19 +1525,37 @@
     display: none;
   }
 
-  /* Chat mode: leave room for the floating input bar (+ its bottom margin) */
+  /* Chat mode: leave room for the floating input bar (+ its bottom margin),
+     and dissolve messages as they scroll in behind it.
+
+     The fade is a mask on the scroll box, not a coloured scrim laid on top of
+     it. A scrim has to commit to one flat colour, and any flat colour reads as
+     a cut-out rectangle over the body's radial-gradient glow — the previous
+     one painted a 150px band of --bg-primary across the bottom of .main, which
+     showed up as a hard seam running down the sidebar's edge and a visibly
+     mismatched block under the input card. Masking fades the content itself
+     and leaves whatever is behind it completely untouched. */
   .main:not(.welcome-mode) .chat-area {
     padding-bottom: 200px;
+    /* -start/-end are measured up from the bottom of the scroll box: content
+       is fully opaque above -start and fully gone below -end. -top is the
+       short matching fade at the header end, so messages dissolve as they
+       reach the header's rule rather than sliding under it at full strength. */
+    --chat-fade-top: 22px;
+    --chat-fade-start: 150px;
+    --chat-fade-end: 45px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--chat-fade-top), #000 calc(100% - var(--chat-fade-start)), transparent calc(100% - var(--chat-fade-end)));
+    mask-image: linear-gradient(to bottom, transparent 0, #000 var(--chat-fade-top), #000 calc(100% - var(--chat-fade-start)), transparent calc(100% - var(--chat-fade-end)));
   }
 
   .input-box {
     background: var(--bg-primary);
     border: 1.5px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: 8px;
+    padding: 6px;
     display: flex;
-    align-items: center;
-    gap: 8px;
+    flex-direction: column;
+    gap: 6px;
     transition: border-color 0.2s, box-shadow 0.2s;
     box-shadow: var(--shadow-input);
   }
@@ -1327,8 +1564,59 @@
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--dc-blue) 10%, transparent), var(--shadow-input);
   }
 
+  /* Off-screen twin of the textarea, used only to measure the draft's
+     natural width (see syncComposer in app/chat.js). Absolute + invisible
+     so it never affects layout or gets read out. */
+  .composer-measure {
+    position: absolute;
+    visibility: hidden;
+    pointer-events: none;
+    white-space: pre;
+    font-family: var(--font-main);
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+
+  /* Two layouts, one flex row.
+     Collapsed — everything shares the line:  [ + ][ text …… ][ model ][ ↑ ]
+     Expanded  — the draft takes the line:    [ text ……………………………………………… ]
+                                              [ + ]        [ model ][ ↑ ]
+     Sending the textarea to 100% is what wraps the controls onto their own
+     line; nothing is placed by hand, so visitor mode (which drops the "+"
+     and the model picker from the DOM) reflows on its own.
+
+     Collapsed stays nowrap on purpose. A wrapping flex container breaks its
+     lines from each item's *unshrunk* basis, so a bare <textarea> (which is
+     ~20 characters wide by default) plus a long model name would push the
+     controls onto a second line by itself — the composer must only ever
+     restack when syncComposer() decides it should. */
+  .composer-controls {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  /* basis 0, not auto: the textarea takes the room that's left over rather
+     than asking for its intrinsic width first. */
+  .composer-controls > #message-input { flex: 1 1 0; min-width: 0; }
+  .composer-controls > .model-select-btn { min-width: 0; }
+
+  .composer-controls.expanded { flex-wrap: wrap; }
+  .composer-controls.expanded > #message-input {
+    order: -1;
+    flex: 1 0 100%;
+  }
+  /* Collapsed, the stretched textarea already pushes these right; once it
+     moves up a line, they need the push themselves. */
+  .composer-controls.expanded > .model-select-btn {
+    margin-left: auto;
+    flex-shrink: 1;   /* last resort on a very narrow controls row */
+  }
+
   #message-input {
-    flex: 1;
+    /* No width here on purpose: flex-basis:auto would inherit it and pin the
+       textarea to a full line, so it could never share one with the controls.
+       .composer-controls.expanded sets the 100% basis when it wants that. */
     min-width: 0;
     border: none;
     background: none;
@@ -1337,12 +1625,13 @@
     color: var(--text-primary);
     resize: none;
     outline: none;
-    min-height: 22px;
-    max-height: 120px;
-    overflow-y: auto;
+    min-height: 36px;
+    max-height: 140px;
+    overflow-y: hidden;
     overflow-x: hidden;
+    overflow-wrap: anywhere;
     line-height: 1.5;
-    padding: 2px 0;
+    padding: 8px 4px;
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
   }
@@ -1359,13 +1648,6 @@
     text-overflow: ellipsis;
   }
 
-  .input-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-  }
-
   .send-btn {
     width: 36px; height: 36px;
     background: linear-gradient(135deg, var(--dc-blue) 0%, var(--dc-accent) 100%);
@@ -1375,16 +1657,45 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    color: #fff;
+    transition: background 0.2s, color 0.2s, transform 0.15s, opacity 0.2s;
     flex-shrink: 0;
   }
-  .send-btn:hover { background: linear-gradient(135deg, var(--dc-blue-dark) 0%, var(--dc-blue) 100%); transform: scale(1.04); }
+  @media (hover: hover) {
+    .send-btn:hover { background: linear-gradient(135deg, var(--dc-blue-dark) 0%, var(--dc-blue) 100%); transform: scale(1.04); }
+    [data-theme="dark"] .send-btn:hover { background: linear-gradient(135deg, var(--dc-blue-dark) 0%, var(--dc-violet) 65%, var(--dc-gold) 130%); }
+  }
+  .send-btn:active { transform: scale(0.94); }
   [data-theme="dark"] .send-btn { background: linear-gradient(135deg, var(--dc-blue) 0%, var(--dc-violet) 65%, var(--dc-gold) 130%); }
-  [data-theme="dark"] .send-btn:hover { background: linear-gradient(135deg, var(--dc-blue-dark) 0%, var(--dc-violet) 65%, var(--dc-gold) 130%); }
   .send-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-  /* Stop / cancel state while the model is generating */
-  .send-btn.stop { background: #DC2626; }
-  .send-btn.stop:hover { background: #b91c1c; }
+  /* Nothing to send yet — the button stays clickable (sendMessage() is the
+     one guard on an empty draft) but drops out of the brand gradient so the
+     composer reads as "waiting for you" rather than "ready to fire". */
+  .send-btn.idle {
+    background: var(--border);
+    color: var(--text-muted);
+  }
+  @media (hover: hover) {
+    .send-btn.idle:hover,
+    [data-theme="dark"] .send-btn.idle:hover { background: var(--border); transform: none; }
+  }
+  /* Stop / cancel state while the model is generating — outranks .idle.
+     A solid red block here shouts louder than anything else on screen for
+     something the user does routinely; the tinted chip still reads as stop
+     (same slot, same square glyph) without competing with the reply. */
+  .send-btn.stop,
+  .send-btn.stop.idle {
+    background: var(--danger-tint);
+    color: var(--danger);
+    box-shadow: inset 0 0 0 1px var(--danger-edge);
+  }
+  @media (hover: hover) {
+    .send-btn.stop:hover,
+    [data-theme="dark"] .send-btn.stop:hover {
+      background: color-mix(in srgb, var(--danger) 20%, transparent);
+      transform: none;
+    }
+  }
   .cancelled-note {
     display: flex;
     align-items: center;
@@ -1431,39 +1742,58 @@
     line-height: 1.6;
   }
 
-  /* MODEL SELECT BUTTON (inside input box — Gemini Flash style) */
+  /* MODEL SELECT BUTTON (inside the composer) — a borderless label+chevron
+     that sits flush with the other composer controls instead of reading as
+     a separate outlined pill. */
   .model-select-btn {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 5px 12px;
-    margin-left: 4px;
+    height: 36px;
+    max-width: 190px;
+    padding: 0 8px;
     background: transparent;
-    border: 1.5px solid var(--border);
-    border-radius: 20px;
+    border: none;
+    border-radius: 10px;
     cursor: pointer;
     font-family: var(--font-main);
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-secondary);
-    transition: all 0.15s;
+    transition: background 0.15s, color 0.15s, transform 0.15s;
     white-space: nowrap;
     flex-shrink: 0;
     letter-spacing: 0.1px;
   }
-  .model-select-btn:hover {
+  #model-select-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  @media (hover: hover) {
+    .model-select-btn:hover {
+      background: var(--dc-blue-light);
+      color: var(--dc-blue);
+    }
+    [data-theme="dark"] .model-select-btn:hover {
+      background: var(--dc-accent-light);
+      color: var(--dc-accent);
+    }
+  }
+  .model-select-btn:active { transform: scale(0.96); }
+  .model-select-btn.open {
     background: var(--dc-blue-light);
-    border-color: var(--dc-blue);
     color: var(--dc-blue);
   }
-  [data-theme="dark"] .model-select-btn:hover {
+  [data-theme="dark"] .model-select-btn.open {
     background: var(--dc-accent-light);
-    border-color: var(--dc-accent);
     color: var(--dc-accent);
   }
-  .model-select-btn svg { flex-shrink: 0; opacity: 0.6; transition: transform 0.2s; }
-  .model-select-btn:hover svg { opacity: 1; }
-  .model-select-btn.open svg { transform: rotate(180deg); }
+  .model-select-btn svg { flex-shrink: 0; }
+  .model-select-btn .model-select-caret { opacity: 0.6; transition: transform 0.2s, opacity 0.2s; }
+  .model-select-btn:hover .model-select-caret { opacity: 1; }
+  .model-select-btn.open .model-select-caret { transform: rotate(180deg); opacity: 1; }
   #model-select-icon { display: inline-flex; align-items: center; flex-shrink: 0; }
   #model-select-icon img.model-dd-icon { opacity: 1; }
 
@@ -1471,18 +1801,19 @@
   .tools-wrap { position: relative; flex-shrink: 0; }
 
   .tools-btn {
-    width: 34px; height: 34px;
+    width: 36px; height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: transparent;
     border: none;
-    border-radius: 50%;
+    border-radius: 10px;
     cursor: pointer;
     color: var(--text-muted);
-    transition: all 0.15s;
+    transition: background 0.15s, color 0.15s, transform 0.15s;
     position: relative;
   }
+  .tools-btn:active { transform: scale(0.94); }
   /* Hover-only on devices with a real pointer — on touchscreens (no true
      hover), :hover applies on tap and then sticks until something else is
      tapped, leaving the "+" looking permanently lit. The .open highlight
@@ -1500,17 +1831,6 @@
     background: var(--dc-accent-light);
     color: var(--dc-accent);
   }
-  .tools-dot {
-    position: absolute;
-    top: 3px; right: 3px;
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--dc-blue);
-    border: 1.5px solid var(--bg-primary);
-    display: none;
-  }
-  .tools-btn.has-active .tools-dot { display: block; }
-
   .tools-dropdown {
     position: absolute;
     bottom: calc(100% + 8px);
@@ -1556,8 +1876,10 @@
   [data-theme="dark"] .tools-item.active { background: var(--dc-accent-light); color: var(--dc-accent); }
   [data-theme="dark"] .tools-item.active .tools-item-check { color: var(--dc-accent); }
 
-  /* Model picker — only needed inside the "+" menu on mobile, where the
-     model-select pill next to the textarea is hidden for space. */
+  /* Model picker — this was the mobile stand-in for the model-select pill
+     back when that pill was hidden on narrow screens. The stacked composer
+     gives the real pill a row of its own at every width now, so the entry
+     stays hidden rather than listing the model in two places at once. */
   .tools-item-model { display: none; }
   .tools-section-label {
     font-size: 9.5px;
@@ -1572,53 +1894,131 @@
     margin: 4px 2px 6px;
     background: var(--border);
   }
-  @media (max-width: 640px) {
-    .tools-item-model { display: flex; }
+  /* ── STREAMED TEXT ─────────────────────────────────────────────────
+     Words carry no entry animation: text just appears as it arrives, with a
+     caret marking where it is up to. Anything that fades a word in has to be
+     paced, and the pacing is what read as slow and flickery.
+
+     Layout-neutral wrappers: the split into committed vs. still-arriving text
+     is a rendering concern, so it must not add a box that stops paragraph
+     margins collapsing across the seam. */
+  .stream-stable, .stream-tail { display: contents; }
+  @keyframes pop-in {
+    from { opacity: 0; transform: scale(0.9); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  /* Deliberately not blinking: the caret is re-created on every repaint, so a
+     blink would restart each tick and freeze at one phase. Its movement across
+     the text is the liveness signal. */
+  .stream-caret {
+    display: inline-block;
+    width: 2px;
+    height: 0.85em;
+    margin-left: 2px;
+    vertical-align: -1px;
+    border-radius: 2px;
+    background: var(--text-primary);
+    opacity: 0.75;
   }
 
-  /* Web sources card — shown under answers that used web search */
-  .web-sources {
-    margin-top: 12px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+  /* ── INLINE CITATION CHIP ──────────────────────────────────────────
+     Replaces the model's bare "[1]" markers with the source it points at,
+     so a claim carries its provenance in place. */
+  .cite-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    height: 17px;
+    margin: 0 2px 0 1px;
+    padding: 0 4px 0 3px;
+    border-radius: 5px;
+    background: var(--border-light);
+    box-shadow: inset 0 0 0 1px var(--border);
+    vertical-align: middle;
+    transform: translateY(-1px);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease;
+    animation: pop-in 250ms cubic-bezier(0.23, 1, 0.32, 1) both;
   }
-  .web-sources-head {
+  .cite-chip:hover { background: var(--dc-blue-light); color: var(--dc-blue); }
+  .cite-chip img { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  /* ── SOURCES ROW + EXPANDABLE LIST ─────────────────────────────────
+     Collapsed to one line of stacked avatars; the full list opens in place. */
+  .web-sources { margin-top: 10px; }
+  .src-toggle {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 2px;
+    gap: 7px;
+    margin-left: -4px;
+    padding: 3px 6px;
+    border: none;
+    background: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-main);
+    transition: background 0.15s ease;
   }
+  .src-toggle:hover { background: var(--border-light); }
+  .src-stack { display: flex; flex-shrink: 0; }
+  .src-stack img {
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: var(--bg-panel);
+    box-shadow: 0 0 0 1.5px var(--ai-bubble);
+  }
+  .src-stack img + img { margin-left: -4px; }
+  .src-toggle-label { font-size: 12px; color: var(--text-secondary); }
+  .src-toggle-chevron {
+    display: flex;
+    color: var(--text-muted);
+    transition: transform 0.25s ease;
+  }
+  .src-toggle.open .src-toggle-chevron { transform: rotate(180deg); }
+
+  .src-list {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 0.3s cubic-bezier(0.23, 1, 0.32, 1),
+                opacity 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .src-list.open { grid-template-rows: 1fr; opacity: 1; }
+  .src-list-clip { overflow: hidden; }
+  .src-list-inner {
+    margin-top: 6px;
+    padding: 4px;
+    border-radius: 10px;
+    background: var(--border-light);
+    box-shadow: inset 0 0 0 1px var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+  [data-theme="dark"] .src-list-inner { background: rgba(255,255,255,0.04); }
   .web-source-link {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 8px;
-    border-radius: 8px;
+    padding: 5px 6px;
+    border-radius: 6px;
     text-decoration: none;
     color: var(--text-secondary);
-    font-size: 12.5px;
+    font-size: 12px;
     transition: background 0.12s, color 0.12s;
   }
-  .web-source-link:hover { background: var(--dc-blue-light); color: var(--dc-blue); }
-  [data-theme="dark"] .web-source-link:hover { background: var(--dc-accent-light); color: var(--dc-accent); }
+  .web-source-link:hover { background: var(--bg-panel); color: var(--text-primary); }
+  [data-theme="dark"] .web-source-link:hover { background: rgba(255,255,255,0.06); }
   .web-source-num {
     flex-shrink: 0;
-    width: 18px; height: 18px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 5px;
-    background: var(--dc-blue);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    overflow: hidden;
   }
+  .web-source-num img { width: 100%; height: 100%; display: block; }
   .web-source-title {
     flex: 1;
     overflow: hidden;
@@ -1628,8 +2028,305 @@
   .web-source-host {
     flex-shrink: 0;
     color: var(--text-muted);
-    font-size: 11px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
   }
+
+  /* ── KNOWLEDGE SOURCES (local retrieval) ───────────────────────────
+     Same collapse mechanics as the web strip, but each row carries the
+     retrieval score and the chunk text — a web citation can only say where
+     an answer came from, while this can also say how strongly it matched. */
+  .kb-source-item {
+    padding: 6px;
+    border-radius: 6px;
+  }
+  .kb-source-item + .kb-source-item { border-top: 1px solid var(--border); }
+  .kb-source-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .kb-source-marker {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--dc-accent);
+    background: color-mix(in srgb, var(--dc-accent) 14%, transparent);
+    border-radius: 4px;
+    padding: 1px 4px;
+  }
+  .kb-score {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .kb-score-bar {
+    width: 34px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .kb-score-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--dc-accent);
+  }
+  .kb-score-num {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-muted);
+    min-width: 24px;
+  }
+  .kb-source-text {
+    margin-top: 5px;
+    margin-left: 24px;
+    max-height: 74px;
+    overflow-y: auto;
+    font-size: 11.5px;
+    line-height: 1.55;
+    color: var(--text-muted);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  /* The web chip shows a hostname; this one shows a filename, which runs longer
+     and would otherwise push the paragraph it sits in around. */
+  .cite-chip.kb-chip { max-width: 150px; }
+  .cite-chip.kb-chip span:not(.kb-chip-n) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .kb-chip-n {
+    flex-shrink: 0;
+    font-weight: 600;
+    color: var(--dc-accent);
+  }
+
+  /* ── PROMPT INSPECTOR ──────────────────────────────────────────────
+     The literal bytes sent to the model. Monospace and unstyled on purpose —
+     this panel's whole value is that it isn't a rendering of the prompt. */
+  .prompt-inspector { margin-top: 8px; }
+  .prompt-toggle-icon {
+    display: flex;
+    flex-shrink: 0;
+    color: var(--text-muted);
+  }
+  .prompt-toggle-meta {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-muted);
+  }
+  .prompt-inner {
+    margin-top: 6px;
+    border-radius: 10px;
+    background: var(--border-light);
+    box-shadow: inset 0 0 0 1px var(--border);
+    overflow: hidden;
+  }
+  [data-theme="dark"] .prompt-inner { background: rgba(255,255,255,0.04); }
+  /* ── Composition view ──────────────────────────────────────────────
+     The part of the panel a beginner reads: a sentence, a bar, and one row
+     per contributor naming the setting that produced it. */
+  .prompt-breakdown { padding: 11px 12px 12px; }
+  .prompt-lede {
+    margin: 0 0 10px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+  .prompt-lede b { color: var(--text-primary); font-weight: 700; }
+  .prompt-bar {
+    display: flex;
+    height: 9px;
+    border-radius: 5px;
+    overflow: hidden;
+    background: var(--border);
+  }
+  .prompt-bar > span { display: block; height: 100%; }
+  .prompt-bar > span + span { box-shadow: inset 1px 0 0 var(--bg-panel); }
+  .prompt-parts { margin-top: 10px; }
+  /* Two lines per part: name and size on the first, provenance on the second.
+     The wrap has to be explicit — .prompt-part-src claims a full basis to force
+     itself onto its own row, which without flex-wrap would instead squeeze the
+     label into a two-word column. */
+  .prompt-part {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+    padding: 5px 0;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .prompt-part + .prompt-part { border-top: 1px solid var(--border); }
+  .prompt-part-dot {
+    flex-shrink: 0;
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    transform: translateY(-1px);
+  }
+  .prompt-part-label {
+    flex: 1;
+    min-width: 0;
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .prompt-part-size {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+  .prompt-part-pct { margin-left: 6px; color: var(--text-muted); }
+  /* The provenance line wraps under the label on its own row. */
+  .prompt-part-src {
+    flex-basis: 100%;
+    margin-left: 16px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .prompt-note {
+    margin: 11px 0 0;
+    padding-top: 9px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+
+  /* ── Raw text, behind its own disclosure ───────────────────────────*/
+  .prompt-raw-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+  }
+  .prompt-raw-toggle:hover { color: var(--text-primary); }
+  .prompt-raw-toggle .src-toggle-chevron {
+    display: flex;
+    transform: rotate(-90deg);
+    transition: transform 0.2s;
+  }
+  .prompt-raw-toggle.open .src-toggle-chevron { transform: rotate(0deg); }
+  .prompt-raw-body.hidden { display: none; }
+  .prompt-raw-body { border-top: 1px solid var(--border); }
+
+  .prompt-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    border-top: 1px solid var(--border);
+  }
+  .prompt-head-cfg { flex: 1; display: flex; gap: 4px; flex-wrap: wrap; }
+  .prompt-head-cfg code {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  .prompt-copy-btn {
+    flex-shrink: 0;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 9px;
+    cursor: pointer;
+    transition: color 0.12s, border-color 0.12s;
+  }
+  .prompt-copy-btn:hover { color: var(--text-primary); }
+  .prompt-copy-btn.copied { color: var(--dc-green); border-color: var(--dc-green); }
+  .prompt-msg + .prompt-msg { border-top: 1px solid var(--border); }
+  .prompt-msg-role {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+  }
+  .prompt-msg.role-system .prompt-msg-role { color: var(--dc-accent); }
+  .prompt-msg-len {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--text-muted);
+  }
+  .prompt-msg-body {
+    margin: 0;
+    padding: 0 10px 10px;
+    max-height: 260px;
+    overflow: auto;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  /* ── FOLLOW-UPS ────────────────────────────────────────────────────
+     Generated after the answer lands; each row sends itself on click. */
+  .followups {
+    margin-top: 12px;
+    animation: fade-in 300ms ease-out both;
+  }
+  .followups-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 1px;
+  }
+  .followup-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: calc(100% + 12px);
+    margin: 0 -6px;
+    padding: 7px 6px;
+    border: none;
+    border-bottom: 1px solid var(--border-light);
+    background: none;
+    border-radius: 7px;
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--font-main);
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--text-primary);
+    transition: background 0.1s ease;
+    animation: fade-up 350ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+  .followup-item:hover { background: var(--border-light); }
+  .followup-item svg { flex-shrink: 0; color: var(--text-muted); }
 
   /* MODEL DROPDOWN PANEL (search-style picker) */
   .model-dropdown {
@@ -2082,7 +2779,16 @@
     .suggestion-grid { grid-template-columns: 1fr; max-width: 100%; }
     .welcome-title { font-size: 18px; }
     .chat-area { padding: 14px 12px; }
-    .input-area { padding: 8px 10px 12px; display: flex; flex-direction: column; }
+    /* Reclaim the side gutters — 40px of them is a lot of a phone's width. */
+    .input-area { padding: 8px 10px 12px; display: flex; flex-direction: column; width: calc(100% - 20px); }
+    /* The stacked composer is roughly twice as tall as the one-row desktop
+       version, so the last message needs more room to clear it — and the
+       scroll-in fade has to start correspondingly higher. */
+    .main:not(.welcome-mode) .chat-area {
+      padding-bottom: 250px;
+      --chat-fade-start: 215px;
+      --chat-fade-end: 60px;
+    }
 
     /* Partner badges are the least important line here — push them below
        the legal disclaimer instead of sandwiching them right under the box. */
@@ -2096,16 +2802,35 @@
 
     .header { padding: 0 12px; gap: 6px; }
     .back-btn { font-size: 0; gap: 0; padding: 7px; }
-    /* The subtitle pill (model name + Local/API) refuses to shrink and was
-       squeezing the conversation title down to a couple of letters — it's
-       redundant now that the model also shows in the "+" tools menu. */
-    .header-title p { display: none; }
     .header-actions { gap: 4px; }
     .icon-btn { width: 30px; height: 30px; }
 
-    /* The model-select pill (name + chevron) doesn't fit next to the
-       textarea on narrow screens — it moves into the "+" tools menu instead. */
-    .model-select-btn { display: none; }
+    /* COMPOSER (mobile) — there's never enough room to keep the draft inline
+       with the controls, so the stacked layout is permanent here: text on
+       top, controls on a row beneath it. That also buys the model picker its
+       place back; it used to be hidden on narrow screens and reachable only
+       through the "+" menu. */
+    .composer-controls { flex-wrap: wrap; }
+    .composer-controls > #message-input {
+      order: -1;
+      flex: 1 0 100%;
+    }
+    .composer-controls > .model-select-btn { margin-left: auto; flex-shrink: 1; }
+
+    /* iOS zooms the whole page in when a focused field is under 16px. */
+    #message-input {
+      font-size: 16px;
+      padding: 8px 6px;
+      max-height: 120px;
+    }
+    .composer-measure { font-size: 16px; }
+
+    /* The model name is the first thing that should give up width when the
+       row gets tight — the "+" and send buttons are fixed-size targets. */
+    .model-select-btn { max-width: 46vw; }
+
+    /* Clear the home-indicator / gesture bar on modern phones. */
+    .input-area { margin-bottom: max(20px, env(safe-area-inset-bottom)); }
 
     /* Partner badges: force the label onto its own line so the 3 badges
        always wrap together as one centered group below it, instead of
@@ -2151,17 +2876,25 @@
   .scroll-bottom-btn:hover { background: var(--dc-blue); color: white; border-color: var(--dc-blue); }
 
   /* ERROR */
+  /* ERROR CARD — an ordinary card that happens to carry a red glyph, rather
+     than a red card. The recovery steps are the *fix*, not the failure, so
+     they read in the normal ink scale and the primary action keeps the brand
+     blue: "Open the setup guide" is constructive, and dressing it as a
+     destructive button misreads what it does. */
   .error-bubble {
-    background: #FEF2F2;
-    border: 1px solid #FECACA;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
     border-radius: var(--radius-md);
     padding: 14px 16px;
     font-size: 13px;
+    color: var(--text-secondary);
     margin: 4px 0;
     display: flex;
     flex-direction: column;
     gap: 10px;
+    box-shadow: var(--shadow-card);
   }
+  .error-bubble > svg { color: var(--danger); }
   .error-bubble-top {
     display: flex;
     align-items: flex-start;
@@ -2169,36 +2902,39 @@
   }
   .error-bubble-icon {
     width: 32px; height: 32px;
-    background: #FEE2E2;
+    background: var(--danger-tint);
     border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
-    color: #DC2626;
+    color: var(--danger);
+    box-shadow: inset 0 0 0 1px var(--danger-edge);
   }
   .error-bubble-title {
     font-size: 13.5px;
     font-weight: 700;
-    color: #991B1B;
+    color: var(--text-primary);
     margin-bottom: 3px;
     line-height: 1.3;
   }
   .error-bubble-desc {
     font-size: 12.5px;
-    color: #B91C1C;
+    color: var(--text-secondary);
     line-height: 1.6;
   }
   .error-bubble-steps {
-    background: #FEE2E2;
-    border-radius: 8px;
+    background: var(--border-light);
+    box-shadow: inset 0 0 0 1px var(--border);
+    border-radius: 10px;
     padding: 10px 12px;
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
+  [data-theme="dark"] .error-bubble-steps { background: rgba(255,255,255,0.035); }
   .error-bubble-steps-title {
     font-size: 10.5px;
     font-weight: 700;
-    color: #991B1B;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.6px;
     margin-bottom: 2px;
@@ -2208,14 +2944,15 @@
     align-items: flex-start;
     gap: 8px;
     font-size: 12px;
-    color: #7F1D1D;
+    color: var(--text-secondary);
     line-height: 1.5;
   }
   .error-step-num {
     width: 16px; height: 16px;
     border-radius: 50%;
-    background: #DC2626;
-    color: white;
+    background: var(--bg-panel);
+    box-shadow: inset 0 0 0 1px var(--border);
+    color: var(--text-secondary);
     display: flex; align-items: center; justify-content: center;
     font-size: 9px; font-weight: 700;
     flex-shrink: 0; margin-top: 1px;
@@ -2223,24 +2960,27 @@
   .error-step code {
     font-family: var(--font-mono);
     font-size: 11px;
-    background: rgba(0,0,0,0.08);
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    box-shadow: inset 0 0 0 1px var(--border);
     padding: 1px 5px;
     border-radius: 4px;
   }
+  [data-theme="dark"] .error-step code { background: rgba(0,0,0,0.28); }
   .error-bubble-dismiss {
     align-self: flex-end;
     background: none;
-    border: 1px solid #FECACA;
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-size: 11px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
     font-weight: 600;
-    color: #991B1B;
+    color: var(--text-secondary);
     cursor: pointer;
     font-family: var(--font-main);
-    transition: background 0.15s;
+    transition: background 0.15s, color 0.15s;
   }
-  .error-bubble-dismiss:hover { background: #FEE2E2; }
+  .error-bubble-dismiss:hover { background: var(--border-light); color: var(--text-primary); }
   .error-bubble-actions {
     display: flex;
     align-items: center;
@@ -2251,9 +2991,9 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: #DC2626;
-    border: 1px solid #DC2626;
-    border-radius: 6px;
+    background: var(--dc-blue);
+    border: 1px solid var(--dc-blue);
+    border-radius: 8px;
     padding: 6px 12px;
     font-size: 12px;
     font-weight: 700;
@@ -2262,17 +3002,9 @@
     font-family: var(--font-main);
     transition: background 0.15s, transform 0.05s;
   }
-  .error-bubble-cta:hover { background: #B91C1C; }
+  .error-bubble-cta:hover { background: var(--dc-blue-dark); border-color: var(--dc-blue-dark); }
   .error-bubble-cta:active { transform: translateY(1px); }
   .error-bubble-cta svg { flex-shrink: 0; }
-  [data-theme="dark"] .error-bubble { background: rgba(153,27,27,0.15); border-color: rgba(153,27,27,0.3); }
-  [data-theme="dark"] .error-bubble-icon { background: rgba(220,38,38,0.2); color: #FCA5A5; }
-  [data-theme="dark"] .error-bubble-title { color: #FCA5A5; }
-  [data-theme="dark"] .error-bubble-desc { color: #F87171; }
-  [data-theme="dark"] .error-bubble-steps { background: rgba(220,38,38,0.12); }
-  [data-theme="dark"] .error-bubble-steps-title { color: #FCA5A5; }
-  [data-theme="dark"] .error-step { color: #FCA5A5; }
-  [data-theme="dark"] .error-bubble-dismiss { border-color: rgba(220,38,38,0.3); color: #FCA5A5; }
   /* TRUST PILLS */
   .trust-pill {
     display: inline-flex;
@@ -2316,10 +3048,11 @@
   [data-theme="dark"] .community-desc-inner svg { color: var(--dc-accent); }
   .community-desc-inner strong { color: var(--text-primary); font-weight: 600; }
 
-  /* LEGAL DISCLAIMER */
+  /* LEGAL DISCLAIMER — lives inside the .input-area card. It used to be a
+     docked footer bar of its own, which is where the fill and the rule came
+     from; against the card they just drew a stray divider between the partner
+     badges and this line, over a background that already matches. */
   .legal-disclaimer {
-    background: var(--bg-panel);
-    border-top: 1px solid var(--border-light);
     padding: 5px 16px 6px;
     flex-shrink: 0;
   }
@@ -3190,8 +3923,6 @@
   .guide-step-body a:hover { text-decoration: underline; }
   [data-theme="dark"] .guide-step-body a { color: var(--dc-accent); }
 
-  [data-theme="dark"] .error-bubble { background: rgba(153,27,27,0.15); border-color: rgba(153,27,27,0.3); color: #FCA5A5; }
-
   /* LOGO TOOLTIP — Alibaba Cloud attribution */
   .logo-wrapper {
     position: relative;
@@ -3739,7 +4470,7 @@
   .icon-rail {
     width: 58px;
     background: var(--bg-sidebar);
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid var(--sb-border);
     border-right-color: transparent;
     border-radius: var(--radius-lg) 0 0 var(--radius-lg);
     margin: 10px 0 10px 10px;
@@ -3760,7 +4491,7 @@
      (0.25s) has mostly finished, so the rail doesn't round off early
      while the still-shrinking sidebar is sitting flush against it. */
   .icon-rail:has(+ .sidebar.collapsed) {
-    border-right-color: rgba(255,255,255,0.06);
+    border-right-color: var(--sb-border);
     border-radius: var(--radius-lg);
     transition: border-radius 0.15s ease 0.2s, border-right-color 0.15s ease 0.2s;
   }
@@ -3769,15 +4500,15 @@
     width: 40px; height: 40px;
     border-radius: 12px;
     border: none; background: transparent;
-    color: rgba(255,255,255,0.42);
+    color: var(--sb-text-dim);
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     position: relative;
     transition: all 0.15s;
     flex-shrink: 0;
   }
-  .rail-btn:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.07); }
-  .rail-btn.active { color: #fff; background: rgba(255,255,255,0.12); }
+  .rail-btn:hover { color: var(--sb-text-strong); background: var(--sb-hover-bg); }
+  .rail-btn.active { color: var(--sb-text-strong); background: rgba(255,255,255,0.16); }
   .rail-btn.active::before {
     content: '';
     position: absolute; left: -9px; top: 10px; bottom: 10px;
@@ -3793,6 +4524,7 @@
   }
   .rail-dot.ok { background: #22C55E; box-shadow: 0 0 0 4px rgba(34,197,94,0.15); }
   .rail-dot.err { background: #EF4444; box-shadow: 0 0 0 4px rgba(239,68,68,0.15); }
+  .rail-dot.checking { background: #F59E0B; box-shadow: 0 0 0 4px rgba(245,158,11,0.15); animation: pulse 1s infinite; }
   @media (max-width: 640px) { .icon-rail { display: none; } }
 
   /* ── MOBILE SIDEBAR TRIGGERS — stand in for the icon rail, which is
@@ -3848,7 +4580,7 @@
     border-radius: 7px;
     border: none;
     background: transparent;
-    color: rgba(255,255,255,0.35);
+    color: var(--sb-text-dim);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3856,7 +4588,7 @@
     flex-shrink: 0;
     transition: all 0.15s;
   }
-  .sidebar-collapse-btn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85); }
+  .sidebar-collapse-btn:hover { background: var(--sb-hover-bg); color: var(--sb-text-strong); }
   @media (max-width: 640px) { .sidebar-collapse-btn { display: none; } }
 
   /* ── SEGMENTED TABS (Chats / Sources) ────────────────────────────── */
