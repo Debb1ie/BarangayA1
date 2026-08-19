@@ -141,7 +141,14 @@ async function generateFollowUps(question, answer) {
 async function attachFollowUps(bubble, msgObj, question, answer) {
   const items = await generateFollowUps(question, answer);
   if (!items.length) return;
-  if (msgObj) msgObj.followUps = items;
+  if (msgObj) {
+    msgObj.followUps = items;
+    // Persisted here rather than left for whatever saves next. These arrive after
+    // the answer was already written, so without this they only reached storage
+    // if the student happened to send another message — close the tab first and
+    // reopening the conversation showed an answer with no follow-ups under it.
+    saveSessionsToStorage();
+  }
   // The user may have sent another message or switched sessions while this was
   // in flight — only render if the bubble it belongs to is still on screen.
   if (!bubble || !document.body.contains(bubble) || isStreaming) return;

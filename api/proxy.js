@@ -9,7 +9,8 @@
 // Same-origin also means no CORS setup for visitors, ever.
 //
 // Set on Vercel → Settings → Environment Variables:
-//   MODEL_API_KEY   (required)  your provider key, e.g. a free Groq key
+//   MODEL_API_KEY   (required)  your OWN provider key, e.g. a free Groq key.
+//                               Every visitor's message spends your allowance.
 //   MODEL_API_BASE  (optional)  defaults to Groq
 //   MODEL_NAME      (optional)  which model(s) to offer, comma-separated.
 //                               Unset = every chat model the key can reach,

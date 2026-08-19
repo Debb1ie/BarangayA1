@@ -235,7 +235,7 @@ function updatePublishSummary() {
   ];
   el.innerHTML = rows.map(([k, v]) =>
     `<div class="publish-row"><b>${escHtml(k)}</b><span>${escHtml(String(v))}</span></div>`).join('')
-    + `<div class="publish-row"><b>API keys</b><span>never included</span></div>`;
+    + `<div class="publish-row"><b>Your API keys</b><span>never included — they stay on Vercel</span></div>`;
 }
 
 function previewAsVisitor() {
