@@ -24,3 +24,5 @@ tmp/
 .gstack/
 
 HANDOVER.md
+.vercel
+.env*
