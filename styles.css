@@ -114,7 +114,7 @@
        is also the pre-JS fallback: app/chat.js's applyDefaultBrandColor()
        sets the same value inline once it runs, unless a student customized
        their brand color in Settings. */
-    --dc-blue: #9333EA;
+    --dc-blue: #9C27B0;
     --bg-primary: #17132E;
     --bg-panel: #221C46;
     --bg-sidebar: linear-gradient(168deg, #1A1438 0%, #120E26 55%, #0D0A1F 100%);
