@@ -122,10 +122,30 @@ function registerServiceWorker() {
   // 'controllerchange' and reload a brand-new visitor for no reason.
   const hadController = !!navigator.serviceWorker.controller;
   let reloaded = false;
+
+  // A reload the instant control changes hands would silently wipe whatever
+  // is only ever held in memory: a typed-but-unsent draft, a pending photo/
+  // doc attached via the composer (app/attachments.js — never persisted
+  // until send), or an answer still streaming in. None of that survives a
+  // navigation, so "the update showed up mid-session" must never look like
+  // "my message vanished" — wait for the composer to actually be idle
+  // before reloading, instead of doing it unconditionally.
+  function composerIsIdle() {
+    const input = document.getElementById('message-input');
+    const draftEmpty = !input || !input.value.trim();
+    const noAttachments = typeof _pendingAttachments === 'undefined' || !_pendingAttachments.length;
+    const notStreaming = typeof isStreaming === 'undefined' || !isStreaming;
+    return draftEmpty && noAttachments && notStreaming;
+  }
+  function reloadWhenIdle() {
+    if (reloaded) return;
+    if (composerIsIdle()) { reloaded = true; location.reload(); return; }
+    setTimeout(reloadWhenIdle, 1500);
+  }
+
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (reloaded || !hadController) { reloaded = true; return; }
-    reloaded = true;
-    location.reload();
+    if (!hadController) { reloaded = true; return; }
+    reloadWhenIdle();
   });
 
   navigator.serviceWorker.register('sw.js')
