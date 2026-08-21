@@ -105,6 +105,29 @@ function applyOllamaCmdHints() {
 // simply don't get one, and the app must still work there.
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
+
+  // Every deploy that changes a shell file bumps sw.js's CACHE_VERSION so a
+  // returning visitor's browser notices the update, installs the new worker,
+  // and (skipWaiting + clients.claim() in sw.js) hands it control of this
+  // tab. None of that actually refreshes what's ON SCREEN, though — this
+  // page's own script/style tags were already fetched through the OLD
+  // worker before the swap, so without this listener a visitor has to
+  // manually reload TWICE to see the update (once to trigger the swap,
+  // again to actually load through the new worker) — which is exactly the
+  // "still shows old text/color" confusion that kept coming up. Reloading
+  // once, automatically, the moment control changes hands closes that gap.
+  //
+  // Guarded on hadController: a first-ever visit has no controller yet, and
+  // the initial claim (null → this worker) would otherwise also fire
+  // 'controllerchange' and reload a brand-new visitor for no reason.
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloaded || !hadController) { reloaded = true; return; }
+    reloaded = true;
+    location.reload();
+  });
+
   navigator.serviceWorker.register('sw.js')
     .then(() => console.log('[SW] offline shell ready'))
     .catch(err => console.warn('[SW] not registered:', err.message));
