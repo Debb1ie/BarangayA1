@@ -125,7 +125,7 @@ async function handleAttachFiles(fileList) {
         // Rejecting up front beats letting someone attach a photo that
         // *looks* attached and then silently never reaches the model.
         if (window.ACTIVE_KIND === 'api') {
-          skipped.push(`${file.name} (this model runs in the cloud and can't see photos — pull a vision model like llama3.2-vision or qwen2.5vl with Ollama and select it locally)`);
+          skipped.push(`${file.name} (this model runs in the cloud and can't see photos — run "ollama pull qwen2.5vl:3b", select it in the model picker, then try again)`);
           continue;
         }
         if (file.size > ATTACH_IMAGE_MAX_BYTES) { skipped.push(`${file.name} (too large, max 5 MB)`); continue; }
@@ -153,7 +153,10 @@ async function handleAttachFiles(fileList) {
 
   renderAttachmentPreview();
   if (addedImages) {
-    showToast(`${addedImages} image${addedImages !== 1 ? 's' : ''} attached — only works if your model supports vision; most of the default models here are text-only.`);
+    const isVisionModel = /vision|vl\b|llava|moondream|minicpm-v|bakllava/i.test(window.ACTIVE_MODEL || '');
+    showToast(isVisionModel
+      ? `${addedImages} image${addedImages !== 1 ? 's' : ''} attached.`
+      : `${addedImages} image${addedImages !== 1 ? 's' : ''} attached — but ${window.ACTIVE_MODEL || 'this model'} is text-only. Run "ollama pull qwen2.5vl:3b", select it, then try again.`);
   }
   if (skipped.length) showToast(`Skipped: ${skipped.join(', ')}`);
 }

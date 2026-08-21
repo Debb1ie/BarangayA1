@@ -13,7 +13,7 @@
 // on activate, so a stale app can never outlive a deploy.
 // ─────────────────────────────────────────────────────────────────────
 
-const CACHE_VERSION = 'v11';
+const CACHE_VERSION = 'v12';
 const CACHE_NAME    = `barangay-ai-${CACHE_VERSION}`;
 
 // The shell: everything required to boot and hold a conversation offline.

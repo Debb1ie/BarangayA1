@@ -20,6 +20,10 @@ const DEMO_SUGGESTED_MODELS = [
   { model: 'qwen2.5:3b', badge: 'Recommended', cls: 'rec' },
   { model: 'gemma3:1b' },
   { model: 'llama3.2:1b' },
+  // The only one of the four that can actually see an attached photo (see
+  // app/attachments.js) — the other three are text-only, same as every
+  // model this app ships by default.
+  { model: 'qwen2.5vl:3b', badge: 'Vision', cls: 'vision' },
 ];
 
 // Enable/disable + deletion state for the endpoint manager (persisted in the DB).

@@ -2556,12 +2556,14 @@
     white-space: nowrap;
     flex-shrink: 0;
   }
-  .model-dd-badge.rec   { background: rgba(34,197,94,0.14);  color: #16A34A; }
-  .model-dd-badge.fast  { background: rgba(245,158,11,0.16); color: #B45309; }
-  .model-dd-badge.smart { background: rgba(139,92,246,0.14); color: #7C3AED; }
-  [data-theme="dark"] .model-dd-badge.rec   { color: #4ADE80; }
-  [data-theme="dark"] .model-dd-badge.fast  { color: #FBBF24; }
-  [data-theme="dark"] .model-dd-badge.smart { color: #A78BFA; }
+  .model-dd-badge.rec    { background: rgba(34,197,94,0.14);  color: #16A34A; }
+  .model-dd-badge.fast   { background: rgba(245,158,11,0.16); color: #B45309; }
+  .model-dd-badge.smart  { background: rgba(139,92,246,0.14); color: #7C3AED; }
+  .model-dd-badge.vision { background: rgba(14,165,233,0.14); color: #0284C7; }
+  [data-theme="dark"] .model-dd-badge.rec    { color: #4ADE80; }
+  [data-theme="dark"] .model-dd-badge.fast   { color: #FBBF24; }
+  [data-theme="dark"] .model-dd-badge.smart  { color: #A78BFA; }
+  [data-theme="dark"] .model-dd-badge.vision { color: #38BDF8; }
   .model-dd-dot.checking {
     background: #F59E0B;
     animation: dot-pulse 1s ease-in-out infinite;
