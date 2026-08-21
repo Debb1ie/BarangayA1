@@ -916,12 +916,13 @@ function hideWelcome() {
   if (sb && window.innerWidth > 640) sb.classList.add('collapsed');
 }
 
-function appendUserMessage(text) {
+function appendUserMessage(text, attachments) {
   const chatArea = document.getElementById('chat-area');
   hideWelcome();
   const row = document.createElement('div');
   row.className = 'message-row user';
-  row.innerHTML = `<div class="avatar user">You</div><div class="bubble user">${escHtml(text)}</div>`;
+  const chipsHtml = attachmentChipsHTML(attachments, false);
+  row.innerHTML = `<div class="avatar user">You</div><div class="bubble user">${chipsHtml}${text ? escHtml(text) : ''}</div>`;
   chatArea.appendChild(row);
   const time = document.createElement('div');
   time.className = 'message-time user';

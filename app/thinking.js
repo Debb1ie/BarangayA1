@@ -160,7 +160,9 @@ async function sendMessage() {
   if (isStreaming) return;
   const input = document.getElementById('message-input');
   const text = input.value.trim();
-  if (!text) return;
+  // A message can be just an attachment with no typed caption — "what's in
+  // this photo?" shouldn't require typing something first.
+  if (!text && !_pendingAttachments.length) return;
 
   // No model selected → teach the user what to do (keeps their typed message).
   if (!ensureModelSelected()) return;
@@ -168,6 +170,10 @@ async function sendMessage() {
   input.value = '';
   syncComposer();   // collapse back to the one-row layout and reset the height
   clearFollowUps();   // suggestions from the previous turn are stale now
+  // Snapshot + clear now, same moment the typed text is cleared — the chips
+  // this turn is about are locked in before anything async happens below.
+  const _attachments = _pendingAttachments.slice();
+  clearAttachments();
   _userCancelled = false;
   _streamAbort = new AbortController();
   setSendMode(true);   // button becomes a Stop button
@@ -178,9 +184,14 @@ async function sendMessage() {
   const session = getCurrentSession();
 
   const userTime = getTime();
-  appendUserMessage(text);
+  appendUserMessage(text, _attachments);
+  // `messages` stays plain {role, content} — it's spread verbatim into every
+  // future request's payload (see below), and a cloud endpoint 400s on fields
+  // it doesn't recognize. Attachments are per-turn, so they live only in
+  // `_attachments` (spliced into just this call) and on the display copy
+  // (for history redisplay) — never on the object that rides in `messages`.
   messages.push({ role: 'user', content: text });
-  if (session) session.displayMessages.push({ role: 'user', content: text, time: userTime });
+  if (session) session.displayMessages.push({ role: 'user', content: text, time: userTime, attachments: _attachments });
 
   appendTypingIndicator();
   const _tCtx = Date.now();
@@ -338,15 +349,46 @@ async function sendMessage() {
   // Apply prefix / suffix to the message sent to the model (history stays clean)
   const _prefix = window._PROMPT_PREFIX_ACTIVE || '';
   const _suffix = window._PROMPT_SUFFIX_ACTIVE || '';
+  const _attachDocs = _attachments.filter(a => a.kind === 'doc');
+  const _attachImages = _attachments.filter(a => a.kind === 'image');
+  // Each doc gets its own clearly-delimited block — same idea as the web/KB
+  // context above, just scoped to this one message instead of the whole
+  // conversation.
+  const _attachContext = _attachDocs
+    .map(d => `\n\n--- Attached file: ${d.name} ---\n${d.text}\n--- end of ${d.name} ---`)
+    .join('');
+  if (_attachDocs.length) {
+    _part(`${_attachDocs.length} attached file${_attachDocs.length !== 1 ? 's' : ''} (this message only)`,
+      _attachContext, 'dropped/attached on the composer — not saved to Sources');
+  }
   let _outgoing = messages;
-  if (_prefix || _suffix || _webContext) {
+  if (_prefix || _suffix || _webContext || _attachContext) {
     _outgoing = messages.slice();
     const lastUser = _outgoing.length - 1;
     if (lastUser >= 0 && _outgoing[lastUser].role === 'user') {
-      // Web context goes first (strongest grounding), then prefix, then the question.
+      // Web context goes first (strongest grounding), then prefix, then the
+      // question, then whatever files were attached to it, then suffix.
       _outgoing[lastUser] = {
         ..._outgoing[lastUser],
-        content: `${_webContext ? _webContext + '\n\n' : ''}${_prefix ? _prefix + '\n\n' : ''}${_outgoing[lastUser].content}${_suffix ? '\n\n' + _suffix : ''}`
+        content: `${_webContext ? _webContext + '\n\n' : ''}${_prefix ? _prefix + '\n\n' : ''}${_outgoing[lastUser].content}${_attachContext}${_suffix ? '\n\n' + _suffix : ''}`
+      };
+    }
+  }
+  // Images become an OpenAI-vision-style multimodal `content` array, kept
+  // separate from the text splice above (that one only ever touches a string).
+  // This only ever mutates `_outgoing` — never `messages` — so a text-only
+  // model on the *next* turn isn't handed a stale image_url part.
+  if (_attachImages.length) {
+    if (_outgoing === messages) _outgoing = messages.slice();
+    const lastUser = _outgoing.length - 1;
+    if (lastUser >= 0 && _outgoing[lastUser].role === 'user') {
+      const textPart = _outgoing[lastUser].content || `Describe what's in the attached image${_attachImages.length !== 1 ? 's' : ''}.`;
+      _outgoing[lastUser] = {
+        role: 'user',
+        content: [
+          { type: 'text', text: textPart },
+          ..._attachImages.map(img => ({ type: 'image_url', image_url: { url: img.dataURL } })),
+        ],
       };
     }
   }

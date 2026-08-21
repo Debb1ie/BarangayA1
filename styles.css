@@ -1867,6 +1867,78 @@
     background: var(--dc-accent-light);
     color: var(--dc-accent);
   }
+
+  /* ── CHAT ATTACHMENTS (app/attachments.js) ─────────────────────────── */
+  #attach-preview:empty { display: none; }
+  .attach-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 2px 4px 4px;
+  }
+  .attach-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 170px;
+    padding: 3px 4px 3px 8px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .attach-chip svg { flex-shrink: 0; color: var(--dc-blue); }
+  .attach-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .attach-chip-image { padding-left: 0; }
+  .attach-chip-image img {
+    width: 30px;
+    height: 30px;
+    object-fit: cover;
+    border-radius: 6px;
+    display: block;
+  }
+  .attach-chip-remove {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    padding: 0 4px;
+    border-radius: 4px;
+  }
+  .attach-chip-remove:hover { color: var(--dc-blue); background: var(--dc-blue-light); }
+  /* Sent messages (live send + history replay) reuse the same chip markup
+     without the remove button — a bit larger since there's no row of other
+     controls competing for space inside a message bubble. */
+  .bubble .attach-chip-row { padding: 0 0 8px; }
+  .bubble .attach-chip-image img { width: 120px; height: 120px; }
+  .bubble .attach-chip { max-width: 220px; }
+
+  /* Drop-to-attach overlay on the composer — #input-area is already
+     position:absolute, so this just needs inset:0 against it. */
+  .drag-hint {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--dc-blue) 12%, var(--bg-panel));
+    border: 2px dashed var(--dc-blue);
+    border-radius: var(--radius-lg);
+    color: var(--dc-blue);
+    font-weight: 600;
+    font-size: 13px;
+    pointer-events: none;
+    z-index: 5;
+  }
+  #input-area.drag-over .drag-hint { display: flex; }
+
   .tools-dropdown {
     position: absolute;
     bottom: calc(100% + 8px);

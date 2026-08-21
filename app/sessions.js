@@ -114,7 +114,8 @@ function renderSessionMessages(session) {
     if (msg.role === 'user') {
       const row = document.createElement('div');
       row.className = 'message-row user';
-      row.innerHTML = `<div class="avatar user">You</div><div class="bubble user">${escHtml(msg.content)}</div>`;
+      const chipsHtml = attachmentChipsHTML(msg.attachments, false);
+      row.innerHTML = `<div class="avatar user">You</div><div class="bubble user">${chipsHtml}${msg.content ? escHtml(msg.content) : ''}</div>`;
       chatArea.appendChild(row);
       const t = document.createElement('div');
       t.className = 'message-time user';
