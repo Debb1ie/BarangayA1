@@ -20,10 +20,20 @@ document.getElementById('overlay').addEventListener('click', () => {
   document.getElementById('overlay').classList.remove('visible');
 });
 
+// Only the *default* brand color is theme-aware (purple in dark mode, pink in
+// light mode). A student who picks their own color in Settings → Personalize
+// is choosing one color for both themes on purpose, so this is a no-op once
+// window._BRAND_COLOR_ACTIVE is set (see applySettings in settings.js).
+function applyDefaultBrandColor() {
+  if (window._BRAND_COLOR_ACTIVE) return;
+  document.documentElement.style.setProperty('--dc-blue', isDark ? BRAND_COLOR : BRAND_COLOR_LIGHT);
+}
+
 function toggleTheme() {
   isDark = !isDark;
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : '');
   try { localStorage.setItem('barangayai_theme', isDark ? 'dark' : 'light'); } catch (e) {}
+  applyDefaultBrandColor();
   syncThemeIcon();
 }
 

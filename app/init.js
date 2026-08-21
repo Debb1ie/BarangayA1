@@ -133,7 +133,7 @@ window.addEventListener('load', async () => {
   hideOwnerPitchFooter();   // no-op on localhost; covers unpublished deploys too
 
   initModelRegistry();   // restore saved endpoints + discover live local models
-  document.documentElement.style.setProperty('--dc-blue', BRAND_COLOR);
+  applyDefaultBrandColor();   // purple in dark mode, pink in light mode (unless customized)
 
   applyOllamaCmdHints();
 

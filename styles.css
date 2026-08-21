@@ -1,5 +1,9 @@
   :root {
-    --dc-blue: #4F46E5;
+    /* Pre-JS fallback only — app/chat.js's applyDefaultBrandColor() sets the
+       real inline value on <html> once it runs: purple in dark mode, pink in
+       light mode (unless a student picked a custom brand color). This just
+       keeps the flash-before-load color roughly in the right family. */
+    --dc-blue: #EC4899;
     /* Shades/tints below are all derived from --dc-blue via color-mix (read
        live at paint time), tuned to match the original fixed hex values
        exactly when --dc-blue is the default. A brand-color swatch pick
@@ -105,6 +109,12 @@
      the brand blue kept for interactive elements; gold is a sparing accent
      for special highlights, echoing the poster's "17" star. */
   [data-theme="dark"] {
+    /* Default brand color for dark mode — pink (:root, above) is a light-mode
+       color and reads muddy against this indigo/violet backdrop. Purple here
+       is also the pre-JS fallback: app/chat.js's applyDefaultBrandColor()
+       sets the same value inline once it runs, unless a student customized
+       their brand color in Settings. */
+    --dc-blue: #9333EA;
     --bg-primary: #17132E;
     --bg-panel: #221C46;
     --bg-sidebar: linear-gradient(168deg, #1A1438 0%, #120E26 55%, #0D0A1F 100%);
