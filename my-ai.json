@@ -1,0 +1,23 @@
+{
+  "publishedAt": "2026-08-21",
+  "creator_name": "Precious Manucom",
+  "settings": {
+    "ai_name": "DEVCON",
+    "ai_tone": "",
+    "ai_knowledge": "",
+    "brand_color": "#4F46E5",
+    "welcome_greeting": "",
+    "reply_language": "english",
+    "training_notes": "",
+    "prompt_prefix": "",
+    "prompt_suffix": "",
+    "temperature": 0.3,
+    "max_tokens": 1024,
+    "personas": [],
+    "active_persona": "",
+    "thinking_enabled": false,
+    "followups_enabled": false
+  },
+  "sources": [],
+  "model": { "base": "/api", "label": "cloud model" }
+}
