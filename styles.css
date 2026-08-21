@@ -1923,7 +1923,15 @@
   /* Drop-to-attach overlay on the composer — #input-area is already
      position:absolute, so this just needs inset:0 against it. */
   .drag-hint {
-    display: none;
+    /* display:flex at all times (not display:none) so opacity can transition
+       — display can't animate, and a single stuck/transitional frame reading
+       as a hard on/off toggle is what made this look broken rather than a
+       clean highlight. opacity+visibility together also means it's never a
+       hit-testable no-op box hanging around at opacity 0. */
+    display: flex;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
     position: absolute;
     inset: 0;
     align-items: center;
@@ -1937,7 +1945,7 @@
     pointer-events: none;
     z-index: 5;
   }
-  #input-area.drag-over .drag-hint { display: flex; }
+  #input-area.drag-over .drag-hint { opacity: 1; visibility: visible; }
 
   .tools-dropdown {
     position: absolute;

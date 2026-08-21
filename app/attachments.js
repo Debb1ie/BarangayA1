@@ -51,6 +51,29 @@ async function handleComposerDrop(e) {
   if (e.dataTransfer?.files?.length) await handleAttachFiles(e.dataTransfer.files);
 }
 
+// Safety net for drags that never cleanly fire a dragleave on #input-area —
+// dropped outside the browser window, cancelled with Escape, or released on
+// the sidebar/browser chrome. Without this the highlight class has no event
+// left to remove it and stays lit until the next full drag cycle over the
+// composer. 'dragend' fires on every drag regardless of how it ended;
+// 'drop' anywhere outside our own zone also means it's safe to clear.
+window.addEventListener('dragend', () => {
+  document.getElementById('input-area')?.classList.remove('drag-over');
+});
+document.addEventListener('drop', (e) => {
+  const inputArea = document.getElementById('input-area');
+  if (inputArea && !inputArea.contains(e.target)) {
+    // Also stops Chrome's default "navigate to the dropped file" behavior
+    // when someone drops a file anywhere else on the page by mistake.
+    e.preventDefault();
+    inputArea.classList.remove('drag-over');
+  }
+});
+document.addEventListener('dragover', (e) => {
+  const inputArea = document.getElementById('input-area');
+  if (inputArea && !inputArea.contains(e.target)) e.preventDefault();
+});
+
 function readFileAsDataURL(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
