@@ -361,9 +361,13 @@ async function sendMessage() {
     _part(`${_attachDocs.length} attached file${_attachDocs.length !== 1 ? 's' : ''} (this message only)`,
       _attachContext, 'dropped/attached on the composer — not saved to Sources');
   }
-  let _outgoing = messages;
+  // Defensive: coerce any non-string content already sitting in history
+  // (see coerceMessageContent in app/attachments.js) before this turn's own
+  // splicing runs — never on the message being attached right now.
+  const _cleanHistory = messages.map(coerceMessageContent);
+  let _outgoing = _cleanHistory;
   if (_prefix || _suffix || _webContext || _attachContext) {
-    _outgoing = messages.slice();
+    _outgoing = _cleanHistory.slice();
     const lastUser = _outgoing.length - 1;
     if (lastUser >= 0 && _outgoing[lastUser].role === 'user') {
       // Web context goes first (strongest grounding), then prefix, then the
@@ -376,10 +380,12 @@ async function sendMessage() {
   }
   // Images become an OpenAI-vision-style multimodal `content` array, kept
   // separate from the text splice above (that one only ever touches a string).
-  // This only ever mutates `_outgoing` — never `messages` — so a text-only
-  // model on the *next* turn isn't handed a stale image_url part.
+  // `_outgoing` is always a fresh array by this point (`_cleanHistory` or a
+  // slice of it, never `messages` itself), so mutating it here never touches
+  // the persistent history — a text-only model on the *next* turn isn't
+  // handed a stale image_url part.
   if (_attachImages.length) {
-    if (_outgoing === messages) _outgoing = messages.slice();
+    if (_outgoing === _cleanHistory) _outgoing = _cleanHistory.slice();
     const lastUser = _outgoing.length - 1;
     if (lastUser >= 0 && _outgoing[lastUser].role === 'user') {
       const textPart = _outgoing[lastUser].content || `Describe what's in the attached image${_attachImages.length !== 1 ? 's' : ''}.`;

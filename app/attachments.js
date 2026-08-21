@@ -16,6 +16,26 @@
 // llama3.2 1B/3B, the Groq cloud models) are text-only, so handleAttachFiles
 // warns about that up front rather than let the request silently ignore it.
 
+// Self-healing for history that predates a fix, or an image sent while a
+// vision-capable local model was selected and then the conversation
+// continued on a cloud model that can't take array content at all. Either
+// way, a non-string `content` sitting anywhere in history gets resent on
+// EVERY future turn — and a strict provider 400s the whole request over
+// that one entry, silently breaking every message after it forever. Called
+// on the full history right before a send (app/thinking.js), never on the
+// message being newly attached this turn.
+function coerceMessageContent(m) {
+  if (typeof m.content === 'string') return m;
+  if (Array.isArray(m.content)) {
+    const text = m.content
+      .filter(p => p && p.type === 'text' && typeof p.text === 'string')
+      .map(p => p.text).join(' ').trim();
+    const hadImage = m.content.some(p => p && p.type === 'image_url');
+    return { ...m, content: text || (hadImage ? '[an image was attached here]' : '') };
+  }
+  return { ...m, content: '' };
+}
+
 const ATTACH_IMAGE_EXT = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
 const ATTACH_MAX_FILES = 4;
 const ATTACH_IMAGE_MAX_BYTES = 5 * 1024 * 1024;  // 5 MB — keeps the base64 request body sane over a cloud API
