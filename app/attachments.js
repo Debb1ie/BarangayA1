@@ -98,6 +98,16 @@ async function handleAttachFiles(fileList) {
 
     try {
       if (isImage) {
+        // The hosted /api proxy (window.ACTIVE_KIND === 'api') caps request
+        // size well below a real photo on purpose — it's a public,
+        // unauthenticated endpoint spending the owner's key — and none of
+        // the cloud models it currently offers support vision anyway.
+        // Rejecting up front beats letting someone attach a photo that
+        // *looks* attached and then silently never reaches the model.
+        if (window.ACTIVE_KIND === 'api') {
+          skipped.push(`${file.name} (this model runs in the cloud and can't see photos — pull a vision model like llama3.2-vision or qwen2.5vl with Ollama and select it locally)`);
+          continue;
+        }
         if (file.size > ATTACH_IMAGE_MAX_BYTES) { skipped.push(`${file.name} (too large, max 5 MB)`); continue; }
         const dataURL = await readFileAsDataURL(file);
         _pendingAttachments.push({ kind: 'image', name: file.name, size: file.size, dataURL });

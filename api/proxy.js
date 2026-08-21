@@ -144,14 +144,38 @@ async function sendModels(res, cfg) {
 // upstream — see buildPayload.
 const PASSTHROUGH_NUMBERS = ['temperature', 'top_p', 'presence_penalty', 'frequency_penalty', 'seed'];
 
+// Content is either a plain string, or (an image attached via the composer's
+// paperclip, app/attachments.js) an array of OpenAI-vision-style parts. Only
+// `{type:'text', text}` and `{type:'image_url', image_url:{url}}` survive,
+// and the url must be a self-contained data: URI — this is a public,
+// unauthenticated endpoint, and honouring an arbitrary http(s) URL here would
+// mean anyone with the link can make the owner's key fetch whatever address
+// they like through the provider (SSRF-by-proxy), not just attach an image.
+function sanitizeContentParts(parts) {
+  const out = [];
+  for (const p of parts) {
+    if (!p || typeof p.type !== 'string') continue;
+    if (p.type === 'text' && typeof p.text === 'string') out.push({ type: 'text', text: p.text });
+    else if (p.type === 'image_url' && p.image_url && typeof p.image_url.url === 'string'
+      && p.image_url.url.startsWith('data:image/')) {
+      out.push({ type: 'image_url', image_url: { url: p.image_url.url } });
+    }
+  }
+  return out;
+}
+
 // role + content only. Extra per-message fields are dropped on purpose:
 // `messages[].name`, for one, is a documented 400 on Groq.
 function sanitizeMessages(input) {
   if (!Array.isArray(input)) return [];
   const out = [];
   for (const m of input) {
-    if (!m || typeof m.role !== 'string' || typeof m.content !== 'string') continue;
-    out.push({ role: m.role, content: m.content });
+    if (!m || typeof m.role !== 'string') continue;
+    if (typeof m.content === 'string') { out.push({ role: m.role, content: m.content }); continue; }
+    if (Array.isArray(m.content)) {
+      const parts = sanitizeContentParts(m.content);
+      if (parts.length) out.push({ role: m.role, content: parts });
+    }
   }
   return out;
 }
